@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/**
+ * Direction « Hissatsu » — l'écran de technique spéciale, fond calme.
+ *
+ * L'énergie vient des formes, pas de la texture : cisaillement à −9°, ombres
+ * portées pleines, typo condensée italique. Le sol reste plat et sombre — les
+ * lignes de vitesse et l'explosion radiale de la maquette ne survivent pas à
+ * une session d'une heure, et sans elles la direction tient mieux.
+ */
+
+@theme {
+  /* Sol quasi-noir à biais rouge, accordé au vermillon plutôt qu'à un gris neutre. */
+  --color-ink-950: #0f0b0d;
+  --color-ink-900: #171114;
+  --color-ink-850: #1d1519;
+  --color-ink-800: #2a1f23;
+  --color-ink-700: #3b2c31;
+  --color-ink-500: #8a7278;
+  --color-ink-300: #c9b3ad;
+  --color-ink-100: #fff4e6;
+
+  /* Jaune éclair — l'accent d'action. Une seule couleur porte l'attention. */
+  --color-bolt-400: #fff100;
+  --color-bolt-500: #ffd400;
+
+  /* Vermillon — l'énergie structurelle : en-têtes, ombres de carte, alertes. */
+  --color-flare-500: #ff2e00;
+  --color-flare-300: #ff8a5c;
+
+  /* Éléments, réaccordés pour tenir sur un sol chaud. */
+  --color-fire: #ff5a3c;
+  --color-wind: #57d2e8;
+  --color-forest: #7cff85;
+  --color-mountain: #ffc24a;
+
+  --color-good: #7cff85;
+  --color-bad: #ff6b5a;
+
+  /* Condensée et lourde : la typo du poster, pas celle du tableur. */
+  --font-display: "Avenir Next Condensed", "Avenir Next", "Arial Narrow", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-ink-950 text-ink-100 antialiased;
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+
+  /* Tabular figures everywhere numbers are compared column-to-column. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Element marks are CJK; the Latin UI stack has no glyphs for them. */
+  .kanji {
+    font-family:
+      "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", "Meiryo",
+      "MS Gothic", sans-serif;
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  /* Panels stay square and calm — the shear is spent on what you act on. */
+  .panel {
+    @apply rounded-lg border border-ink-800 bg-ink-900;
+  }
+
+  .panel-title {
+    @apply bg-flare-500 px-3 py-1 font-display text-sm font-bold tracking-wide text-ink-950 uppercase italic;
+  }
+
+  .field {
+    @apply rounded border border-ink-800 bg-ink-950 px-2.5 py-1.5 text-sm text-ink-100
+      outline-none transition-colors placeholder:text-ink-500
+      focus:border-bolt-400/70 focus:ring-2 focus:ring-bolt-400/25;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 border-2 border-ink-800 bg-ink-850
+      px-3 py-1.5 font-display text-sm font-bold tracking-wide text-ink-100 uppercase italic
+      transition-colors hover:border-ink-700 hover:bg-ink-800
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400
+      disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-ink-850;
+  }
+
+  .btn-primary {
+    @apply border-bolt-400 bg-bolt-400 text-ink-950 hover:border-bolt-500 hover:bg-bolt-500;
+  }
+}
+
+@layer utilities {
+  /**
+   * Le geste central. `shear` penche le conteneur, `shear-flat` remet son
+   * contenu d'aplomb — sans quoi le texte penche aussi et devient illisible.
+   */
+  .shear {
+    transform: skewX(-9deg);
+  }
+
+  .shear-flat {
+    transform: skewX(9deg);
+  }
+
+  /* Ombre portée pleine, décalée — pas de flou : c'est une case de manga. */
+  .hard-shadow {
+    box-shadow: 5px 6px 0 var(--hard-shadow-color, --alpha(var(--color-flare-500) / 80%));
+  }
+
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-700) transparent;
+  }
+}
