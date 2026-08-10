@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+*.local
+.vite
+
+# Régénéré par `bun run data` depuis data/raw — ne pas versionner d'artefacts.
+public/data
+
+# Réglages de poste, propres à chaque machine.
+.claude/settings.local.json
