@@ -1,8 +1,20 @@
 # Handoff — datamined bundles
 
-State of the extraction as of 2026-08-10, for whoever picks this up next. The bundles are
+State of the extraction as of 2026-08-11, for whoever picks this up next. The bundles are
 committed and described in [README.md](README.md); this file covers what is *not* in the repo:
 where the extraction lives, how to redo it, and what is still open.
+
+## Since the first pass
+
+The bundles gained `tactics`, `synergies` and `equipment`, synergies gained their `members`, and
+`legend.hissatsu_category` is now filled in. Sprite art landed too, in
+[`../icons/`](../icons/README.md) — 151 files, 2 MB. Team emblems were left out: 346 files at
+512×512 weighed 48 MB on their own, and nothing uses them yet. They are cut and named alongside
+the extraction if that changes.
+
+The icons README carries the one finding worth not rediscovering: **atlas cell order does not
+encode the game id**, and the way to label an atlas is to pixel-match it against an already-named
+set. Read it before touching `passives/` or the synergy icons.
 
 ## Nothing in this repo regenerates the bundles
 
@@ -73,9 +85,18 @@ id, verified on 1716/1716 passives (`ps10001` → 975948532).
    that indexes into `PASSIVE_SKILL_EFFECT_LIST`. The 410 rarity-table ids that resolve to nothing
    were checked against all 60 247 `cfg.bin` files in the extraction and exist nowhere else — cut
    or unreleased, not a missing file.
-3. **Position / style / archetype codes.** Still raw integers. No verified mapping was found, and
-   none was invented. Would need cross-referencing against the UI text files.
-4. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
+3. **Position / style codes.** Still raw integers. No verified mapping was found, and none was
+   invented. `hissatsu.category` *is* now resolved (see README) — the same approach, checking
+   codes against entries whose type is not in doubt, should crack these two as well.
+4. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: no `.g4tp`
+   descriptor ships for the icon atlases, the menu Lua is compiled bytecode, and no config column
+   predicts the cell (all 17 of `SPECIAL_TACTICS_INFO` were tested against 70 known tactic cells;
+   best was 3/81). The realistic route is an in-game screenshot of the synergy list, then
+   pixel-matching. The icons are cut and numbered outside the repo, in
+   `C:\Users\maxim\Downloads\icons_raw\synergy\` with a `_synergies.csv` listing all 37 with their
+   members.
+5. **`passives/` icons are unlabelled**, for the same reason. 49 files, numbered by atlas cell.
+6. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
    covers place names too, if the wiki ever needs them.
 
 ## Wiring it into the app
