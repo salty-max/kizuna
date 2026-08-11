@@ -15,13 +15,15 @@ One self-contained bundle per language, joins already resolved.
 
 | | Raw | gzip |
 | --- | --- | --- |
-| `ievr.en.json` | 3.27 MB | 0.49 MB |
-| `ievr.fr.json` | 3.36 MB | 0.51 MB |
-| `ievr.ja.json` | 5.77 MB | 0.96 MB |
+| `ievr.en.json` | 3.87 MB | 0.54 MB |
+| `ievr.fr.json` | 3.99 MB | 0.57 MB |
+| `ievr.ja.json` | 6.63 MB | 1.03 MB |
 
-Each holds 5418 characters, 147 heroes, 72 basaras, 852 hissatsu, 152 aura hissatsu, 443 auras
-and 1716 passives. `de`, `es`, `it`, `pt`, `zh_hans` and `zh_hant` are available from the same
-generator if wanted.
+Each holds 5418 characters, 147 heroes, 72 basaras, 852 hissatsu, 152 aura hissatsu, 443 auras,
+1716 passives, 86 tactics, 37 synergies and 468 pieces of equipment. `de`, `es`, `it`, `pt`,
+`zh_hans` and `zh_hant` are available from the same generator if wanted.
+
+Icons for most of this live in [`../icons/`](../icons/README.md).
 
 ```jsonc
 {
@@ -40,7 +42,12 @@ generator if wanted.
   "aura_hissatsu": [ … ],
   "auras": [{ "id", "name", "description", "skill_id", "element" }],
   "passives": [{ "id", "string_id", "name", "value", "category",
-                 "tiers": [{ "family", "tier" }] }]
+                 "tiers": [{ "family", "tier" }] }],
+  "tactics": [{ "id", "string_id", "name", "description", "tp_cost" }],
+  "synergies": [{ "id", "string_id", "name", "description",
+                  "members": [ characterId ], "member_names": [ "…" ] }],
+  "equipment": [{ "id", "string_id", "name", "description", "slot",
+                  "stats": { "kick", … } }]
 }
 ```
 
@@ -70,9 +77,18 @@ mapping is per group or per archetype, not per character. Unverified.
   To render ruby instead: `s.replace(/\[([^\/\]]+)\/([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>')`.
   Apply it to every language, not just `ja`: entry `-661571557` is an untranslated row that
   leaked into all nine locales, furigana included.
-- **`main_position`, `alt_position`, `style` and `category` are raw game codes.** No verified
-  label mapping exists, so none is invented here. Only `element` is documented, from the
-  dataminer's own enum.
+- **`main_position`, `alt_position` and `style` are raw game codes.** No verified label mapping
+  exists, so none is invented here.
+- **`hissatsu.category` is now documented** in `legend.hissatsu_category`: 1 shoot, 2 dribble,
+  3 block, 4 catch. Checked against moves whose type is not in doubt — Fire Tornado is 1, Killer
+  Slide and The Tower are 3, Mugen The Hand is 4. Catch is goalkeeper-only.
+- **Synergy `members` are character ids**, joinable against `characters[].id`. They come from
+  `SYNERGY_FLAG_EXEC_COND`, whose target is a `chara_base` row id; the bundles expose that row's
+  column 2, so the join is direct. `member_names` is the same list resolved in the bundle's own
+  language, for display and sanity-checking.
+- **Tactics carry `_st` variants.** 86 rows for 70 distinct tactics: ids like `wht20010_st0301`
+  are situational reskins sharing the base's name and description. Group on the id up to `_st`
+  if you want one row per tactic. One row is a `test_` placeholder.
 - **`value` is an f32**, hence `0.699999988079071`. Round at display time.
 - **Passive `value` is present on 1700 of 1716.** The 16 without carry no effect at all.
 - **22 passives have no name** in any language — 7 name ids have no text entry upstream.
