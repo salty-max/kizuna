@@ -15,9 +15,9 @@ One self-contained bundle per language, joins already resolved.
 
 | | Raw | gzip |
 | --- | --- | --- |
-| `ievr.en.json` | 3.87 MB | 0.54 MB |
-| `ievr.fr.json` | 3.99 MB | 0.57 MB |
-| `ievr.ja.json` | 6.63 MB | 1.03 MB |
+| `ievr.en.json` | 4.77 MB | 0.71 MB |
+| `ievr.fr.json` | 4.89 MB | 0.74 MB |
+| `ievr.ja.json` | 7.53 MB | 1.23 MB |
 
 Each holds 5418 characters, 147 heroes, 72 basaras, 852 hissatsu, 152 aura hissatsu, 443 auras,
 1716 passives, 86 tactics, 37 synergies and 468 pieces of equipment. `de`, `es`, `it`, `pt`,
@@ -34,7 +34,9 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
     "id", "name", "name_original", "description", "series",
     "element", "main_position", "alt_position", "style",
     "stats_lv50": { "kick", "control", "technique", "pressure", "physical", "agility", "intelligence" },
-    "stats_lv99": { … }
+    "stats_lv99": { … },
+    "skills":     [ [level, skillId], … ],   // six, learnt at 1 / 13 / 20 / 30 / 38 / 43
+    "skills_alt": [ [level, skillId], … ]    // three, the second branch at 30 / 38 / 43
   }],
   "heroes": [ … ], "basaras": [ … ],
   "hissatsu": [{ "id", "name", "description", "power", "element", "category",
@@ -56,6 +58,10 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
 It **adds** what the community dump has no equivalent for: passive magnitudes (`value`, the
 number behind the `<VALUE>` placeholder in the text), passive rarity progressions (`tiers`),
 technique descriptions, and the game's original-name field.
+
+It **closes the character → hissatsu link**. `chara_param` columns 11–28 are `(skill id, level)`
+pairs; all 5418 characters, 147 heroes and 72 basaras carry a full set, and every one of the ids
+resolves against `hissatsu`, `aura_hissatsu` or `auras` — 0 unknowns out of 55 000 references.
 
 It **does not** close the character → passive link. Nothing here says which passives a given
 character can carry, so hand entry in the UI stays. The lead, if anyone picks it up: the Abilearn
@@ -89,6 +95,15 @@ mapping is per group or per archetype, not per character. Unverified.
 - **Tactics carry `_st` variants.** 86 rows for 70 distinct tactics: ids like `wht20010_st0301`
   are situational reskins sharing the base's name and description. Group on the id up to `_st`
   if you want one row per tactic. One row is a `test_` placeholder.
+- **`skills` mixes three kinds.** A slot's id may be a `hissatsu`, an `aura_hissatsu` or an
+  `auras` entry — Mark Evans starts on Strong Punch, an aura hissatsu, and ends on Keeper's Grit,
+  an aura. Ids do not collide across the three arrays, so resolving is a single lookup, but a
+  consumer that only searches `hissatsu` will silently lose roughly one slot in six.
+- **`skills_alt` is the second branch**, not extra slots: the same levels 30/38/43 as the tail of
+  `skills`, with different moves. Every character has one; heroes mostly do not.
+- **Heroes repeat their `id`.** 147 hero entries cover 73 characters, one per rarity tier, and the
+  tiers differ in stats only — the skill sets were checked and are identical across all 73. So
+  grouping heroes by `id` is safe for skills and wrong for stats.
 - **`value` is an f32**, hence `0.699999988079071`. Round at display time.
 - **Passive `value` is present on 1700 of 1716.** The 16 without carry no effect at all.
 - **22 passives have no name** in any language — 7 name ids have no text entry upstream.

@@ -6,7 +6,8 @@ where the extraction lives, how to redo it, and what is still open.
 
 ## Since the first pass
 
-The bundles gained `tactics`, `synergies` and `equipment`, synergies gained their `members`, and
+The bundles gained `tactics`, `synergies` and `equipment`, synergies gained their `members`,
+every character now carries the moves they learn and at what level, and
 `legend.hissatsu_category` is now filled in. Sprite art landed too, in
 [`../icons/`](../icons/README.md) — 151 files, 2 MB. Team emblems were left out: 346 files at
 512×512 weighed 48 MB on their own, and nothing uses them yet. They are cut and named alongside
@@ -73,6 +74,15 @@ Patches applied on top of `main`, all in the local clone:
 panic in `parse_*_value`, swallowed by `let _ = thread.join()` in `main.rs` — so a silent empty
 table is the symptom. Useful invariant when re-checking: every game id is the CRC32 of its string
 id, verified on 1716/1716 passives (`ps10001` → 975948532).
+
+## Character → hissatsu is closed
+
+**How it resolves.** `chara_param` columns 11–28 hold `(skill id, level)` pairs:
+six learn slots at levels 1/13/20/30/38/43, then a second branch of three at 30/38/43. The join is
+`chara_param` col 1 → `chara_base` col 0 → `chara_base` col 2, which is the `id` the bundles use.
+Which param row belongs to which bundle entry follows the split upstream already applies —
+col 41 is the rarity: 0 with a full second branch is a character, 5–7 a hero, 8 a basara. All
+55 000 skill references resolve; there are no unknown ids to tolerate.
 
 ## Open, in the order worth attacking
 
