@@ -3,8 +3,10 @@
 PNG with alpha, extracted from the game's own `.g4tx` sprite atlases (build 6.00.23.00) and cut
 out of them. Same provenance as `../dataminer/` — the game files, not the community scrape.
 
-Vendored like the rest of `data/raw/`: **not served as-is**. `public/` is regenerated, so
-whatever pipeline needs these has to copy or import them; nothing does yet.
+Vendored like the rest of `data/raw/`: **not served as-is**. `bun run data` copies every
+folder into `public/icons/` (151 PNGs). The app consumes them via `src/lib/icons.ts` and
+`src/components/GameIcon.tsx` — elements, positions, styles, staff, hissatsu categories,
+plus path helpers for tactics and (unlabelled) passive cells.
 
 ## What is here
 

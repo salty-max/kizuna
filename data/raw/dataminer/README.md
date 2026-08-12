@@ -1,13 +1,10 @@
 # Dataminer dump
 
 Extracted directly from the game — **build 6.00.23.00**, 2026-08-10 — with
-[`Telmo26/ievr_dataminer`](https://github.com/Telmo26/ievr_dataminer), the route the root
-README names for closing the passive gap. Vendored like the rest of `data/raw/`: never read at
-runtime, and `build-data.ts` does not consume it yet.
-
-This is a **different provenance** from the files beside it. Those come from the community
-scrape of Inazugle; these come from the game's own `.cpk` archives. Where the two disagree, this
-one is the game. `scripts/fetch-raw.ts` writes fixed filenames and will not touch this folder.
+[`Telmo26/ievr_dataminer`](https://github.com/Telmo26/ievr_dataminer). Vendored like the rest of
+`data/raw/`: never read at runtime. `scripts/build-data.ts` consumes these bundles as the
+**only** character/passive/equipment source (display language: `fr`; English used to join
+Inazugle portraits by name).
 
 ## Files
 

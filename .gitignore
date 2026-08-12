@@ -3,9 +3,13 @@ dist
 .DS_Store
 *.local
 .vite
+.eslintcache
 
 # Régénéré par `bun run data` depuis data/raw — ne pas versionner d'artefacts.
 public/data
 
 # Réglages de poste, propres à chaque machine.
 .claude/settings.local.json
+
+# Régénéré par `bun run data` depuis data/raw/icons
+public/icons

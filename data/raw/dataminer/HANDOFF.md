@@ -111,8 +111,16 @@ col 41 is the rarity: 0 with a full second branch is a character, 5–7 a hero, 
 
 ## Wiring it into the app
 
-`build-data.ts` does not read these bundles. Nothing in the app changes until it does. Two things
-to decide first: whether the datamined stat lines replace or sit beside the community
-`players.json` (ids differ — these are the game's CRC32 hashes, not the dump's sequential ids),
-and whether `build-data.ts`'s abort-on-unknown rule should extend to this source too. Given that
-rule exists to stop the engine going quietly wrong, it probably should.
+**Done (2026-08-11, community dropped).** `scripts/build-data.ts` reads only these
+bundles + Inazugle scrapes:
+
+- Characters / Hero / Basara → `public/data/players.json` (game ids; share encoding v4)
+- Equipment → `public/data/equipment.json` (game `string_id`)
+- Passives → `public/data/passives.json` (text + value; **effects empty** until extracted)
+- Hissatsu → `public/data/abilities.json`
+- Synergies / tactics shipped for later UI
+- Portraits from `player-images.json` (Inazugle scrape), not community
+- Icons copied to `public/icons/`
+- Position 1=GK, 2=FW, 3=MF, 4=DF; style 0–5 → breach/counter/bond/tension/roughPlay/justice
+
+Still open: character → passive, passive effect structure from the game, synergy icon labels.

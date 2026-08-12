@@ -1,8 +1,8 @@
 /**
  * Scrapes item icons from Inazugle into `data/raw/equipment-images.json`.
  *
- * The community dump carries equipment names and stats but no artwork, while
- * the official codex renders each item with an icon and puts the item's name in
+ * Equipment stats come from the dataminer; icons come from Inazugle. The
+ * official codex renders each item with an icon and puts the item's name in
  * the `alt` attribute — so name is the only join key available. Roughly 86% of
  * our catalogue matches; the rest are naming differences between the two
  * sources and simply end up without an icon.
