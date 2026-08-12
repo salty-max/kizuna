@@ -1,8 +1,8 @@
 import {
   BENCH_SLOT_IDS,
-  COORDINATOR_SLOT_IDS,
+  MANAGER_SLOT_IDS,
   DEFAULT_FORMATION,
-  MANAGER_SLOT_ID,
+  COACH_SLOT_ID,
   findFormation,
   type Formation,
 } from "./formations";
@@ -16,11 +16,13 @@ import {
   type PowerStats,
 } from "./stats";
 import {
+  MAX_TEAM_TACTICS,
   RARITY_SCALES,
   type BuildType,
   type Dataset,
   type Equipment,
   type EquipmentSlot,
+  type Ability,
   type Passive,
   type PassiveSource,
   type Player,
@@ -32,7 +34,7 @@ import {
 /** Five preset slots plus one custom passive, matching the in-game limit. */
 export const MAX_SLOT_PASSIVES = 6;
 
-export type SlotKind = "pitch" | "bench" | "manager" | "coordinator";
+export type SlotKind = "pitch" | "bench" | "coach" | "manager";
 
 /**
  * A passive on a squad slot. `value` is the percentage the user types in: the
@@ -56,6 +58,13 @@ export interface SlotAssignment {
    * outright. So it has to be settable per slot. `null` means "inherit".
    */
   buildType: BuildType | null;
+  /**
+   * Bascule sur la seconde branche de techniques (niveaux 30/38/43).
+   *
+   * C'est le seul choix de build sur les techniques : les six premières sont
+   * apprises d'office, seule la queue se remplace. `false` = tronc commun.
+   */
+  altBranch: boolean;
   equipment: Partial<Record<EquipmentSlot, string>>;
   passives: SlotPassive[];
 }
@@ -63,6 +72,11 @@ export interface SlotAssignment {
 export interface Team {
   name: string;
   formationId: string;
+  /**
+   * Prepared tactics (string ids, max `MAX_TEAM_TACTICS`). Order is the loadout
+   * order; empty slots are omitted rather than stored as nulls.
+   */
+  tacticIds: string[];
   slots: Record<string, SlotAssignment>;
 }
 
@@ -71,6 +85,7 @@ export function emptyAssignment(): SlotAssignment {
     playerId: null,
     rarity: "common",
     buildType: null,
+    altBranch: false,
     equipment: {},
     passives: Array.from({ length: MAX_SLOT_PASSIVES }, () => ({
       passiveId: null,
@@ -83,19 +98,37 @@ export function createTeam(formationId: string = DEFAULT_FORMATION.id): Team {
   const formation = findFormation(formationId);
   const slots: Record<string, SlotAssignment> = {};
   for (const id of allSlotIds(formation)) slots[id] = emptyAssignment();
-  return { name: "Nouvelle équipe", formationId: formation.id, slots };
+  // Name is filled by the UI with a locale-aware default when empty.
+  return { name: "", formationId: formation.id, tacticIds: [], slots };
 }
 
 /**
- * Which passive catalogue a given passive slot draws from. The first five are
- * the character's own presets — read from the player, manager or coordinator
- * list depending on the squad slot — and the sixth is the custom passive, which
- * has its own (weaker) catalogue.
+ * Guarantee a well-formed Team after decode / restore. Older local drafts and
+ * partial share payloads can omit `tacticIds` or miss a slot key.
  */
-export function passiveSourceFor(kind: SlotKind, index: number): PassiveSource {
-  if (index === MAX_SLOT_PASSIVES - 1) return "custom";
+export function normalizeTeam(team: Team): Team {
+  const formation = findFormation(team.formationId);
+  const slots: Record<string, SlotAssignment> = {};
+  for (const id of allSlotIds(formation)) {
+    slots[id] = team.slots[id] ?? emptyAssignment();
+  }
+  return {
+    name: team.name ?? "",
+    formationId: formation.id,
+    tacticIds: (team.tacticIds ?? []).filter(Boolean).slice(0, MAX_TEAM_TACTICS),
+    slots,
+  };
+}
+
+/**
+ * Which passive catalogue a given passive slot draws from.
+ * Coach / manager slots use their game catalogues (`mps*` / `cps*`).
+ * Pitch and the 6th "custom" slot share the player catalogue until the game
+ * exposes a separate custom list.
+ */
+export function passiveSourceFor(kind: SlotKind, _index: number): PassiveSource {
+  if (kind === "coach") return "coach";
   if (kind === "manager") return "manager";
-  if (kind === "coordinator") return "coordinator";
   return "player";
 }
 
@@ -103,16 +136,16 @@ export function allSlotIds(formation: Formation): string[] {
   return [
     ...formation.slots.map((s) => s.id),
     ...BENCH_SLOT_IDS,
-    MANAGER_SLOT_ID,
-    ...COORDINATOR_SLOT_IDS,
+    COACH_SLOT_ID,
+    ...MANAGER_SLOT_IDS,
   ];
 }
 
 export function slotKind(slotId: string, formation: Formation): SlotKind {
   if (formation.slots.some((s) => s.id === slotId)) return "pitch";
   if (BENCH_SLOT_IDS.includes(slotId)) return "bench";
-  if (slotId === MANAGER_SLOT_ID) return "manager";
-  return "coordinator";
+  if (slotId === COACH_SLOT_ID) return "coach";
+  return "manager";
 }
 
 /**
@@ -141,7 +174,7 @@ export function applyFormation(team: Team, formationId: string): Team {
     if (target) slots[target] = orphan;
   }
 
-  return { ...team, formationId: next.id, slots };
+  return normalizeTeam({ ...team, formationId: next.id, tacticIds: team.tacticIds, slots });
 }
 
 /* ── Resolution ───────────────────────────────────────────────────────────── */
@@ -153,6 +186,30 @@ function scaleStats(stats: BaseStats, scale: RarityScale): BaseStats {
     out[key] = Math.round(stats[key] * scale.multiplier) + scale.flatBonus;
   }
   return out;
+}
+
+/**
+ * Pick the character's own stat line for this rarity.
+ *
+ * Common / Rising / Advanced / Top / Legendary all start from the Common
+ * table (lv99); the intermediate tiers then apply `RARITY_SCALES`.
+ * Hero and Basara prefer the real datamined tables when the character has one,
+ * and only fall back to the ratio estimate when they do not.
+ */
+function statsForRarity(player: Player, rarity: Rarity): BaseStats {
+  if (rarity === "hero" && player.heroStats) return { ...player.heroStats.lv99 };
+  if (rarity === "basara" && player.basaraStats) return { ...player.basaraStats.lv99 };
+
+  const scale = RARITY_SCALES[rarity];
+  return scaleStats(player.stats, scale);
+}
+
+/** Une technique du personnage, résolue contre le catalogue. */
+export interface ResolvedSkill {
+  level: number;
+  ability: Ability;
+  /** Vrai quand ce slot vient de la branche alternative. */
+  fromAltBranch: boolean;
 }
 
 export interface ResolvedPassive {
@@ -169,6 +226,8 @@ export interface ResolvedSlot {
   rarity: Rarity;
   /** The archetype in force: the slot's override, else the dataset's value. */
   buildType: BuildType | null;
+  /** Les techniques effectivement apprises, branche choisie appliquée. */
+  skills: ResolvedSkill[];
   equipment: Equipment[];
   passives: ResolvedPassive[];
   /** The dataset's Common-rarity line scaled by rarity, before equipment. */
@@ -190,21 +249,60 @@ export interface ResolvedTeam {
   starters: ResolvedSlot[];
 }
 
+/**
+ * Applique la branche choisie.
+ *
+ * `skillsAlt` n'ajoute pas de slots : ses trois entrées remplacent celles de
+ * `skills` aux mêmes niveaux (30/38/43). Concaténer les deux listes donnerait
+ * neuf techniques à un personnage qui en a six.
+ */
+function resolveSkills(
+  player: Player | null,
+  rarity: Rarity,
+  altBranch: boolean,
+  abilitiesById: Map<string, Ability>,
+): ResolvedSkill[] {
+  if (!player) return [];
+
+  // La forme choisie a ses propres techniques, comme elle a ses propres stats.
+  // Un Hero n'a par ailleurs jamais de branche alternative.
+  const set = (rarity === "hero" && player.heroSkills) ||
+    (rarity === "basara" && player.basaraSkills) || {
+      skills: player.skills,
+      skillsAlt: player.skillsAlt,
+    };
+
+  const replaced = new Set(altBranch ? set.skillsAlt.map((s) => s.level) : []);
+  const chosen = [
+    ...set.skills.filter((s) => !replaced.has(s.level)).map((s) => ({ ...s, alt: false })),
+    ...(altBranch ? set.skillsAlt.map((s) => ({ ...s, alt: true })) : []),
+  ];
+
+  return chosen
+    .sort((a, b) => a.level - b.level)
+    .flatMap(({ level, abilityId, alt }) => {
+      const ability = abilitiesById.get(abilityId);
+      // Une référence inconnue est impossible — build-data refuse de produire
+      // un joueur dont une technique ne résout pas — mais un dataset servi
+      // depuis un cache périmé le pourrait.
+      return ability ? [{ level, ability, fromAltBranch: alt }] : [];
+    });
+}
+
 export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
   const formation = findFormation(team.formationId);
   const playersById = new Map(dataset.players.map((p) => [p.id, p]));
   const equipmentById = new Map(dataset.equipment.map((e) => [e.id, e]));
   const passivesById = new Map(dataset.passives.map((p) => [p.id, p]));
+  const abilitiesById = new Map(dataset.abilities.map((a) => [a.id, a]));
 
   const slots = allSlotIds(formation).map((slotId): ResolvedSlot => {
     const assignment = team.slots[slotId] ?? emptyAssignment();
     const kind = slotKind(slotId, formation);
-    const expectedPosition =
-      formation.slots.find((s) => s.id === slotId)?.position ?? null;
+    const expectedPosition = formation.slots.find((s) => s.id === slotId)?.position ?? null;
 
-    const player = assignment.playerId != null
-      ? playersById.get(assignment.playerId) ?? null
-      : null;
+    const player =
+      assignment.playerId != null ? (playersById.get(assignment.playerId) ?? null) : null;
 
     const equipment = Object.values(assignment.equipment)
       .map((id) => (id ? equipmentById.get(id) : undefined))
@@ -212,24 +310,17 @@ export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
 
     const passives = assignment.passives
       .map((slotPassive) => {
-        const passive = slotPassive.passiveId
-          ? passivesById.get(slotPassive.passiveId)
-          : undefined;
+        const passive = slotPassive.passiveId ? passivesById.get(slotPassive.passiveId) : undefined;
         return passive ? { passive, value: slotPassive.value } : null;
       })
       .filter((p): p is ResolvedPassive => p !== null && p.value !== 0);
 
-    // Rarity scales the character's own stats; equipment is a flat bonus on
-    // top, so it must be added *after* the multiplier, not scaled by it.
+    // Prefer real Hero/Basara tables; otherwise scale Common. Equipment is a
+    // flat bonus on top and must never be multiplied by the rarity factor.
     const rarity = assignment.rarity ?? "common";
-    const scaledStats = player
-      ? scaleStats(player.stats, RARITY_SCALES[rarity])
-      : emptyBaseStats();
+    const scaledStats = player ? statsForRarity(player, rarity) : emptyBaseStats();
 
-    const stats = equipment.reduce(
-      (acc, item) => addBaseStats(acc, item.stats),
-      scaledStats,
-    );
+    const stats = equipment.reduce((acc, item) => addBaseStats(acc, item.stats), scaledStats);
 
     return {
       slotId,
@@ -238,6 +329,7 @@ export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
       player,
       rarity,
       buildType: assignment.buildType ?? player?.buildType ?? null,
+      skills: resolveSkills(player, rarity, assignment.altBranch ?? false, abilitiesById),
       equipment,
       passives,
       scaledStats,

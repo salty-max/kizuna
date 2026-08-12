@@ -1,10 +1,12 @@
 import type {
   Ability,
+  BondSynergy,
   Dataset,
   Equipment,
   Passive,
   Player,
   PlayerDetails,
+  Tactic,
 } from "@/domain/types";
 
 interface Meta {
@@ -23,17 +25,24 @@ async function getJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Placeholder rows left in the dump (`必殺タクティクス名N`). */
+function isRealTactic(tactic: Tactic): boolean {
+  return !/必殺タクティクス名|test_/i.test(tactic.name);
+}
+
 let cached: Promise<Dataset> | null = null;
 
-/** Fetched once at boot; the four files are independent so they go in parallel. */
+/** Fetched once at boot; the JSON shards are independent so they go in parallel. */
 export function loadDataset(): Promise<Dataset> {
   cached ??= (async () => {
-    const [meta, players, passives, equipment, abilities] = await Promise.all([
+    const [meta, players, passives, equipment, abilities, tactics, synergies] = await Promise.all([
       getJson<Meta>("meta.json"),
       getJson<Player[]>("players.json"),
       getJson<Passive[]>("passives.json"),
       getJson<Equipment[]>("equipment.json"),
       getJson<Ability[]>("abilities.json"),
+      getJson<Tactic[]>("tactics.json"),
+      getJson<BondSynergy[]>("synergies.json"),
     ]);
 
     detailBucketSize = meta.detailBucketSize;
@@ -43,6 +52,8 @@ export function loadDataset(): Promise<Dataset> {
       passives,
       equipment,
       abilities,
+      tactics: tactics.filter(isRealTactic),
+      synergies,
       games: meta.games,
       imageBase: meta.imageBase,
       generatedAt: meta.generatedAt,
@@ -67,10 +78,12 @@ export async function loadPlayerDetails(playerId: number): Promise<PlayerDetails
 }
 
 /**
- * Portraits are hotlinked from the dataset's CDN through a resizing proxy —
- * a 37 KB PNG comes back as a ~4 KB WebP, which matters at 4840 thumbnails.
+ * Portraits are hotlinked from the community CDN through a resizing proxy —
+ * a 37 KB PNG comes back as a ~4 KB WebP, which matters across 5000+ thumbnails.
+ * Empty `image` (no community join) returns "" so the avatar can fall back.
  */
 export function imageUrl(imageBase: string, image: string, width?: number): string {
+  if (!image) return "";
   const absolute = image.startsWith("http") ? image : `${imageBase}${image}`;
   if (!width) return absolute;
   const params = new URLSearchParams({

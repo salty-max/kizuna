@@ -38,7 +38,10 @@ describe("formations", () => {
 
   test("break down the way their name says", () => {
     for (const formation of FORMATIONS) {
-      const [df, mf, fw] = formation.name.match(/^(\d)-(\d)-(\d)/)!.slice(1).map(Number);
+      const [df, mf, fw] = formation.name
+        .match(/^(\d)-(\d)-(\d)/)!
+        .slice(1)
+        .map(Number);
       const count = (position: string) =>
         formation.slots.filter((s) => s.position === position).length;
 

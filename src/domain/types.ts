@@ -6,7 +6,7 @@ export type Position = (typeof POSITIONS)[number];
 export const ELEMENTS = ["Fire", "Wind", "Forest", "Mountain"] as const;
 export type Element = (typeof ELEMENTS)[number];
 
-export const ROLES = ["Player", "Manager", "Coordinator", "Coach"] as const;
+export const ROLES = ["Player", "Coach", "Manager"] as const;
 export type Role = (typeof ROLES)[number];
 
 /**
@@ -64,15 +64,15 @@ export interface RarityScale {
 }
 
 /**
- * The first six multipliers are the community's *tested* values, not the "+20%
- * of Common per rank" figure several guides quote (which would give
- * 1.2/1.4/1.6/1.8). The two disagree; measured beats stated.
+ * Intermediate rarities (Rising→Legendary) still use the community's *tested*
+ * multipliers on the Common stat line — the dataminer only ships Common, Hero
+ * and Basara tables.
  *
- * Basara is an estimate and flagged as such. No tested multiplier exists for
- * it — what is reported is that a Basara comes out 30–40 total points above the
- * Hero version of the same character, so it is modelled as Hero plus a flat +5
- * per stat (7 × 5 = +35, the middle of that range). Revise here if better
- * numbers turn up.
+ * Hero and Basara fall back to these ratios only when a character has no real
+ * table row. The ratios (~1.206× / ~1.444×) are the mean of every stat on every
+ * character that *does* have a real row in build 6.00.23.00; stdev is <0.02 so
+ * they are a tight fit, not the old 1.67 guess that applied to a different
+ * (community-scrape) reference line.
  */
 export const RARITY_SCALES: Record<Rarity, RarityScale> = {
   common: { multiplier: 1, flatBonus: 0, estimated: false },
@@ -80,8 +80,8 @@ export const RARITY_SCALES: Record<Rarity, RarityScale> = {
   advanced: { multiplier: 1.2, flatBonus: 0, estimated: false },
   top: { multiplier: 1.3, flatBonus: 0, estimated: false },
   legendary: { multiplier: 1.4, flatBonus: 0, estimated: false },
-  hero: { multiplier: 1.67, flatBonus: 0, estimated: false },
-  basara: { multiplier: 1.67, flatBonus: 5, estimated: true },
+  hero: { multiplier: 1.206, flatBonus: 0, estimated: true },
+  basara: { multiplier: 1.444, flatBonus: 0, estimated: true },
 };
 
 export const RARITY_LABELS: Record<Rarity, string> = {
@@ -129,26 +129,61 @@ export function heroVariantFor(buildType: BuildType | null): HeroVariant | null 
   return buildType ? HERO_VARIANT_BY_BUILD[buildType] : null;
 }
 
+/** Levelled stat lines the dataminer ships for Hero / Basara forms. */
+export interface RarityStats {
+  lv50: BaseStats;
+  lv99: BaseStats;
+}
+
 export interface Player {
   id: number;
   name: string;
+  /** Game's "show original names" field (e.g. Endo Mamoru). */
+  nameOriginal: string;
+  /** Same as nameOriginal when it differs from name; otherwise empty. */
   nickname: string;
-  /** Path under the character CDN; see `imageUrl()`. */
+  /** Path under the Inazugle CDN (`imageBase`); empty when no portrait joined. */
   image: string;
+  /** Series label from the game (`Inazuma Eleven`, `… Victory Road`, …). */
   game: string;
+  team: string;
   position: Position;
+  /** Secondary position when the game records one different from `position`. */
+  altPosition: Position | null;
   element: Element;
-  /** `null` where the dataset says "Unknown" or omits it. */
+  /** From the game's style code; overridable per slot. */
   buildType: BuildType | null;
   role: Role;
   gender: string;
   ageGroup: string;
   year: string;
+  /** Common rarity, level 99 — the default build target. */
   stats: BaseStats;
+  /** Common rarity, level 50. */
+  statsLv50: BaseStats;
   total: number;
+  /** Real Hero table when the character has a Hero form; else null. */
+  heroStats: RarityStats | null;
+  /** Real Basara table when the character has a Basara form; else null. */
+  basaraStats: RarityStats | null;
+  /**
+   * Les six techniques du tronc commun, apprises aux niveaux 1/13/20/30/38/43.
+   * Elles ne se choisissent pas : le personnage les apprend.
+   */
+  skills: LearnedSkill[];
+  /**
+   * La seconde branche — trois techniques aux mêmes niveaux 30/38/43 que la
+   * queue de `skills`. Ce ne sont pas des slots en plus : c'est l'alternative.
+   * Le seul vrai choix de build sur les techniques.
+   */
+  skillsAlt: LearnedSkill[];
+  /** Techniques de la forme Hero, quand elle existe. Sans branche alternative. */
+  heroSkills: SkillSet | null;
+  /** Techniques de la forme Basara, quand elle existe. */
+  basaraSkills: SkillSet | null;
 }
 
-/** Loaded on demand — the long-form text is ~90% of the raw dataset by size. */
+/** Loaded on demand — descriptions sit in lazy buckets so boot stays light. */
 export interface PlayerDetails {
   id: number;
   description: string;
@@ -167,16 +202,18 @@ export const EQUIPMENT_SLOT_LABELS: Record<EquipmentSlot, string> = {
 };
 
 export interface Equipment {
+  /** Game string id (`eq_sh071101`), stable across languages. */
   id: string;
   slot: EquipmentSlot;
   name: string;
+  description: string;
   shop: string;
   /** Flat additions to base stats; absent stats are simply 0. */
   stats: Partial<BaseStats>;
   total: number;
   /**
-   * Icon scraped from Inazugle and joined by name — absent for the ~14% of
-   * items whose name differs between the two sources.
+   * Icon scraped from Inazugle and joined by English name — absent when the
+   * scrape and the game disagree on spelling.
    */
   image?: string;
 }
@@ -184,10 +221,52 @@ export interface Equipment {
 export const ABILITY_TYPES = ["Shoot", "Dribble", "Block", "Catch", "Skill"] as const;
 export type AbilityType = string;
 
+/**
+ * D'où vient une technique. Le jeu la range dans trois tables distinctes, et
+ * un slot de personnage peut pointer vers n'importe laquelle : deux tiers sont
+ * des `hissatsu`, le reste des aura-hissatsu et surtout des **auras** (22 % à
+ * elles seules). Ne lire que `hissatsu` perd un slot sur trois, en silence.
+ */
+export const ABILITY_KINDS = ["hissatsu", "auraHissatsu", "aura"] as const;
+export type AbilityKind = (typeof ABILITY_KINDS)[number];
+
+/**
+ * Mécanique d'une aura, lue du préfixe de son `string_id` (`wk*` keshin,
+ * `wa*` armed, `wmm*` mixi max, `ws*` totem, `wkt*` bond transform,
+ * `wap*` awakening power). Les huit types sont certains ; c'est l'attribution
+ * des badges qui est inférée — voir `data/raw/icons/aura/_aura_types.csv`.
+ */
+export const AURA_TYPES = [
+  "keshin",
+  "armed",
+  "mixi_max",
+  "totem",
+  "bond_transform",
+  "awakening_power",
+  "mode_change",
+  "awakening_change",
+] as const;
+export type AuraType = (typeof AURA_TYPES)[number];
+
+/** Names keyed by app locale — filled at build from the three dataminer bundles. */
+export type LocalizedNames = Partial<Record<"fr" | "en" | "ja", string>>;
+
 export interface Ability {
   id: string;
+  /**
+   * Fallback name in the build language (`meta.lang`). Prefer `names[locale]`
+   * at display time so switching the UI language actually renames techniques.
+   */
   name: string;
+  names: LocalizedNames;
+  kind: AbilityKind;
+  /**
+   * Hissatsu category: Shoot / Dribble / Block / Catch, or `Aura` for spirit
+   * entries (no category code in the game data).
+   */
   type: AbilityType;
+  /** Mécanique de l'aura ; `null` pour tout ce qui n'est pas une aura. */
+  auraType: AuraType | null;
   element: Element | null;
   power: number;
   tension: number;
@@ -195,9 +274,28 @@ export interface Ability {
   shop: string;
 }
 
+/** Une technique apprise à un niveau donné. */
+export interface LearnedSkill {
+  level: number;
+  abilityId: string;
+}
+
+/**
+ * Le jeu de techniques d'une forme donnée.
+ *
+ * Les techniques dépendent de la rareté, exactement comme les stats : sur les
+ * 72 personnages présents à la fois dans `characters` et `heroes`, les 72 ont
+ * des listes différentes. Un Hero n'a par ailleurs jamais de branche
+ * alternative (147/147), là où personnages et Basaras en ont toujours une.
+ */
+export interface SkillSet {
+  skills: LearnedSkill[];
+  skillsAlt: LearnedSkill[];
+}
+
 /* ── Passives ─────────────────────────────────────────────────────────────── */
 
-export const PASSIVE_SOURCES = ["player", "custom", "manager", "coordinator"] as const;
+export const PASSIVE_SOURCES = ["player", "custom", "coach", "manager"] as const;
 export type PassiveSource = (typeof PASSIVE_SOURCES)[number];
 
 /** Who an effect reaches. Resolved against the squad by the synergy engine. */
@@ -308,13 +406,41 @@ export interface Passive {
   effects: PassiveEffect[];
 }
 
+/** Team tactic (必殺タクティクス) — chosen on the squad, spent with TP in match. */
+export interface Tactic {
+  id: string;
+  name: string;
+  description: string;
+  tpCost: number;
+}
+
+/**
+ * Character bond / kizuna entry from the dataminer.
+ *
+ * Activates when every `members` player id is present in the squad (pitch or
+ * bench). Descriptions are often empty in the dump — the name + roster is what
+ * the UI shows.
+ */
+export interface BondSynergy {
+  id: string;
+  name: string;
+  description: string;
+  members: number[];
+  memberNames: string[];
+}
+
 /** Everything the app loads once at boot. */
 export interface Dataset {
   players: Player[];
   passives: Passive[];
   equipment: Equipment[];
   abilities: Ability[];
+  tactics: Tactic[];
+  synergies: BondSynergy[];
   games: string[];
   imageBase: string;
   generatedAt: string;
 }
+
+/** How many tactics a squad can prepare. */
+export const MAX_TEAM_TACTICS = 3;

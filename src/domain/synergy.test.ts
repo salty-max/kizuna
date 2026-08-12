@@ -25,33 +25,48 @@ function player(
   element: Element,
   buildType: BuildType | null = null,
 ): Player {
+  const stats = {
+    kick: 100,
+    control: 100,
+    technique: 100,
+    pressure: 100,
+    physical: 100,
+    agility: 100,
+    intelligence: 100,
+  };
   return {
     id,
     name: `P${id}`,
+    nameOriginal: `P${id}`,
     nickname: `P${id}`,
     image: "x.png",
     game: "Test",
+    team: "",
     position,
+    altPosition: null,
     element,
     buildType,
     role: "Player",
     gender: "Male",
     ageGroup: "Middle School",
     year: "-",
-    stats: {
-      kick: 100,
-      control: 100,
-      technique: 100,
-      pressure: 100,
-      physical: 100,
-      agility: 100,
-      intelligence: 100,
-    },
+    stats,
+    statsLv50: { ...stats },
     total: 700,
+    heroStats: null,
+    basaraStats: null,
+    skills: [],
+    skillsAlt: [],
+    heroSkills: null,
+    basaraSkills: null,
   };
 }
 
-function passive(id: string, effects: PassiveEffect[], source: Passive["source"] = "player"): Passive {
+function passive(
+  id: string,
+  effects: PassiveEffect[],
+  source: Passive["source"] = "player",
+): Passive {
   return {
     id,
     number: 1,
@@ -76,9 +91,10 @@ function effect(partial: Partial<PassiveEffect>): PassiveEffect {
 }
 
 const boots: Equipment = {
-  id: "boots:B1",
+  id: "eq_sh_test",
   slot: "boots",
   name: "Test Boots",
+  description: "",
   shop: "Test",
   stats: { kick: 10, agility: 6 },
   total: 16,
@@ -108,10 +124,12 @@ const dataset: Dataset = {
     passive("foulDown", [effect({ scope: "team", stat: "foulRate", direction: "decrease" })]),
     passive("nearby", [effect({ scope: "nearbyAllies", stat: "focus" })]),
     passive("subbed", [effect({ scope: "subbedOnPlayer", stat: "shotAT" })]),
-    passive("managerTeam", [effect({ scope: "team", stat: "shotAT" })], "manager"),
+    passive("coachTeam", [effect({ scope: "team", stat: "shotAT" })], "coach"),
   ],
   equipment: [boots],
   abilities: [],
+  tactics: [],
+  synergies: [],
   games: ["Test"],
   imageBase: "",
   generatedAt: "2026-01-01T00:00:00.000Z",
@@ -200,7 +218,7 @@ describe("rarity", () => {
     expect(slot.scaledStats).toEqual(dataset.players[0]!.stats);
   });
 
-  test("Basara stacks its flat bonus on top of the Hero multiplier", () => {
+  test("Hero and Basara fall back to measured ratios when no real table exists", () => {
     const hero = resolveGk((team) => {
       team.slots.gk!.rarity = "hero";
     });
@@ -208,9 +226,40 @@ describe("rarity", () => {
       team.slots.gk!.rarity = "basara";
     });
 
-    expect(hero.scaledStats.kick).toBe(167); // 100 × 1.67
-    expect(basara.scaledStats.kick).toBe(172); // then +5 per stat
-    expect(basara.total - hero.total).toBe(35); // the reported 30–40 gap
+    // Fixture players have no heroStats/basaraStats, so the ratio estimate applies.
+    expect(hero.scaledStats.kick).toBe(121); // 100 × 1.206
+    expect(basara.scaledStats.kick).toBe(144); // 100 × 1.444
+  });
+
+  test("real Hero and Basara tables beat the ratio estimate", () => {
+    const withTables: Player = {
+      ...dataset.players[0]!,
+      heroStats: {
+        lv50: { ...dataset.players[0]!.stats, kick: 150 },
+        lv99: { ...dataset.players[0]!.stats, kick: 173 },
+      },
+      basaraStats: {
+        lv50: { ...dataset.players[0]!.stats, kick: 180 },
+        lv99: { ...dataset.players[0]!.stats, kick: 207 },
+      },
+    };
+    const local: Dataset = { ...dataset, players: [withTables, ...dataset.players.slice(1)] };
+
+    const hero = resolveTeam(
+      teamWith([1], (team) => {
+        team.slots.gk!.rarity = "hero";
+      }),
+      local,
+    ).slots.find((s) => s.slotId === "gk")!;
+    const basara = resolveTeam(
+      teamWith([1], (team) => {
+        team.slots.gk!.rarity = "basara";
+      }),
+      local,
+    ).slots.find((s) => s.slotId === "gk")!;
+
+    expect(hero.scaledStats.kick).toBe(173);
+    expect(basara.scaledStats.kick).toBe(207);
   });
 
   test("equipment is added after the multiplier, never scaled by it", () => {
@@ -334,7 +383,7 @@ describe("squad limits", () => {
     });
 
     expect(shape.violations).toHaveLength(1);
-    expect(shape.violations[0]).toContain("Hero");
+    expect(shape.violations[0]).toEqual({ code: "heroLimit", count: 3, max: 2 });
   });
 
   test("count Hero on the pitch only — the bench does not count", () => {
@@ -356,7 +405,7 @@ describe("squad limits", () => {
     });
 
     expect(shape.violations).toHaveLength(1);
-    expect(shape.violations[0]).toContain("Basara");
+    expect(shape.violations[0]).toEqual({ code: "basaraLimit", count: 2, max: 1 });
   });
 
   test("ignore rarity on an empty slot", () => {
@@ -461,14 +510,14 @@ describe("scopes", () => {
     expect(result.power.get("gk")!.shootAT.guaranteed).toBe(0);
   });
 
-  test("an element scope on a manager slot cannot resolve and says so", () => {
+  test("an element scope on a coach slot cannot resolve and says so", () => {
     const team = teamWith([1, 2]);
-    givePassive(team, "manager", "sameElement", 10);
+    givePassive(team, "coach", "sameElement", 10);
 
     const result = analyse(team);
 
     expect(result.unresolved).toHaveLength(1);
-    expect(result.unresolved[0]!.reason).toContain("élément");
+    expect(result.unresolved[0]!.reason).toBe("elementScopeNoPlayer");
   });
 });
 
@@ -526,7 +575,14 @@ describe("aggregation", () => {
 
     const modifiers = analyse(team).power.get("gk")!;
 
-    for (const key of ["shootAT", "focusAT", "focusDF", "wallDF", "scrambleAT", "scrambleDF"] as const) {
+    for (const key of [
+      "shootAT",
+      "focusAT",
+      "focusDF",
+      "wallDF",
+      "scrambleAT",
+      "scrambleDF",
+    ] as const) {
       expect(modifiers[key].guaranteed).toBe(10);
     }
     expect(modifiers.kp.guaranteed).toBe(0);
@@ -547,9 +603,9 @@ describe("aggregation", () => {
     expect(analyse(team).power.get("gk")!.shootAT.guaranteed).toBe(0);
   });
 
-  test("manager passives do apply", () => {
+  test("coach passives do apply", () => {
     const team = teamWith([1, 2]);
-    givePassive(team, "manager", "managerTeam", 25);
+    givePassive(team, "coach", "coachTeam", 25);
 
     expect(analyse(team).power.get("gk")!.shootAT.guaranteed).toBe(25);
   });

@@ -35,13 +35,16 @@ export interface Contribution {
   passiveId: string;
   description: string;
   fromSlotId: string;
+  /** Localised name (Mark Evans). */
   fromPlayerName: string | null;
+  /** Romanised original name (Endo Mamoru); may equal fromPlayerName. */
+  fromPlayerNameOriginal: string | null;
   /** Signed: a `decrease` effect contributes a negative percentage. */
   percent: number;
   certainty: "always" | "conditional";
   conditions: PassiveCondition[];
   /** Set when the scope itself is situational rather than the conditions. */
-  note?: string;
+  note?: ScopeNote;
 }
 
 export interface Modifier {
@@ -52,11 +55,18 @@ export interface Modifier {
   contributions: Contribution[];
 }
 
+/** Stable codes — UI translates via i18n `unresolved.*`. */
+export type UnresolvedReason =
+  "selfNoPlayer" | "elementScopeNoPlayer" | "positionScopeNoPlayer" | "subbedOnPlayer";
+
+/** Stable codes — UI translates via i18n `notes.*`. */
+export type ScopeNote = "dependsOnMatchPlacement";
+
 export interface UnresolvedPassive {
   passiveId: string;
   description: string;
   fromSlotId: string;
-  reason: string;
+  reason: UnresolvedReason;
 }
 
 export interface SynergyResult {
@@ -84,59 +94,9 @@ export const GAUGE_STATS: PassiveStat[] = PASSIVE_STATS.filter(
   (stat) => POWER_STAT_MAP[stat] === undefined,
 );
 
-export const PASSIVE_STAT_LABELS: Record<PassiveStat, string> = {
-  shotAT: "Shoot AT",
-  focus: "Focus",
-  scramble: "Scramble",
-  wallDF: "Wall DF",
-  AT: "Attaque",
-  DF: "Défense",
-  KP: "KP",
-  all: "Toutes puissances",
-  directShotAT: "Tir direct AT",
-  wallPierce: "Perce-muraille",
-  bondGain: "Gain de lien",
-  bondLoss: "Perte de lien",
-  tension: "Tension",
-  breachRate: "Taux de brèche",
-  breachTensionRequirement: "Tension requise (brèche)",
-  roughAttack: "Attaque agressive",
-  foulRate: "Taux de faute",
-  tacticCooldown: "Recharge des tactiques",
-  commonDropRate: "Drop commun",
-  rareDropRate: "Drop rare",
-};
-
-export const CONDITION_LABELS: Record<PassiveCondition, string> = {
-  afterBallRecoveryNoDirectCatch: "après récupération (hors arrêt direct)",
-  afterSubstitution: "après un remplacement",
-  bondPowerAtLeast20: "lien ≥ 20",
-  differentElementAllyNearby: "allié d'un autre élément à proximité",
-  distanceWithinRadius: "allié dans le rayon",
-  fieldZoneOpponentHalf: "dans le camp adverse",
-  fieldZoneOwnHalf: "dans son propre camp",
-  matchTimeHalfFirst: "première mi-temps",
-  matchTimeHalfSecond: "seconde mi-temps",
-  nextRoughAttackOnly: "prochaine attaque agressive seulement",
-  noFoulCommittedYet: "aucune faute commise",
-  onLostScramble: "après un duel perdu",
-  onMarkedOrBlockedWhileDashing: "marqué ou bloqué en sprint",
-  onOpponentFoul: "sur faute adverse",
-  onOpponentPassDuringFocus: "sur passe adverse pendant un focus",
-  onTeamPass: "sur une passe de l'équipe",
-  outsideZoneArea: "hors de la surface",
-  sameElementAllyNearby: "allié du même élément à proximité",
-  scoreNotLeading: "à égalité ou mené au score",
-  teamBreachRateAtLeast15: "taux de brèche d'équipe ≥ 15 %",
-  tensionAt100: "tension au maximum",
-  tensionAtLeast50: "tension ≥ 50",
-  whenWinningFocusOrScramble: "en gagnant un focus ou un duel",
-  whileDashing: "en sprint",
-};
-
 type ScopeResolution =
-  | { kind: "targets"; slots: ResolvedSlot[]; note?: string }
-  | { kind: "unresolvable"; reason: string };
+  | { kind: "targets"; slots: ResolvedSlot[]; note?: ScopeNote }
+  | { kind: "unresolvable"; reason: UnresolvedReason };
 
 function resolveScope(
   effect: PassiveEffect,
@@ -156,7 +116,7 @@ function resolveScope(
     case "self":
       return source.player
         ? { kind: "targets", slots: [source] }
-        : { kind: "unresolvable", reason: "portée « soi-même » sur un slot sans joueur" };
+        : { kind: "unresolvable", reason: "selfNoPlayer" };
 
     case "alliedGK":
       return { kind: "targets", slots: starters.filter((s) => s.player?.position === "GK") };
@@ -171,7 +131,7 @@ function resolveScope(
       if (!element) {
         return {
           kind: "unresolvable",
-          reason: "portée liée à l'élément du porteur, mais le slot n'a pas de joueur",
+          reason: "elementScopeNoPlayer",
         };
       }
       const same = effect.scope === "alliesSameElement";
@@ -187,7 +147,7 @@ function resolveScope(
       if (!position) {
         return {
           kind: "unresolvable",
-          reason: "portée liée au poste du porteur, mais le slot n'a pas de joueur",
+          reason: "positionScopeNoPlayer",
         };
       }
       const same = effect.scope === "alliesSamePosition";
@@ -203,13 +163,13 @@ function resolveScope(
       return {
         kind: "targets",
         slots: starters,
-        note: "dépend du placement en match",
+        note: "dependsOnMatchPlacement",
       };
 
     case "subbedOnPlayer":
       return {
         kind: "unresolvable",
-        reason: "s'applique au joueur entrant en cours de match",
+        reason: "subbedOnPlayer",
       };
   }
 }
@@ -236,7 +196,11 @@ function record(modifier: Modifier, contribution: Contribution) {
   else modifier.conditional += contribution.percent;
 }
 
-function applyPercent(base: PowerStats, modifiers: Record<PowerKey, Modifier>, includeConditional: boolean): PowerStats {
+function applyPercent(
+  base: PowerStats,
+  modifiers: Record<PowerKey, Modifier>,
+  includeConditional: boolean,
+): PowerStats {
   const out = emptyPowerStats();
   for (const key of POWER_KEYS) {
     const m = modifiers[key];
@@ -256,7 +220,7 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
   const unresolved: UnresolvedPassive[] = [];
 
   // Bench slots carry passives that only matter once the player comes on, so
-  // they are deliberately not a source here. Manager and coordinators are.
+  // they are deliberately not a source here. Coach and managers are.
   const sources = slots.filter((s) => s.kind !== "bench" && s.passives.length > 0);
 
   for (const source of sources) {
@@ -282,6 +246,7 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
           description: passive.description,
           fromSlotId: source.slotId,
           fromPlayerName: source.player?.name ?? null,
+          fromPlayerNameOriginal: source.player?.nameOriginal || source.player?.name || null,
           percent,
           certainty: conditional ? "conditional" : "always",
           conditions: effect.conditions,
@@ -335,6 +300,11 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
 
 /* ── Squad-shape read-outs ────────────────────────────────────────────────── */
 
+/** Stable codes — UI translates via i18n `violations.*`. */
+export type Violation =
+  | { code: "heroLimit"; count: number; max: number }
+  | { code: "basaraLimit"; count: number; max: number };
+
 export interface SquadShape {
   elements: { element: string; count: number }[];
   positions: { position: string; count: number }[];
@@ -342,7 +312,7 @@ export interface SquadShape {
   rarities: { rarity: Rarity; count: number }[];
   outOfPosition: ResolvedSlot[];
   /** Game limits that the current squad breaks. */
-  violations: string[];
+  violations: Violation[];
   filled: number;
   capacity: number;
 }
@@ -365,16 +335,12 @@ export function squadShape(resolved: ResolvedTeam): SquadShape {
     (s) => s.player !== null && s.rarity === "basara",
   ).length;
 
-  const violations: string[] = [];
+  const violations: Violation[] = [];
   if (heroStarters > MAX_HERO_STARTERS) {
-    violations.push(
-      `${heroStarters} Hero titulaires — le jeu en autorise ${MAX_HERO_STARTERS} sur le terrain.`,
-    );
+    violations.push({ code: "heroLimit", count: heroStarters, max: MAX_HERO_STARTERS });
   }
   if (basaraInSquad > MAX_BASARA_IN_SQUAD) {
-    violations.push(
-      `${basaraInSquad} Basara dans l'effectif — le jeu en autorise ${MAX_BASARA_IN_SQUAD}.`,
-    );
+    violations.push({ code: "basaraLimit", count: basaraInSquad, max: MAX_BASARA_IN_SQUAD });
   }
 
   return {

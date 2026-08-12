@@ -177,13 +177,20 @@ export function findFormation(id: string): Formation {
   return FORMATIONS.find((f) => f.id === id) ?? DEFAULT_FORMATION;
 }
 
-/** Squad slots that sit outside the pitch shape. */
+/**
+ * Slots hors formation.
+ *
+ * Le staff suit la terminologie du jeu : un **Coach** (監督, celui qui dirige)
+ * et trois **Managers** (マネージャー, l'intendance). Kizuna les appelait
+ * « Manager » et « Coordinateurs », ce qui inversait aussi bien les icônes que
+ * le catalogue de passifs branché sur chaque slot.
+ *
+ * L'ordre de `allSlotIds()` est porteur : l'encodage de partage est positionnel,
+ * donc coach puis managers, dans cet ordre, définitivement.
+ */
 export const BENCH_SIZE = 5;
-export const COORDINATOR_SIZE = 3;
+export const MANAGER_SIZE = 3;
 
 export const BENCH_SLOT_IDS = Array.from({ length: BENCH_SIZE }, (_, i) => `bench${i + 1}`);
-export const COORDINATOR_SLOT_IDS = Array.from(
-  { length: COORDINATOR_SIZE },
-  (_, i) => `coord${i + 1}`,
-);
-export const MANAGER_SLOT_ID = "manager";
+export const COACH_SLOT_ID = "coach";
+export const MANAGER_SLOT_IDS = Array.from({ length: MANAGER_SIZE }, (_, i) => `manager${i + 1}`);
