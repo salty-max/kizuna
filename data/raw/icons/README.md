@@ -18,6 +18,7 @@ plus path helpers for tactics and (unlabelled) passive cells.
 | `positions/` | 18 | position name | nothing yet — `main_position` is a raw code |
 | `tactics/` | 70 | `wht*` string id | `tactics[].string_id` |
 | `aura/` | 7 | aura type | `auras[].type` — **proposed, see below** |
+| `gender/` | 2 | male / female | `characters[].gender` |
 | `passives/` | 49 | **sequential index only** | nothing |
 
 Team emblems are deliberately absent: 346 files at 512×512 came to 48 MB, against 2 MB for

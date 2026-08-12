@@ -82,6 +82,13 @@ mapping is per group or per archetype, not per character. Unverified.
   leaked into all nine locales, furigana included.
 - **`main_position`, `alt_position` and `style` are raw game codes.** No verified label mapping
   exists, so none is invented here.
+- **`spirit_drop` says the game's drop tables hand you this character's spirit**: 396 of the 5418
+  characters, 92 of 147 heroes, 46 of 72 basaras. It is the union of `m_spiritTableDataList` in
+  `soccer_drop_config` with the fixed-reward and victory-box tables. It is **not** the same as
+  "recruitable" — press coverage says the whole 5400 roster can be recruited, spirits being won
+  in matches *or* summoned with Bond Stars, and no table for that second route exists in the
+  files, so it is probably not gated by a list. Read the flag as "drops from a match", which is
+  what it literally is. Worth knowing: the Terracotta Warriors are absent from it.
 - **`gender` is `"male"`, `"female"` or `"other"`**, resolved rather than left as a code, from
   `chara_base` column 11. Every character, hero and basara has one — 4369 male, 1009 female and
   40 other among the characters. `other` is the game's own third value, used for things like the
