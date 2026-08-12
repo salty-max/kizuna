@@ -15,9 +15,9 @@ One self-contained bundle per language, joins already resolved.
 
 | | Raw | gzip |
 | --- | --- | --- |
-| `ievr.en.json` | 4.77 MB | 0.71 MB |
-| `ievr.fr.json` | 4.89 MB | 0.74 MB |
-| `ievr.ja.json` | 7.53 MB | 1.23 MB |
+| `ievr.en.json` | 4.79 MB | 0.72 MB |
+| `ievr.fr.json` | 4.91 MB | 0.74 MB |
+| `ievr.ja.json` | 7.55 MB | 1.24 MB |
 
 Each holds 5418 characters, 147 heroes, 72 basaras, 852 hissatsu, 152 aura hissatsu, 443 auras,
 1716 passives, 86 tactics, 37 synergies and 468 pieces of equipment. `de`, `es`, `it`, `pt`,
@@ -42,7 +42,7 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "hissatsu": [{ "id", "name", "description", "power", "element", "category",
                  "growth_rate", "tp_consumption", "cooldown", "is_block", "is_longshot" }],
   "aura_hissatsu": [ … ],
-  "auras": [{ "id", "name", "description", "skill_id", "element" }],
+  "auras": [{ "id", "string_id", "name", "description", "skill_id", "element", "type" }],
   "passives": [{ "id", "string_id", "name", "value", "category",
                  "tiers": [{ "family", "tier" }] }],
   "tactics": [{ "id", "string_id", "name", "description", "tp_cost" }],
@@ -88,6 +88,13 @@ mapping is per group or per archetype, not per character. Unverified.
 - **`hissatsu.category` is now documented** in `legend.hissatsu_category`: 1 shoot, 2 dribble,
   3 block, 4 catch. Checked against moves whose type is not in doubt — Fire Tornado is 1, Killer
   Slide and The Tower are 3, Mugen The Hand is 4. Catch is goalkeeper-only.
+- **`auras.type` splits the 443 auras across the game's mechanics**, and it is what makes them
+  usable: 189 `armed`, 103 `keshin`, 69 `mixi_max`, 56 `totem`, 12 `mode_change`,
+  10 `awakening_power`, 3 `bond_transform`, 1 `awakening_change`. The names are not guessed — the
+  string id prefixes separate them cleanly (`wkd`/`wkk`/`wko`/`wks` keshin, `wad`/`wak`/`wao`/`was`
+  armed, `wmm` mixi max, `wsd`/`wsk`/`wso`/`wss` totem, `wkt` and `kizuna_trans`, `wap`,
+  `mode_change_*`, `awakening_change`), and the game ships a localised banner per mechanic that
+  names them: "Armourfy!", キズナトランス, ミキシマックス, 覚醒パワー.
 - **Synergy `members` are character ids**, joinable against `characters[].id`. They come from
   `SYNERGY_FLAG_EXEC_COND`, whose target is a `chara_base` row id; the bundles expose that row's
   column 2, so the join is direct. `member_names` is the same list resolved in the bundle's own

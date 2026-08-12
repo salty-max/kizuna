@@ -15,6 +15,7 @@ whatever pipeline needs these has to copy or import them; nothing does yet.
 | `hissatsu/` | 4 | category name | `legend.hissatsu_category` |
 | `positions/` | 18 | position name | nothing yet — `main_position` is a raw code |
 | `tactics/` | 70 | `wht*` string id | `tactics[].string_id` |
+| `aura/` | 7 | aura type | `auras[].type` — **proposed, see below** |
 | `passives/` | 49 | **sequential index only** | nothing |
 
 Team emblems are deliberately absent: 346 files at 512×512 came to 48 MB, against 2 MB for
@@ -28,6 +29,15 @@ downscaled — whenever the app has a use for them.
   text badges — the atlas they come from is localised, hence one file per language (`FW`/`ATT`,
   `MF`/`MIL`, `DF`/`DÉF`, `GK`/`GAR`). The `*_silhouette.png` files are the older plain-white
   pictograms, kept as an alternative. `coach` and `manager` are staff, not pitch positions.
+- **`aura/` names are inferred, not read from the data.** The eight aura types are certain — they
+  come from the string id prefixes, `wk*` keshin, `wa*` armed, `wmm*` mixi max, `ws*` totem,
+  `wkt*` bond transform, `wap*` awakening power, `mode_change_*`, `awakening_change`. Which badge
+  belongs to which is not in any file, so the filenames are a best reading, graded in
+  `_aura_types.csv`. Three are well supported: the split face is mixi max (two players fused),
+  and armed/keshin are the same creature armoured-in-a-diamond versus plain-in-a-square, with the
+  purple matching the game's own "Armourfy!" banner. Green for bond transform and red for
+  awakening power match their banners too. Totem and mode change are guesses. `awakening_change`
+  has one aura and no badge left over.
 - **`passives/` is unmapped.** The files are numbered by their position in the atlas, and that
   position does **not** encode the passive id — see below. Treat them as unlabelled art.
 - **`tactics/icon_tactic_wht20020.png`** (Keyman Ignition) was identified from its atlas cell
