@@ -11,10 +11,24 @@ export {
 export { LocaleProvider } from "./context";
 export { useI18n, useT } from "./hooks";
 export {
+  abilityDisplayDescription,
   abilityDisplayName,
+  bondDisplayDescription,
+  bondDisplayName,
   contributionPlayerName,
+  equipmentDisplayDescription,
+  equipmentDisplayName,
+  localizedSearchBlob,
+  localizedText,
+  matchesTeamFilter,
+  passiveDisplayDescription,
+  playerDetailDescription,
   playerDisplayName,
   playerInitials,
+  tacticDisplayDescription,
+  tacticDisplayName,
+  teamDisplayName,
+  teamFilterKey,
 } from "./names";
 export { createTranslator, type MessageKey, type Translator } from "./translate";
 export type { Messages } from "./messages/fr";

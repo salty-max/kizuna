@@ -33,6 +33,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    document.title = createTranslator(locale).t("app.documentTitle");
   }, [locale]);
 
   const value = useMemo<I18nContextValue>(() => {

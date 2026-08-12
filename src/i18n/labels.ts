@@ -3,6 +3,7 @@
  * strings move between languages.
  */
 
+import type { Formation } from "@/domain/formations";
 import type { PowerKey, StatKey } from "@/domain/stats";
 import type { ScopeNote, UnresolvedReason, Violation } from "@/domain/synergy";
 import {
@@ -11,12 +12,42 @@ import {
   type BuildType,
   type Element,
   type EquipmentSlot,
+  type Gender,
   type HeroVariant,
   type PassiveCondition,
   type PassiveStat,
   type Rarity,
 } from "@/domain/types";
 import type { MessageKey, Translator } from "./translate";
+
+/** Localised formation name (`formations.{id}`), with English fallback. */
+export function formationLabel(
+  t: Translator["t"],
+  formation: Pick<Formation, "id" | "name">,
+): string {
+  const key = `formations.${formation.id}` as MessageKey;
+  const label = t(key);
+  return label.startsWith("formations.") ? formation.name : label;
+}
+
+/**
+ * Short series tag so same-name roster variants (IE1 vs GO vs Ares…) stay
+ * distinguishable in lists without reading the full series string.
+ */
+export function seriesShortLabel(game: string): string {
+  const g = game.trim();
+  if (!g) return "";
+  if (/Victory Road/i.test(g)) return "VR";
+  if (/Orion/i.test(g)) return "Orion";
+  if (/Arès|Ares/i.test(g)) return "Ares";
+  if (/Galaxy/i.test(g)) return "Galaxy";
+  if (/GO\s*2|Chrono/i.test(g)) return "GO2";
+  if (/\bGO\b/i.test(g)) return "GO";
+  if (/\b3\b/.test(g) && /Eleven/i.test(g)) return "IE3";
+  if (/\b2\b/.test(g) && /Eleven/i.test(g)) return "IE2";
+  if (/Inazuma Eleven/i.test(g)) return "IE1";
+  return g;
+}
 
 /** Localised hissatsu category label (Shoot / Dribble / … / Aura). */
 export function abilityTypeLabel(t: Translator["t"], type: string): string {
@@ -33,6 +64,10 @@ export function auraTypeLabel(t: Translator["t"], type: AuraType): string {
 
 export function elementLabel(t: Translator["t"], element: Element): string {
   return t(`elements.${element}` as MessageKey);
+}
+
+export function genderLabel(t: Translator["t"], gender: Gender): string {
+  return t(`genders.${gender}` as MessageKey);
 }
 
 export function rarityLabelKey(t: Translator["t"], rarity: Rarity): string {

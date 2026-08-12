@@ -8,18 +8,26 @@ import {
 } from "./names";
 
 describe("playerDisplayName", () => {
-  const player = { name: "Mark Evans", nameOriginal: "Endo Mamoru" };
+  const player = {
+    name: "Mark Evans",
+    names: { fr: "Mark Evans", en: "Mark Evans", ja: "円堂 守" },
+    nameOriginal: "Endo Mamoru",
+  };
 
   test("defaults to the localised name", () => {
-    expect(playerDisplayName(player, false)).toBe("Mark Evans");
+    expect(playerDisplayName(player, false, "en")).toBe("Mark Evans");
+  });
+
+  test("follows the UI locale", () => {
+    expect(playerDisplayName(player, false, "ja")).toBe("円堂 守");
   });
 
   test("switches to the romanised original when asked", () => {
-    expect(playerDisplayName(player, true)).toBe("Endo Mamoru");
+    expect(playerDisplayName(player, true, "en")).toBe("Endo Mamoru");
   });
 
   test("falls back to name when original is empty", () => {
-    expect(playerDisplayName({ name: "Foo", nameOriginal: "" }, true)).toBe("Foo");
+    expect(playerDisplayName({ name: "Foo", names: {}, nameOriginal: "" }, true)).toBe("Foo");
   });
 
   test("handles null", () => {
@@ -49,6 +57,8 @@ describe("abilityDisplayName", () => {
     id: "1",
     name: "Main céleste",
     names: { fr: "Main céleste", en: "God Hand", ja: "ゴッドハンド" },
+    description: "",
+    descriptions: {},
     kind: "hissatsu" as const,
     auraType: null,
     type: "Catch",
