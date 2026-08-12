@@ -5,7 +5,7 @@ import { layoutPitchSlots } from "@/domain/layoutPitch";
 import type { SynergyResult } from "@/domain/synergy";
 import type { ResolvedSlot, ResolvedTeam } from "@/domain/team";
 import { playerDisplayName, useI18n } from "@/i18n";
-import { rarityDisplayLabel } from "@/i18n/labels";
+import { formationLabel, rarityDisplayLabel } from "@/i18n/labels";
 import { cn, formatPercent, rarityStyle } from "@/lib/ui";
 import { useMemo } from "react";
 import { ElementBadge, PositionBadge, StaffIcon } from "./GameIcon";
@@ -108,9 +108,10 @@ function FormationBoard({
   );
 
   const positionById = useMemo(() => new Map(laidOut.map((s) => [s.id, s])), [laidOut]);
+  const { t } = useI18n();
 
   return (
-    <Panel title={formation.name} padded={false}>
+    <Panel title={formationLabel(t, formation)} padded={false}>
       <div className="scroll-slim overflow-x-auto">
         <div
           className="relative mx-auto"
@@ -168,7 +169,7 @@ function PitchSlot({
 }) {
   const { t, locale, showOriginalNames } = useI18n();
   const boost = slotBoost(slot, synergy);
-  const displayName = playerDisplayName(slot.player, showOriginalNames);
+  const displayName = playerDisplayName(slot.player, showOriginalNames, locale);
 
   if (!slot.player) {
     return (
@@ -311,7 +312,7 @@ function SmallSlot({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const { t, showOriginalNames } = useI18n();
+  const { t, locale, showOriginalNames } = useI18n();
   const staffLabel =
     slot.kind === "coach"
       ? t("pitch.coach")
@@ -321,7 +322,7 @@ function SmallSlot({
 
   const activePassives = slot.passives.length;
   const rarity = rarityStyle(slot.rarity, slot.buildType);
-  const displayName = playerDisplayName(slot.player, showOriginalNames);
+  const displayName = playerDisplayName(slot.player, showOriginalNames, locale);
   const isStaff = slot.kind === "coach" || slot.kind === "manager";
   // Coach / managers are passives-first in the dataset (no separate staff
   // roster). A slot with passives is "filled" even without a portrait.

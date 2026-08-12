@@ -5,6 +5,7 @@ import { Button, CountBadge, Select, TextInput } from "@/components/ui";
 import { FORMATIONS } from "@/domain/formations";
 import { applyFormation, type Team } from "@/domain/team";
 import { useI18n } from "@/i18n";
+import { formationLabel } from "@/i18n/labels";
 import type { SavedTeam } from "@/lib/storage";
 import { cn } from "@/lib/ui";
 
@@ -54,7 +55,7 @@ export function TeamToolbar({
         value={team.formationId}
         options={FORMATIONS.map((formation) => ({
           value: formation.id,
-          label: formation.name,
+          label: formationLabel(t, formation),
         }))}
         onChange={(id) => onTeamChange(applyFormation(team, id))}
         aria-label={t("app.formation")}

@@ -25,6 +25,8 @@ import {
 import {
   abilityDisplayName,
   contributionPlayerName,
+  equipmentDisplayName,
+  passiveDisplayDescription,
   playerDisplayName,
   playerInitials,
   useI18n,
@@ -69,7 +71,7 @@ interface Props {
 export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpenPicker }: Props) {
   const { t, locale, showOriginalNames } = useI18n();
   const staffOnly = slot.kind === "coach" || slot.kind === "manager";
-  const displayName = playerDisplayName(slot.player, showOriginalNames);
+  const displayName = playerDisplayName(slot.player, showOriginalNames, locale);
 
   const passivesBySource = useMemo(() => {
     const groups = new Map<string, Passive[]>();
@@ -438,7 +440,7 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
             </tbody>
           </table>
 
-          <Contributions modifiers={modifiers} />
+          <Contributions modifiers={modifiers} passives={dataset.passives} />
         </Panel>
       )}
 
@@ -451,7 +453,7 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
               const current = assignment.equipment[equipmentSlot] ?? "";
               const equipped = items.find((item) => item.id === current);
               return (
-                <label key={equipmentSlot} className="flex items-center gap-2">
+                <label key={equipmentSlot} className="flex min-w-0 items-center gap-2">
                   <EquipmentIcon item={equipped} />
                   <span className="w-16 shrink-0 text-xs text-ink-500">
                     {equipmentSlotLabel(t, equipmentSlot)}
@@ -460,19 +462,22 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                     value={current}
                     options={[
                       { value: "", label: "—" },
-                      ...items.map((item) => ({
-                        value: item.id,
-                        label: `${item.name} (+${item.total})`,
-                        render: (
-                          <span className="flex items-center gap-1.5">
-                            <EquipmentIcon item={item} size={18} />
-                            <span className="min-w-0 truncate">{item.name}</span>
-                            <span className="ml-auto shrink-0 text-ink-500 tnum">
-                              +{item.total}
+                      ...items.map((item) => {
+                        const itemName = equipmentDisplayName(item, locale);
+                        return {
+                          value: item.id,
+                          label: `${itemName} (+${item.total})`,
+                          render: (
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <EquipmentIcon item={item} size={18} />
+                              <span className="min-w-0 truncate">{itemName}</span>
+                              <span className="ml-auto shrink-0 text-ink-500 tnum">
+                                +{item.total}
+                              </span>
                             </span>
-                          </span>
-                        ),
-                      })),
+                          ),
+                        };
+                      }),
                     ]}
                     onChange={(next) =>
                       onChange({
@@ -484,7 +489,7 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                     searchable
                     searchPlaceholder={t("editor.search")}
                     emptyLabel={t("editor.searchEmpty")}
-                    className="flex-1"
+                    className="min-w-0 flex-1"
                   />
                 </label>
               );
@@ -569,7 +574,7 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
 
             return (
               <div key={index} className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <span className="w-20 shrink-0 text-xs text-ink-500">
                     {index === MAX_SLOT_PASSIVES - 1
                       ? t("editor.custom")
@@ -580,16 +585,19 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                     value={current.passiveId ?? ""}
                     options={[
                       { value: "", label: "—" },
-                      ...options.map((passive) => ({
-                        value: passive.id,
-                        label: `#${passive.number} · ${passive.description}`,
-                        render: (
-                          <span className="flex items-baseline gap-1.5">
-                            <span className="shrink-0 text-ink-500 tnum">#{passive.number}</span>
-                            <span className="min-w-0 truncate">{passive.description}</span>
-                          </span>
-                        ),
-                      })),
+                      ...options.map((passive) => {
+                        const text = passiveDisplayDescription(passive, locale);
+                        return {
+                          value: passive.id,
+                          label: `#${passive.number} · ${text}`,
+                          render: (
+                            <span className="flex min-w-0 items-baseline gap-1.5">
+                              <span className="shrink-0 text-ink-500 tnum">#{passive.number}</span>
+                              <span className="min-w-0 truncate">{text}</span>
+                            </span>
+                          ),
+                        };
+                      }),
                     ]}
                     onChange={(passiveId) => {
                       const next = options.find((p) => p.id === passiveId);
@@ -610,7 +618,7 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                     searchable
                     searchPlaceholder={t("editor.search")}
                     emptyLabel={t("editor.searchEmpty")}
-                    className="flex-1"
+                    className="min-w-0 flex-1"
                   />
 
                   <NumberInput
@@ -625,10 +633,10 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                       };
                       onChange({ ...assignment, passives });
                     }}
-                    className="w-20"
+                    className="w-20 shrink-0"
                     aria-label={t("editor.percentValue")}
                   />
-                  <span className="text-xs text-ink-500">%</span>
+                  <span className="shrink-0 text-xs text-ink-500">%</span>
                 </div>
 
                 {selected && (
@@ -698,8 +706,15 @@ function EquipmentIcon({ item, size = 34 }: { item: Equipment | undefined; size?
   );
 }
 
-function Contributions({ modifiers }: { modifiers: Record<PowerKey, Modifier> }) {
+function Contributions({
+  modifiers,
+  passives,
+}: {
+  modifiers: Record<PowerKey, Modifier>;
+  passives: Passive[];
+}) {
   const { t, locale, showOriginalNames } = useI18n();
+  const passivesById = useMemo(() => new Map(passives.map((p) => [p.id, p])), [passives]);
   // One passive usually feeds several power stats; list each passive once.
   const seen = new Map<
     string,
@@ -710,8 +725,11 @@ function Contributions({ modifiers }: { modifiers: Record<PowerKey, Modifier> })
     for (const contribution of modifier.contributions) {
       const key = `${contribution.passiveId}:${contribution.fromSlotId}`;
       if (seen.has(key)) continue;
+      const passive = passivesById.get(contribution.passiveId);
       seen.set(key, {
-        description: contribution.description,
+        description: passive
+          ? passiveDisplayDescription(passive, locale)
+          : contribution.description,
         from: contributionPlayerName(contribution, showOriginalNames),
         percent: contribution.percent,
         conditions: [

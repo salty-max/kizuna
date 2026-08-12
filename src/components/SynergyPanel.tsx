@@ -10,7 +10,15 @@ import {
   type Position,
   type Tactic,
 } from "@/domain/types";
-import { playerDisplayName, useI18n } from "@/i18n";
+import {
+  bondDisplayDescription,
+  bondDisplayName,
+  passiveDisplayDescription,
+  playerDisplayName,
+  tacticDisplayDescription,
+  tacticDisplayName,
+  useI18n,
+} from "@/i18n";
 import {
   buildTypeLabel,
   conditionLabel,
@@ -74,8 +82,8 @@ export function SynergyPanel({ resolved, synergy, dataset, tacticIds, onTacticsC
                 {activeBonds.map((bond) => (
                   <BondRow
                     key={bond.synergy.id}
-                    name={bond.synergy.name}
-                    description={bond.synergy.description}
+                    name={bondDisplayName(bond.synergy, locale)}
+                    description={bondDisplayDescription(bond.synergy, locale)}
                     members={bond.synergy.memberNames}
                     present={bond.present.length}
                     total={bond.synergy.members.length}
@@ -94,8 +102,8 @@ export function SynergyPanel({ resolved, synergy, dataset, tacticIds, onTacticsC
                   return (
                     <BondRow
                       key={bond.synergy.id}
-                      name={bond.synergy.name}
-                      description={bond.synergy.description}
+                      name={bondDisplayName(bond.synergy, locale)}
+                      description={bondDisplayDescription(bond.synergy, locale)}
                       members={bond.synergy.memberNames}
                       present={bond.present.length}
                       total={bond.synergy.members.length}
@@ -182,7 +190,7 @@ export function SynergyPanel({ resolved, synergy, dataset, tacticIds, onTacticsC
               list: shape.outOfPosition
                 .map((slot) =>
                   t("synergy.outOfPositionItem", {
-                    name: playerDisplayName(slot.player, showOriginalNames) || "?",
+                    name: playerDisplayName(slot.player, showOriginalNames, locale) || "?",
                     from: slot.player?.position ?? "?",
                     to: slot.expectedPosition ?? "?",
                   }),
@@ -215,15 +223,19 @@ export function SynergyPanel({ resolved, synergy, dataset, tacticIds, onTacticsC
         </DataList>
       </Panel>
 
-      <GaugesSection synergy={synergy} />
+      <GaugesSection synergy={synergy} passives={dataset.passives} />
 
       {synergy.unresolved.length > 0 && (
         <Panel title={t("synergy.unresolved")} bodyClassName="flex flex-col gap-1.5">
-          {synergy.unresolved.map((item, index) => (
-            <Callout key={index} tone="info">
-              {item.description} — {unresolvedReasonLabel(t, item.reason)}
-            </Callout>
-          ))}
+          {synergy.unresolved.map((item, index) => {
+            const passive = dataset.passives.find((p) => p.id === item.passiveId);
+            const text = passive ? passiveDisplayDescription(passive, locale) : item.description;
+            return (
+              <Callout key={index} tone="info">
+                {text} — {unresolvedReasonLabel(t, item.reason)}
+              </Callout>
+            );
+          })}
         </Panel>
       )}
     </div>
@@ -239,7 +251,7 @@ function TacticsSection({
   tacticIds: string[];
   onChange: (ids: string[]) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const byId = useMemo(() => new Map(tactics.map((x) => [x.id, x])), [tactics]);
 
   const slots = Array.from({ length: MAX_TEAM_TACTICS }, (_, i) => tacticIds[i] ?? "");
@@ -269,26 +281,29 @@ function TacticsSection({
               aria-label={t("app.tacticSlot", { n: index + 1 })}
               options={[
                 { value: "", label: t("app.tacticEmpty") },
-                ...tactics.map((tactic) => ({
-                  value: tactic.id,
-                  label: `${tactic.name} (${t("app.tacticTp", { n: tactic.tpCost })})`,
-                  disabled: taken.has(tactic.id),
-                  render: (
-                    <span className="flex items-center gap-1.5">
-                      <TacticIcon tacticId={tactic.id} size={18} title={tactic.name} />
-                      <span className="min-w-0 flex-1 truncate">{tactic.name}</span>
-                      <span className="shrink-0 text-ink-500 tnum">
-                        {t("app.tacticTp", { n: tactic.tpCost })}
+                ...tactics.map((tactic) => {
+                  const name = tacticDisplayName(tactic, locale);
+                  return {
+                    value: tactic.id,
+                    label: `${name} (${t("app.tacticTp", { n: tactic.tpCost })})`,
+                    disabled: taken.has(tactic.id),
+                    render: (
+                      <span className="flex items-center gap-1.5">
+                        <TacticIcon tacticId={tactic.id} size={18} title={name} />
+                        <span className="min-w-0 flex-1 truncate">{name}</span>
+                        <span className="shrink-0 text-ink-500 tnum">
+                          {t("app.tacticTp", { n: tactic.tpCost })}
+                        </span>
                       </span>
-                    </span>
-                  ),
-                })),
+                    ),
+                  };
+                }),
               ]}
               onChange={(next) => setSlot(index, next)}
             />
-            {id && byId.get(id)?.description && (
+            {id && byId.get(id) && tacticDisplayDescription(byId.get(id)!, locale) && (
               <p className="line-clamp-2 text-[11px] text-ink-500 whitespace-pre-line">
-                {byId.get(id)!.description}
+                {tacticDisplayDescription(byId.get(id)!, locale)}
               </p>
             )}
           </div>
@@ -361,8 +376,15 @@ function BondRow({
   );
 }
 
-function GaugesSection({ synergy }: { synergy: SynergyResult }) {
+function GaugesSection({
+  synergy,
+  passives,
+}: {
+  synergy: SynergyResult;
+  passives: import("@/domain/types").Passive[];
+}) {
   const { t, locale } = useI18n();
+  const passivesById = useMemo(() => new Map(passives.map((p) => [p.id, p])), [passives]);
   const active = GAUGE_STATS.map((stat) => {
     const modifier = synergy.gauges[stat];
     if (!modifier || (modifier.guaranteed === 0 && modifier.conditional === 0)) return null;
@@ -404,22 +426,28 @@ function GaugesSection({ synergy }: { synergy: SynergyResult }) {
               </div>
 
               <ul className="mt-0.5 flex flex-col gap-0.5 text-[11px] text-ink-500">
-                {modifier.contributions.map((contribution, index) => (
-                  <li key={index} className="truncate">
-                    {formatPercent(contribution.percent, locale)} · {contribution.description}
-                    {(contribution.conditions.length > 0 || contribution.note) && (
-                      <span className="text-amber-400/70">
-                        {" "}
-                        (
-                        {[
-                          ...contribution.conditions.map((c) => conditionLabel(t, c)),
-                          ...(contribution.note ? [scopeNoteLabel(t, contribution.note)] : []),
-                        ].join(", ")}
-                        )
-                      </span>
-                    )}
-                  </li>
-                ))}
+                {modifier.contributions.map((contribution, index) => {
+                  const passive = passivesById.get(contribution.passiveId);
+                  const text = passive
+                    ? passiveDisplayDescription(passive, locale)
+                    : contribution.description;
+                  return (
+                    <li key={index} className="truncate">
+                      {formatPercent(contribution.percent, locale)} · {text}
+                      {(contribution.conditions.length > 0 || contribution.note) && (
+                        <span className="text-amber-400/70">
+                          {" "}
+                          (
+                          {[
+                            ...contribution.conditions.map((c) => conditionLabel(t, c)),
+                            ...(contribution.note ? [scopeNoteLabel(t, contribution.note)] : []),
+                          ].join(", ")}
+                          )
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </li>
           );

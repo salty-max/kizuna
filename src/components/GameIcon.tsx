@@ -195,7 +195,7 @@ interface HissatsuProps extends IconProps {
   category: string;
 }
 
-function HissatsuIcon({
+export function HissatsuIcon({
   category,
   size = 20,
   className,

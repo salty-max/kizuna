@@ -5,15 +5,30 @@ import { computePower, POWER_KEYS, type PowerKey } from "@/domain/stats";
 import {
   BUILD_TYPES,
   ELEMENTS,
+  GENDERS,
   POSITIONS,
   type BuildType,
   type Dataset,
   type Element,
+  type Gender,
   type Player,
   type Position,
 } from "@/domain/types";
-import { playerDisplayName, useI18n } from "@/i18n";
-import { buildTypeLabel, elementLabel, powerLabel } from "@/i18n/labels";
+import {
+  localizedSearchBlob,
+  matchesTeamFilter,
+  playerDisplayName,
+  teamDisplayName,
+  teamFilterKey,
+  useI18n,
+} from "@/i18n";
+import {
+  buildTypeLabel,
+  elementLabel,
+  genderLabel,
+  powerLabel,
+  seriesShortLabel,
+} from "@/i18n/labels";
 import { ELEMENT_STYLES, cn, formatNumber } from "@/lib/ui";
 import { ElementBadge, PositionBadge, StyleBadge } from "./GameIcon";
 import { FilterChip, IconButton, Select, TextInput } from "./ui";
@@ -39,6 +54,8 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
   const [element, setElement] = useState<Element | null>(null);
   const [buildType, setBuildType] = useState<BuildType | null>(null);
   const [game, setGame] = useState<string | null>(null);
+  const [team, setTeam] = useState<string | null>(null);
+  const [gender, setGender] = useState<Gender | null>(null);
   const [sort, setSort] = useState<SortKey>("total");
 
   // 4840 rows re-filtered on every keystroke would stutter; let React keep the
@@ -56,19 +73,46 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const teams = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const p of dataset.players) {
+      const key = teamFilterKey(p);
+      if (!key || byKey.has(key)) continue;
+      byKey.set(key, teamDisplayName(p, locale));
+    }
+    return [...byKey.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, locale));
+  }, [dataset.players, locale]);
+
   const results = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
+    const needle = deferredQuery
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "");
 
     const matches = dataset.players.filter((player) => {
       if (position && player.position !== position) return false;
       if (element && player.element !== element) return false;
       if (buildType && player.buildType !== buildType) return false;
       if (game && player.game !== game) return false;
+      if (team && !matchesTeamFilter(player, team)) return false;
+      if (gender && player.gender !== gender) return false;
       if (needle === "") return true;
+      const fold = (s: string) =>
+        s
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/\p{Diacritic}/gu, "");
+      const teamHit = [player.team, ...Object.values(player.teamNames ?? {})].some((n) =>
+        fold(n).includes(needle),
+      );
       return (
-        player.name.toLowerCase().includes(needle) ||
-        player.nickname.toLowerCase().includes(needle) ||
-        player.nameOriginal.toLowerCase().includes(needle)
+        fold(localizedSearchBlob(player.names, player.name)).includes(needle) ||
+        fold(player.nickname).includes(needle) ||
+        fold(player.nameOriginal).includes(needle) ||
+        teamHit
       );
     });
 
@@ -78,7 +122,7 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
       matches.sort((a, b) => computePower(b.stats)[sort] - computePower(a.stats)[sort]);
     }
     return matches;
-  }, [dataset.players, deferredQuery, position, element, buildType, game, sort]);
+  }, [dataset.players, deferredQuery, position, element, buildType, game, team, gender, sort]);
 
   const { scrollRef, range, onScroll } = useVirtualRows(results.length);
 
@@ -133,7 +177,7 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
             icon={(value) => <StyleBadge buildType={value} variant="icon" size={14} />}
           />
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Select
               value={game ?? ""}
               options={[
@@ -142,7 +186,27 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
               ]}
               onChange={(next) => setGame(next || null)}
               aria-label={t("picker.allGames")}
-              className="w-52"
+              className="w-44"
+            />
+            <Select
+              value={team ?? ""}
+              options={[{ value: "", label: t("picker.allTeams") }, ...teams]}
+              onChange={(next) => setTeam(next || null)}
+              aria-label={t("picker.allTeams")}
+              className="w-48"
+              searchable
+              searchPlaceholder={t("picker.search")}
+              emptyLabel={t("picker.none")}
+            />
+            <Select
+              value={gender ?? ""}
+              options={[
+                { value: "", label: t("picker.allGenders") },
+                ...GENDERS.map((g) => ({ value: g, label: genderLabel(t, g) })),
+              ]}
+              onChange={(next) => setGender((next as Gender) || null)}
+              aria-label={t("picker.allGenders")}
+              className="w-36"
             />
             <Select
               value={sort}
@@ -155,7 +219,7 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
               ]}
               onChange={(next) => setSort(next as SortKey)}
               aria-label={t("picker.sortTotal")}
-              className="w-44"
+              className="w-40"
             />
           </div>
         </div>
@@ -216,8 +280,9 @@ function PlayerRow({
   showOriginalNames: boolean;
   onPick: () => void;
 }) {
+  const { locale } = useI18n();
   const power = computePower(player.stats);
-  const displayName = playerDisplayName(player, showOriginalNames);
+  const displayName = playerDisplayName(player, showOriginalNames, locale);
   const secondary =
     showOriginalNames && player.nameOriginal && player.nameOriginal !== player.name
       ? player.name
@@ -239,7 +304,9 @@ function PlayerRow({
           {displayName}
         </span>
         <span className="block truncate text-xs text-ink-500">
-          {secondary ? `${secondary} · ${player.game}` : player.game}
+          {[secondary, player.team, seriesShortLabel(player.game) || player.game]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
       </span>
 

@@ -115,7 +115,9 @@ export function Select<T extends string>({
 
 function fieldClass(size: "sm" | "md", className?: string, open?: boolean) {
   return cn(
-    "field flex w-full items-center gap-2 text-left",
+    // `min-w-0` is load-bearing in flex rows (passives, equipment): without it
+    // the trigger grows to the full selected label and punches out of the panel.
+    "field flex w-full min-w-0 items-center gap-2 overflow-hidden text-left",
     size === "sm" && "h-[var(--control-h-sm)] px-2 text-xs",
     open && "border-bolt-400",
     className,
@@ -146,66 +148,70 @@ function PlainSelect<T extends string>({
   // Base UI wants `{ value, label }[]` for Value lookup; keep full options for render.
   const items = useMemo(() => options.map((o) => ({ value: o.value, label: o.label })), [options]);
 
+  // Wrapper owns layout (`flex-1`, widths). Root is often a fragment/context
+  // only — putting `className` on the trigger alone cannot shrink a flex parent.
   return (
-    <BaseSelect.Root
-      value={value}
-      onValueChange={(next) => {
-        if (next != null) onChange(next as T);
-      }}
-      items={items}
-      disabled={disabled}
-      modal={false}
-    >
-      <BaseSelect.Trigger
-        id={id}
-        aria-label={ariaLabel}
-        className={(state) =>
-          cn(
-            fieldClass(size, className, state.open),
-            "group justify-between",
-            disabled && "opacity-40",
-          )
-        }
+    <div className={cn("min-w-0", className)}>
+      <BaseSelect.Root
+        value={value}
+        onValueChange={(next) => {
+          if (next != null) onChange(next as T);
+        }}
+        items={items}
+        disabled={disabled}
+        modal={false}
       >
-        <BaseSelect.Value className="min-w-0 truncate" placeholder={placeholder} />
-        <BaseSelect.Icon className="shrink-0 text-ink-500">
-          <ChevronDown className="size-3.5 transition-transform group-data-[popup-open]:rotate-180" />
-        </BaseSelect.Icon>
-      </BaseSelect.Trigger>
-
-      <BaseSelect.Portal>
-        <BaseSelect.Positioner
-          className="z-100 outline-none"
-          sideOffset={2}
-          alignItemWithTrigger={false}
-          align="start"
-          side="bottom"
+        <BaseSelect.Trigger
+          id={id}
+          aria-label={ariaLabel}
+          className={(state) =>
+            cn(
+              fieldClass(size, undefined, state.open),
+              "group justify-between",
+              disabled && "opacity-40",
+            )
+          }
         >
-          <BaseSelect.Popup className={popupClass} style={{ minWidth: "var(--anchor-width)" }}>
-            <BaseSelect.List
-              className="scroll-slim max-h-72 overflow-y-auto outline-none"
-              style={{ maxHeight: LIST_MAX_HEIGHT }}
-            >
-              {options.map((option) => (
-                <BaseSelect.Item
-                  key={option.value}
-                  value={option.value}
-                  disabled={option.disabled}
-                  className={itemClass}
-                >
-                  <BaseSelect.ItemText className="min-w-0 flex-1 truncate">
-                    {option.render ?? option.label}
-                  </BaseSelect.ItemText>
-                  <BaseSelect.ItemIndicator className="shrink-0 text-bolt-400">
-                    <Check className="size-3.5" />
-                  </BaseSelect.ItemIndicator>
-                </BaseSelect.Item>
-              ))}
-            </BaseSelect.List>
-          </BaseSelect.Popup>
-        </BaseSelect.Positioner>
-      </BaseSelect.Portal>
-    </BaseSelect.Root>
+          <BaseSelect.Value className="min-w-0 flex-1 truncate" placeholder={placeholder} />
+          <BaseSelect.Icon className="shrink-0 text-ink-500">
+            <ChevronDown className="size-3.5 transition-transform group-data-[popup-open]:rotate-180" />
+          </BaseSelect.Icon>
+        </BaseSelect.Trigger>
+
+        <BaseSelect.Portal>
+          <BaseSelect.Positioner
+            className="z-100 outline-none"
+            sideOffset={2}
+            alignItemWithTrigger={false}
+            align="start"
+            side="bottom"
+          >
+            <BaseSelect.Popup className={popupClass} style={{ minWidth: "var(--anchor-width)" }}>
+              <BaseSelect.List
+                className="scroll-slim max-h-72 overflow-y-auto outline-none"
+                style={{ maxHeight: LIST_MAX_HEIGHT }}
+              >
+                {options.map((option) => (
+                  <BaseSelect.Item
+                    key={option.value}
+                    value={option.value}
+                    disabled={option.disabled}
+                    className={itemClass}
+                  >
+                    <BaseSelect.ItemText className="min-w-0 flex-1 truncate">
+                      {option.render ?? option.label}
+                    </BaseSelect.ItemText>
+                    <BaseSelect.ItemIndicator className="shrink-0 text-bolt-400">
+                      <Check className="size-3.5" />
+                    </BaseSelect.ItemIndicator>
+                  </BaseSelect.Item>
+                ))}
+              </BaseSelect.List>
+            </BaseSelect.Popup>
+          </BaseSelect.Positioner>
+        </BaseSelect.Portal>
+      </BaseSelect.Root>
+    </div>
   );
 }
 
@@ -251,80 +257,82 @@ function SearchableSelect<T extends string>({
   );
 
   return (
-    <BaseCombobox.Root
-      value={selected}
-      onValueChange={(next) => {
-        if (next) onChange(next.value);
-      }}
-      items={options}
-      itemToStringLabel={(item: SelectOption<T>) => item.label}
-      isItemEqualToValue={(a: SelectOption<T>, b: SelectOption<T>) => a.value === b.value}
-      filter={filter}
-      disabled={disabled}
-      modal={false}
-    >
-      <BaseCombobox.Trigger
-        id={id}
-        aria-label={ariaLabel}
-        className={(state) =>
-          cn(
-            fieldClass(size, className, state.open),
-            "group justify-between",
-            disabled && "opacity-40",
-          )
-        }
+    <div className={cn("min-w-0", className)}>
+      <BaseCombobox.Root
+        value={selected}
+        onValueChange={(next) => {
+          if (next) onChange(next.value);
+        }}
+        items={options}
+        itemToStringLabel={(item: SelectOption<T>) => item.label}
+        isItemEqualToValue={(a: SelectOption<T>, b: SelectOption<T>) => a.value === b.value}
+        filter={filter}
+        disabled={disabled}
+        modal={false}
       >
-        <span className={cn("min-w-0 truncate", !selected && "text-ink-500")}>
-          {selected?.label ?? placeholder}
-        </span>
-        <span className="flex shrink-0 items-center gap-1 text-ink-500">
-          <Search className="size-3.5" aria-hidden="true" />
-          <ChevronDown className="size-3.5 transition-transform group-data-[popup-open]:rotate-180" />
-        </span>
-      </BaseCombobox.Trigger>
-
-      <BaseCombobox.Portal>
-        <BaseCombobox.Positioner
-          className="z-100 outline-none"
-          sideOffset={2}
-          align="start"
-          side="bottom"
+        <BaseCombobox.Trigger
+          id={id}
+          aria-label={ariaLabel}
+          className={(state) =>
+            cn(
+              fieldClass(size, undefined, state.open),
+              "group justify-between",
+              disabled && "opacity-40",
+            )
+          }
         >
-          <BaseCombobox.Popup
-            className={popupClass}
-            style={{ minWidth: "var(--anchor-width)", width: "max(var(--anchor-width), 16rem)" }}
-            aria-label={ariaLabel}
+          <span className={cn("min-w-0 flex-1 truncate", !selected && "text-ink-500")}>
+            {selected?.label ?? placeholder}
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-ink-500">
+            <Search className="size-3.5" aria-hidden="true" />
+            <ChevronDown className="size-3.5 transition-transform group-data-[popup-open]:rotate-180" />
+          </span>
+        </BaseCombobox.Trigger>
+
+        <BaseCombobox.Portal>
+          <BaseCombobox.Positioner
+            className="z-100 outline-none"
+            sideOffset={2}
+            align="start"
+            side="bottom"
           >
-            <div className="border-b-2 border-ink-800 p-1.5">
-              <BaseCombobox.Input
-                placeholder={searchPlaceholder ?? placeholder}
-                className="field h-[var(--control-h-sm)] w-full px-2 text-xs"
-              />
-            </div>
-            <BaseCombobox.Empty className="px-2 py-2 text-xs text-ink-500">
-              {emptyLabel}
-            </BaseCombobox.Empty>
-            <BaseCombobox.List
-              className="scroll-slim overflow-y-auto outline-none"
-              style={{ maxHeight: LIST_MAX_HEIGHT }}
+            <BaseCombobox.Popup
+              className={popupClass}
+              style={{ minWidth: "var(--anchor-width)", width: "max(var(--anchor-width), 16rem)" }}
+              aria-label={ariaLabel}
             >
-              {(option: SelectOption<T>) => (
-                <BaseCombobox.Item
-                  key={option.value}
-                  value={option}
-                  disabled={option.disabled}
-                  className={itemClass}
-                >
-                  <span className="min-w-0 flex-1 truncate">{option.render ?? option.label}</span>
-                  <BaseCombobox.ItemIndicator className="shrink-0 text-bolt-400">
-                    <Check className="size-3.5" />
-                  </BaseCombobox.ItemIndicator>
-                </BaseCombobox.Item>
-              )}
-            </BaseCombobox.List>
-          </BaseCombobox.Popup>
-        </BaseCombobox.Positioner>
-      </BaseCombobox.Portal>
-    </BaseCombobox.Root>
+              <div className="border-b-2 border-ink-800 p-1.5">
+                <BaseCombobox.Input
+                  placeholder={searchPlaceholder ?? placeholder}
+                  className="field h-[var(--control-h-sm)] w-full px-2 text-xs"
+                />
+              </div>
+              <BaseCombobox.Empty className="px-2 py-2 text-xs text-ink-500">
+                {emptyLabel}
+              </BaseCombobox.Empty>
+              <BaseCombobox.List
+                className="scroll-slim overflow-y-auto outline-none"
+                style={{ maxHeight: LIST_MAX_HEIGHT }}
+              >
+                {(option: SelectOption<T>) => (
+                  <BaseCombobox.Item
+                    key={option.value}
+                    value={option}
+                    disabled={option.disabled}
+                    className={itemClass}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{option.render ?? option.label}</span>
+                    <BaseCombobox.ItemIndicator className="shrink-0 text-bolt-400">
+                      <Check className="size-3.5" />
+                    </BaseCombobox.ItemIndicator>
+                  </BaseCombobox.Item>
+                )}
+              </BaseCombobox.List>
+            </BaseCombobox.Popup>
+          </BaseCombobox.Positioner>
+        </BaseCombobox.Portal>
+      </BaseCombobox.Root>
+    </div>
   );
 }
