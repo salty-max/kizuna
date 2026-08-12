@@ -1,10 +1,9 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 
-import { computePower, POWER_KEYS, POWER_LABELS, type PowerKey } from "@/domain/stats";
+import { computePower, POWER_KEYS, type PowerKey } from "@/domain/stats";
 import {
   BUILD_TYPES,
-  BUILD_TYPE_LABELS,
   ELEMENTS,
   POSITIONS,
   type BuildType,
@@ -13,15 +12,11 @@ import {
   type Player,
   type Position,
 } from "@/domain/types";
-import {
-  ELEMENT_KANJI,
-  ELEMENT_LABELS,
-  ELEMENT_STYLES,
-  POSITION_STYLE,
-  cn,
-  formatNumber,
-} from "@/lib/ui";
-import { ElementBadge } from "./ElementIcon";
+import { playerDisplayName, useI18n } from "@/i18n";
+import { buildTypeLabel, elementLabel, powerLabel } from "@/i18n/labels";
+import { ELEMENT_STYLES, cn, formatNumber } from "@/lib/ui";
+import { ElementBadge, PositionBadge, StyleBadge } from "./GameIcon";
+import { FilterChip, IconButton, Select, TextInput } from "./ui";
 import { PlayerAvatar } from "./PlayerAvatar";
 
 const ROW_HEIGHT = 56;
@@ -38,6 +33,7 @@ interface Props {
 }
 
 export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Props) {
+  const { t, locale, showOriginalNames } = useI18n();
   const [query, setQuery] = useState("");
   const [position, setPosition] = useState<Position | null>(suggestedPosition);
   const [element, setElement] = useState<Element | null>(null);
@@ -64,7 +60,6 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
     const needle = deferredQuery.trim().toLowerCase();
 
     const matches = dataset.players.filter((player) => {
-      if (player.role !== "Player") return false;
       if (position && player.position !== position) return false;
       if (element && player.element !== element) return false;
       if (buildType && player.buildType !== buildType) return false;
@@ -72,7 +67,8 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
       if (needle === "") return true;
       return (
         player.name.toLowerCase().includes(needle) ||
-        player.nickname.toLowerCase().includes(needle)
+        player.nickname.toLowerCase().includes(needle) ||
+        player.nameOriginal.toLowerCase().includes(needle)
       );
     });
 
@@ -88,77 +84,79 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-ink-950/80 p-4 backdrop-blur-sm sm:p-8"
+      className="overlay flex items-start justify-center p-4 sm:p-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="panel flex max-h-full w-full max-w-4xl flex-col overflow-hidden shadow-2xl">
-        <header className="flex items-center gap-2 border-b border-ink-800 p-3">
+      <div className="modal max-w-4xl">
+        <header className="flex items-center gap-2 border-b-2 border-ink-800 p-3">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-ink-500" />
-            <input
+            <TextInput
               ref={inputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher un personnage…"
-              className="field w-full pl-8"
+              placeholder={t("picker.search")}
+              className="w-full pl-8"
             />
           </div>
-          <button type="button" onClick={onClose} className="btn px-2" aria-label="Fermer">
+          <IconButton onClick={onClose} aria-label={t("picker.close")}>
             <X className="size-4" />
-          </button>
+          </IconButton>
         </header>
 
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-ink-800 p-3">
+        <div className="flex flex-wrap items-center gap-1.5 border-b-2 border-ink-800 p-3">
           <FilterGroup
             values={POSITIONS}
             active={position}
             onChange={setPosition}
-            label={(value) => value}
+            label={() => ""}
+            icon={(value) => <PositionBadge position={value} variant="badge" size={16} />}
+            ariaLabel={(value) => value}
           />
           <Divider />
           <FilterGroup
             values={ELEMENTS}
             active={element}
             onChange={setElement}
-            label={(value) => ELEMENT_LABELS[value]}
+            label={(value) => elementLabel(t, value)}
             className={(value) => ELEMENT_STYLES[value].text}
-            icon={(value) => <span className="kanji">{ELEMENT_KANJI[value]}</span>}
+            icon={(value) => <ElementBadge element={value} variant="icon" size={14} />}
           />
           <Divider />
           <FilterGroup
             values={BUILD_TYPES}
             active={buildType}
             onChange={setBuildType}
-            label={(value) => BUILD_TYPE_LABELS[value]}
+            label={(value) => buildTypeLabel(t, value)}
+            icon={(value) => <StyleBadge buildType={value} variant="icon" size={14} />}
           />
 
           <div className="ml-auto flex items-center gap-2">
-            <select
+            <Select
               value={game ?? ""}
-              onChange={(event) => setGame(event.target.value || null)}
-              className="field max-w-52 py-1"
-            >
-              <option value="">Tous les jeux</option>
-              {dataset.games.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            <select
+              options={[
+                { value: "", label: t("picker.allGames") },
+                ...dataset.games.map((name) => ({ value: name, label: name })),
+              ]}
+              onChange={(next) => setGame(next || null)}
+              aria-label={t("picker.allGames")}
+              className="w-52"
+            />
+            <Select
               value={sort}
-              onChange={(event) => setSort(event.target.value as SortKey)}
-              className="field py-1"
-            >
-              <option value="total">Trier : total</option>
-              {POWER_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  Trier : {POWER_LABELS[key]}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "total", label: t("picker.sortTotal") },
+                ...POWER_KEYS.map((key) => ({
+                  value: key,
+                  label: t("picker.sortBy", { stat: powerLabel(t, key) }),
+                })),
+              ]}
+              onChange={(next) => setSort(next as SortKey)}
+              aria-label={t("picker.sortTotal")}
+              className="w-44"
+            />
           </div>
         </div>
 
@@ -168,7 +166,7 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
           className="scroll-slim min-h-0 flex-1 overflow-y-auto overscroll-contain"
         >
           {results.length === 0 ? (
-            <p className="p-8 text-center text-sm text-ink-500">Aucun personnage ne correspond.</p>
+            <p className="p-8 text-center text-sm text-ink-500">{t("picker.none")}</p>
           ) : (
             <div style={{ height: results.length * ROW_HEIGHT, position: "relative" }}>
               <div
@@ -184,6 +182,7 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
                     player={player}
                     imageBase={dataset.imageBase}
                     sort={sort}
+                    showOriginalNames={showOriginalNames}
                     onPick={() => onPick(player)}
                   />
                 ))}
@@ -192,9 +191,12 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
           )}
         </div>
 
-        <footer className="border-t border-ink-800 px-3 py-2 text-xs text-ink-500 tnum">
-          {formatNumber(results.length)} personnage{results.length > 1 ? "s" : ""} sur{" "}
-          {formatNumber(dataset.players.filter((p) => p.role === "Player").length)}
+        <footer className="border-t-2 border-ink-800 px-3 py-2 font-display text-[11px] font-bold tracking-wide text-ink-500 uppercase italic tnum">
+          {t("picker.count", {
+            n: results.length,
+            shown: formatNumber(results.length, locale),
+            total: formatNumber(dataset.players.length, locale),
+          })}
         </footer>
       </div>
     </div>
@@ -205,41 +207,49 @@ function PlayerRow({
   player,
   imageBase,
   sort,
+  showOriginalNames,
   onPick,
 }: {
   player: Player;
   imageBase: string;
   sort: SortKey;
+  showOriginalNames: boolean;
   onPick: () => void;
 }) {
   const power = computePower(player.stats);
+  const displayName = playerDisplayName(player, showOriginalNames);
+  const secondary =
+    showOriginalNames && player.nameOriginal && player.nameOriginal !== player.name
+      ? player.name
+      : !showOriginalNames && player.nameOriginal && player.nameOriginal !== player.name
+        ? player.nameOriginal
+        : null;
 
   return (
     <button
       type="button"
       onClick={onPick}
       style={{ height: ROW_HEIGHT }}
-      className="flex w-full items-center gap-3 px-3 text-left transition-colors hover:bg-ink-850"
+      className="flex w-full items-center gap-3 border-b border-ink-800 px-3 text-left transition-colors hover:bg-ink-850 last:border-0"
     >
-      <PlayerAvatar player={player} imageBase={imageBase} size={36} />
+      <PlayerAvatar player={player} imageBase={imageBase} size={36} displayName={displayName} />
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{player.name}</span>
-        <span className="block truncate text-xs text-ink-500">{player.game}</span>
+        <span className="block truncate font-display text-sm font-bold uppercase italic">
+          {displayName}
+        </span>
+        <span className="block truncate text-xs text-ink-500">
+          {secondary ? `${secondary} · ${player.game}` : player.game}
+        </span>
       </span>
 
-      <span
-        className={cn(
-          "rounded border px-1.5 py-0.5 text-[11px] font-semibold",
-          POSITION_STYLE,
-        )}
-      >
-        {player.position}
-      </span>
+      <PositionBadge position={player.position} variant="badge" size={18} />
 
-      <ElementBadge element={player.element} className="w-24 justify-center text-xs" />
+      <ElementBadge element={player.element} variant="icon" size={20} />
 
-      <span className="w-20 text-right text-sm font-semibold tnum">
+      {player.buildType && <StyleBadge buildType={player.buildType} variant="icon" size={16} />}
+
+      <span className="w-20 text-right font-display text-sm font-bold tnum">
         {sort === "total" ? player.total : power[sort]}
       </span>
     </button>
@@ -247,7 +257,7 @@ function PlayerRow({
 }
 
 function Divider() {
-  return <span className="mx-0.5 h-5 w-px bg-ink-800" />;
+  return <span className="divider-v" />;
 }
 
 function FilterGroup<T extends string>({
@@ -257,6 +267,7 @@ function FilterGroup<T extends string>({
   label,
   className,
   icon,
+  ariaLabel,
 }: {
   values: readonly T[];
   active: T | null;
@@ -264,27 +275,24 @@ function FilterGroup<T extends string>({
   label: (value: T) => string;
   className?: (value: T) => string;
   icon?: (value: T) => React.ReactNode;
+  ariaLabel?: (value: T) => string;
 }) {
   return (
     <span className="flex flex-wrap gap-1">
       {values.map((value) => {
         const selected = active === value;
+        const text = label(value);
         return (
-          <button
+          <FilterChip
             key={value}
-            type="button"
-            aria-pressed={selected}
+            active={selected}
+            aria-label={ariaLabel?.(value) ?? text}
             onClick={() => onChange(selected ? null : value)}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
-              selected
-                ? "border-bolt-500/50 bg-bolt-500/15 text-bolt-400"
-                : cn("border-ink-800 bg-ink-850 text-ink-300 hover:bg-ink-800", className?.(value)),
-            )}
+            icon={icon?.(value)}
+            className={cn(!selected && className?.(value))}
           >
-            {icon?.(value)}
-            {label(value)}
-          </button>
+            {text}
+          </FilterChip>
         );
       })}
     </span>

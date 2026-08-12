@@ -1,11 +1,16 @@
 import { AlertTriangle, Plus } from "lucide-react";
 
 import type { Formation } from "@/domain/formations";
+import { layoutPitchSlots } from "@/domain/layoutPitch";
 import type { SynergyResult } from "@/domain/synergy";
 import type { ResolvedSlot, ResolvedTeam } from "@/domain/team";
-import { POSITION_STYLE, cn, formatPercent, rarityLabel, rarityStyle } from "@/lib/ui";
-import { ElementBadge } from "./ElementIcon";
+import { playerDisplayName, useI18n } from "@/i18n";
+import { rarityDisplayLabel } from "@/i18n/labels";
+import { cn, formatPercent, rarityStyle } from "@/lib/ui";
+import { useMemo } from "react";
+import { ElementBadge, PositionBadge, StaffIcon } from "./GameIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { Panel, PanelMeta } from "./ui";
 
 interface Props {
   resolved: ResolvedTeam;
@@ -16,6 +21,7 @@ interface Props {
 }
 
 export function Pitch({ resolved, synergy, imageBase, selectedSlotId, onSelectSlot }: Props) {
+  const { t } = useI18n();
   const bySlot = new Map(resolved.slots.map((slot) => [slot.slotId, slot]));
 
   return (
@@ -30,7 +36,7 @@ export function Pitch({ resolved, synergy, imageBase, selectedSlotId, onSelectSl
       />
 
       <SlotRow
-        title="Remplaçants"
+        title={t("pitch.bench")}
         slots={resolved.slots.filter((s) => s.kind === "bench")}
         imageBase={imageBase}
         selectedSlotId={selectedSlotId}
@@ -38,9 +44,9 @@ export function Pitch({ resolved, synergy, imageBase, selectedSlotId, onSelectSl
       />
 
       <SlotRow
-        title="Staff"
-        hint="Manager et coordinateurs n'ont pas de stats — seuls leurs passifs comptent."
-        slots={resolved.slots.filter((s) => s.kind === "manager" || s.kind === "coordinator")}
+        title={t("pitch.staff")}
+        hint={t("pitch.staffHint")}
+        slots={resolved.slots.filter((s) => s.kind === "coach" || s.kind === "manager")}
         imageBase={imageBase}
         selectedSlotId={selectedSlotId}
         onSelectSlot={onSelectSlot}
@@ -52,6 +58,11 @@ export function Pitch({ resolved, synergy, imageBase, selectedSlotId, onSelectSl
 /** Card geometry — the board insets by half a card so none can hang off an edge. */
 const CARD_WIDTH = 124;
 const CARD_HEIGHT = 60;
+/** Board size in px. Official coords pack denser than these cards; layoutPitchSlots
+ *  spreads collisions, and a slightly larger board keeps nudges small. */
+const BOARD_MIN_WIDTH = 720;
+const BOARD_HEIGHT = 500;
+const BOARD_PAD_Y_EXTRA = 12;
 
 /**
  * The formation, drawn as cards alone.
@@ -62,8 +73,10 @@ const CARD_HEIGHT = 60;
  *
  * Instead the cards are positioned inside a box inset by half a card on every
  * side, so `x = 0` puts a card's *left edge* — not its centre — on the boundary.
- * The board keeps a min-width and scrolls itself on narrow screens rather than
- * letting the squad overlap or the page scroll sideways.
+ * Official Victory Road markers sit too close for 124×60 sheared cards, so
+ * coordinates go through `layoutPitchSlots` before paint. The board keeps a
+ * min-width and scrolls itself on narrow screens rather than letting the squad
+ * overlap or the page scroll sideways.
  */
 function FormationBoard({
   formation,
@@ -80,33 +93,48 @@ function FormationBoard({
   selectedSlotId: string | null;
   onSelectSlot: (slotId: string) => void;
 }) {
-  return (
-    <section className="panel overflow-hidden">
-      <h2 className="panel-title">{formation.name}</h2>
+  const playableW = BOARD_MIN_WIDTH - CARD_WIDTH;
+  const playableH = BOARD_HEIGHT - CARD_HEIGHT - BOARD_PAD_Y_EXTRA * 2;
 
+  const laidOut = useMemo(
+    () =>
+      layoutPitchSlots(formation.slots, {
+        playableW,
+        playableH,
+        cardW: CARD_WIDTH,
+        cardH: CARD_HEIGHT,
+      }),
+    [formation.slots, playableW, playableH],
+  );
+
+  const positionById = useMemo(() => new Map(laidOut.map((s) => [s.id, s])), [laidOut]);
+
+  return (
+    <Panel title={formation.name} padded={false}>
       <div className="scroll-slim overflow-x-auto">
         <div
-          className="relative mx-auto min-w-[680px]"
-          style={{ height: 460 }}
+          className="relative mx-auto"
+          style={{ minWidth: BOARD_MIN_WIDTH, height: BOARD_HEIGHT }}
         >
           <div
             className="absolute"
             style={{
               left: CARD_WIDTH / 2,
               right: CARD_WIDTH / 2,
-              top: CARD_HEIGHT / 2 + 12,
-              bottom: CARD_HEIGHT / 2 + 12,
+              top: CARD_HEIGHT / 2 + BOARD_PAD_Y_EXTRA,
+              bottom: CARD_HEIGHT / 2 + BOARD_PAD_Y_EXTRA,
             }}
           >
             {formation.slots.map((slot) => {
               const resolvedSlot = bySlot.get(slot.id);
               if (!resolvedSlot) return null;
+              const pos = positionById.get(slot.id) ?? slot;
 
               return (
                 <div
                   key={slot.id}
                   className="absolute -translate-x-1/2 translate-y-1/2"
-                  style={{ left: `${slot.x}%`, bottom: `${slot.y}%` }}
+                  style={{ left: `${pos.x}%`, bottom: `${pos.y}%` }}
                 >
                   <PitchSlot
                     slot={resolvedSlot}
@@ -121,7 +149,7 @@ function FormationBoard({
           </div>
         </div>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -138,24 +166,35 @@ function PitchSlot({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const { t, locale, showOriginalNames } = useI18n();
   const boost = slotBoost(slot, synergy);
+  const displayName = playerDisplayName(slot.player, showOriginalNames);
 
   if (!slot.player) {
     return (
       <button
         type="button"
         onClick={onSelect}
-        aria-label={`${slot.expectedPosition} — emplacement vide`}
+        aria-label={`${slot.expectedPosition} — ${t("pitch.empty")}`}
         className={cn(
-          "shear group flex h-[60px] w-[124px] flex-col items-center justify-center gap-1",
-          "border-2 border-dashed border-white/30 bg-ink-950/25 transition",
-          "hover:border-white/55 hover:bg-ink-950/40",
+          "shear pressable group flex h-[60px] w-[124px] flex-col items-center justify-center gap-1",
+          "border-2 border-dashed border-ink-700 bg-ink-950/60 transition",
+          "hover:border-ink-500 hover:bg-ink-900",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400",
-          selected && "border-solid border-bolt-400 bg-ink-950/70",
+          selected && "border-solid border-bolt-400 bg-ink-900 tone-bolt",
         )}
       >
-        <Plus className="shear-flat size-4 text-white/55 transition group-hover:text-white/85" />
-        <span className="shear-flat font-display text-[12px] font-bold text-white/75 uppercase italic">
+        {slot.expectedPosition ? (
+          <PositionBadge
+            position={slot.expectedPosition}
+            variant="badge"
+            size={18}
+            className="shear-flat opacity-45 transition group-hover:opacity-90"
+          />
+        ) : (
+          <Plus className="shear-flat size-4 text-ink-500 transition group-hover:text-ink-300" />
+        )}
+        <span className="shear-flat font-display text-[11px] font-bold text-ink-500 uppercase italic group-hover:text-ink-300">
           {slot.expectedPosition}
         </span>
       </button>
@@ -168,60 +207,57 @@ function PitchSlot({
     <button
       type="button"
       onClick={onSelect}
-      title={`${slot.player.name} — ${rarityLabel(slot.rarity, slot.buildType)}`}
-      aria-label={`${slot.expectedPosition} — ${slot.player.name}, ${rarityLabel(slot.rarity, slot.buildType)}`}
+      title={`${displayName} — ${rarityDisplayLabel(t, slot.rarity, slot.buildType)}`}
+      aria-label={`${slot.expectedPosition} — ${displayName}, ${rarityDisplayLabel(t, slot.rarity, slot.buildType)}`}
       className={cn(
         // Sheared parallelogram with a solid offset shadow — a manga panel, not
         // a rounded card. Rarity reads twice: the edge and the shadow colour.
         // Every child is counter-sheared so only the frame leans.
-        "shear relative h-[60px] w-[124px] overflow-hidden border-2 bg-ink-950/90 text-left",
-        "transition hover:brightness-125",
+        "shear pressable relative h-[60px] w-[124px] overflow-hidden border-2 bg-ink-950/90 text-left",
+        "hover:brightness-125",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400",
-        selected
-          ? "border-bolt-400 shadow-[5px_6px_0_#7a6f00]"
-          : cn(rarity.border, rarity.shadow),
+        selected ? "border-bolt-400 tone-bolt" : cn(rarity.border, rarity.shadow),
       )}
     >
       <PlayerAvatar
         player={slot.player}
         imageBase={imageBase}
+        displayName={displayName}
         width={58}
         height={58}
         ringClassName={null}
         className="shear-flat absolute top-0 -right-1 rounded-none"
       />
 
-      <span className="shear-flat absolute top-1 left-2 flex flex-col gap-0.5">
-        <ElementBadge element={slot.player.element} variant="kanji" size={17} />
-        <span
-          className={cn(
-            "flex size-[17px] items-center justify-center border text-[9px] font-bold",
-            POSITION_STYLE,
-          )}
-        >
-          {slot.player.position}
-        </span>
+      <span className="shear-flat absolute top-1 left-2 flex flex-col items-start gap-0.5">
+        <ElementBadge element={slot.player.element} variant="icon" size={16} />
+        <PositionBadge position={slot.player.position} variant="badge" size={13} />
       </span>
 
       <span className="shear-flat absolute bottom-0.5 left-2 max-w-[60px] truncate font-display text-[12px] font-bold uppercase italic">
-        {slot.player.nickname || slot.player.name}
+        {displayName}
       </span>
 
       {boost !== 0 && (
         <span
           className={cn(
-            "shear-flat absolute right-1 bottom-0.5 px-1 text-[9px] font-bold tnum",
-            boost > 0 ? "bg-[var(--color-good)] text-ink-950" : "bg-[var(--color-bad)] text-ink-950",
+            "shear-flat absolute right-1 bottom-0.5 border border-ink-950 px-1 font-display text-[9px] font-bold tnum",
+            boost > 0
+              ? "bg-[var(--color-good)] text-ink-950"
+              : "bg-[var(--color-bad)] text-ink-950",
           )}
         >
-          {formatPercent(boost)}
+          {formatPercent(boost, locale)}
         </span>
       )}
 
       {!slot.positionMatch && (
         <span
           className="shear-flat absolute top-0.5 right-1 bg-bolt-400 p-0.5 text-ink-950"
-          title={`Joueur ${slot.player.position} sur un poste ${slot.expectedPosition}`}
+          title={t("pitch.outOfPositionTitle", {
+            player: slot.player.position,
+            expected: slot.expectedPosition ?? "",
+          })}
         >
           <AlertTriangle className="size-2.5" />
         </span>
@@ -246,24 +282,21 @@ function SlotRow({
   onSelectSlot: (slotId: string) => void;
 }) {
   return (
-    <section className="panel overflow-hidden">
-      <header className="panel-title flex items-baseline gap-2">
-        <h2>{title}</h2>
-        {hint && <p className="text-[11px] font-normal normal-case not-italic">{hint}</p>}
-      </header>
-
-      <div className="flex flex-wrap gap-3 p-3">
-        {slots.map((slot) => (
-          <SmallSlot
-            key={slot.slotId}
-            slot={slot}
-            imageBase={imageBase}
-            selected={selectedSlotId === slot.slotId}
-            onSelect={() => onSelectSlot(slot.slotId)}
-          />
-        ))}
-      </div>
-    </section>
+    <Panel
+      title={title}
+      action={hint ? <PanelMeta>{hint}</PanelMeta> : undefined}
+      bodyClassName="flex flex-wrap gap-3"
+    >
+      {slots.map((slot) => (
+        <SmallSlot
+          key={slot.slotId}
+          slot={slot}
+          imageBase={imageBase}
+          selected={selectedSlotId === slot.slotId}
+          onSelect={() => onSelectSlot(slot.slotId)}
+        />
+      ))}
+    </Panel>
   );
 }
 
@@ -278,22 +311,28 @@ function SmallSlot({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const { t, showOriginalNames } = useI18n();
   const staffLabel =
-    slot.kind === "manager"
-      ? "Manager"
-      : slot.kind === "coordinator"
-        ? `Coord. ${slot.slotId.replace("coord", "")}`
-        : `Banc ${slot.slotId.replace("bench", "")}`;
+    slot.kind === "coach"
+      ? t("pitch.coach")
+      : slot.kind === "manager"
+        ? t("pitch.manager", { n: slot.slotId.replace("manager", "") })
+        : t("pitch.benchSlot", { n: slot.slotId.replace("bench", "") });
 
   const activePassives = slot.passives.length;
   const rarity = rarityStyle(slot.rarity, slot.buildType);
+  const displayName = playerDisplayName(slot.player, showOriginalNames);
+  const isStaff = slot.kind === "coach" || slot.kind === "manager";
+  // Coach / managers are passives-first in the dataset (no separate staff
+  // roster). A slot with passives is "filled" even without a portrait.
+  const staffConfigured = isStaff && activePassives > 0 && !slot.player;
 
-  if (!slot.player) {
+  if (!slot.player && !staffConfigured) {
     return (
       <button
         type="button"
         onClick={onSelect}
-        aria-label={`${staffLabel} — vide`}
+        aria-label={`${staffLabel} — ${t("pitch.empty")}`}
         className={cn(
           "shear flex h-[60px] w-[124px] flex-col items-center justify-center gap-1",
           "border-2 border-dashed border-ink-800 bg-ink-850/50 transition-colors",
@@ -301,7 +340,13 @@ function SmallSlot({
           selected && "border-solid border-bolt-400 bg-bolt-400/10",
         )}
       >
-        <Plus className="shear-flat size-4 text-ink-500" />
+        {slot.kind === "coach" ? (
+          <StaffIcon kind="coach" size={22} className="shear-flat opacity-50" />
+        ) : slot.kind === "manager" ? (
+          <StaffIcon kind="manager" size={22} className="shear-flat opacity-50" />
+        ) : (
+          <Plus className="shear-flat size-4 text-ink-500" />
+        )}
         <span className="shear-flat font-display text-[12px] font-bold text-ink-500 uppercase italic">
           {staffLabel}
         </span>
@@ -309,48 +354,77 @@ function SmallSlot({
     );
   }
 
+  if (staffConfigured) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        title={`${staffLabel} — ${t("pitch.passivesCount", { n: activePassives })}`}
+        aria-label={`${staffLabel} — ${t("pitch.passivesCount", { n: activePassives })}`}
+        className={cn(
+          "shear pressable relative flex h-[60px] w-[124px] flex-col items-start justify-between border-2 bg-ink-950/90 px-2 py-1.5 text-left",
+          "hover:brightness-125",
+          selected ? "border-bolt-400 tone-bolt" : "border-ink-700",
+        )}
+      >
+        <span className="shear-flat flex items-center gap-1">
+          <StaffIcon kind={slot.kind === "coach" ? "coach" : "manager"} size={16} />
+          <span className="font-display text-[11px] font-bold text-ink-300 uppercase italic">
+            {staffLabel}
+          </span>
+        </span>
+        <span className="shear-flat border border-ink-700 bg-ink-800 px-1 font-display text-[9px] font-bold text-ink-300 tnum">
+          {activePassives}P
+        </span>
+      </button>
+    );
+  }
+
+  const player = slot.player;
+  if (!player) return null;
+
   // Same card as the pitch, so a squad reads the same wherever you look at it.
   return (
     <button
       type="button"
       onClick={onSelect}
-      title={`${staffLabel} — ${slot.player.name}`}
-      aria-label={`${staffLabel} — ${slot.player.name}`}
+      title={`${staffLabel} — ${displayName}`}
+      aria-label={`${staffLabel} — ${displayName}`}
       className={cn(
-        "shear relative h-[60px] w-[124px] overflow-hidden border-2 bg-ink-950/90 text-left",
-        "transition hover:brightness-125",
-        selected ? "border-bolt-400 shadow-[5px_6px_0_#7a6f00]" : cn(rarity.border, rarity.shadow),
+        "shear pressable relative h-[60px] w-[124px] overflow-hidden border-2 bg-ink-950/90 text-left",
+        "hover:brightness-125",
+        selected ? "border-bolt-400 tone-bolt" : cn(rarity.border, rarity.shadow),
       )}
     >
       <PlayerAvatar
-        player={slot.player}
+        player={player}
         imageBase={imageBase}
+        displayName={displayName}
         width={58}
         height={58}
         ringClassName={null}
         className="shear-flat absolute top-0 -right-1 rounded-none"
       />
 
-      <span className="shear-flat absolute top-1 left-2 flex flex-col gap-0.5">
-        <ElementBadge element={slot.player.element} variant="kanji" size={17} />
-        <span
-          className={cn(
-            "flex size-[17px] items-center justify-center border text-[9px] font-bold",
-            POSITION_STYLE,
-          )}
-        >
-          {slot.player.position}
-        </span>
+      <span className="shear-flat absolute top-1 left-2 flex flex-col items-start gap-0.5">
+        <ElementBadge element={player.element} variant="icon" size={16} />
+        {slot.kind === "coach" ? (
+          <StaffIcon kind="coach" size={14} />
+        ) : slot.kind === "manager" ? (
+          <StaffIcon kind="manager" size={14} />
+        ) : (
+          <PositionBadge position={player.position} variant="badge" size={13} />
+        )}
       </span>
 
       <span className="shear-flat absolute bottom-0.5 left-2 max-w-[60px] truncate font-display text-[12px] font-bold uppercase italic">
-        {slot.player.nickname || slot.player.name}
+        {displayName}
       </span>
 
       {activePassives > 0 && (
         <span
-          className="shear-flat absolute right-1 bottom-0.5 bg-ink-800 px-1 text-[9px] font-bold text-ink-300 tnum"
-          title={`${activePassives} passif${activePassives > 1 ? "s" : ""}`}
+          className="shear-flat absolute right-1 bottom-0.5 border border-ink-700 bg-ink-800 px-1 font-display text-[9px] font-bold text-ink-300 tnum"
+          title={t("pitch.passivesCount", { n: activePassives })}
         >
           {activePassives}P
         </span>

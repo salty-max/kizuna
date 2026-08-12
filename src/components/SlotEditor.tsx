@@ -2,15 +2,8 @@ import { useMemo } from "react";
 import { ExternalLink, Shirt, Trash2, UserPlus } from "lucide-react";
 
 import { imageUrl } from "@/data/load";
-import {
-  POWER_FORMULAS,
-  POWER_KEYS,
-  POWER_LABELS,
-  STAT_KEYS,
-  STAT_LABELS,
-  type PowerKey,
-} from "@/domain/stats";
-import { CONDITION_LABELS, type Modifier, type SynergyResult } from "@/domain/synergy";
+import { POWER_KEYS, STAT_KEYS, type PowerKey } from "@/domain/stats";
+import type { Modifier, SynergyResult } from "@/domain/synergy";
 import {
   MAX_SLOT_PASSIVES,
   passiveSourceFor,
@@ -19,9 +12,7 @@ import {
 } from "@/domain/team";
 import {
   BUILD_TYPES,
-  BUILD_TYPE_LABELS,
   EQUIPMENT_SLOTS,
-  EQUIPMENT_SLOT_LABELS,
   RARITIES,
   RARITY_SCALES,
   type BuildType,
@@ -31,8 +22,40 @@ import {
   type Passive,
   type Rarity,
 } from "@/domain/types";
-import { ELEMENT_STYLES, POSITION_STYLE, cn, formatPercent, rarityLabel, rarityStyle } from "@/lib/ui";
-import { ElementBadge } from "./ElementIcon";
+import {
+  abilityDisplayName,
+  contributionPlayerName,
+  playerDisplayName,
+  playerInitials,
+  useI18n,
+} from "@/i18n";
+import {
+  abilityTypeLabel,
+  buildTypeLabel,
+  conditionLabel,
+  equipmentSlotLabel,
+  powerFormula,
+  powerLabel,
+  rarityDisplayLabel,
+  scopeNoteLabel,
+  statLabel,
+} from "@/i18n/labels";
+import { ELEMENT_STYLES, cn, formatPercent, rarityStyle } from "@/lib/ui";
+import { AbilityIcon, ElementBadge, PositionBadge, StaffIcon, StyleBadge } from "./GameIcon";
+import {
+  Button,
+  Callout,
+  DataList,
+  DataRow,
+  IconButton,
+  LinkButton,
+  NumberInput,
+  Panel,
+  PanelHint,
+  Select,
+  Tab,
+} from "./ui";
+import { StatRadar } from "./StatRadar";
 
 interface Props {
   slot: ResolvedSlot;
@@ -44,7 +67,9 @@ interface Props {
 }
 
 export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpenPicker }: Props) {
-  const staffOnly = slot.kind === "manager" || slot.kind === "coordinator";
+  const { t, locale, showOriginalNames } = useI18n();
+  const staffOnly = slot.kind === "coach" || slot.kind === "manager";
+  const displayName = playerDisplayName(slot.player, showOriginalNames);
 
   const passivesBySource = useMemo(() => {
     const groups = new Map<string, Passive[]>();
@@ -64,9 +89,18 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
       if (group) group.push(item);
       else groups.set(item.slot, [item]);
     }
-    for (const group of groups.values()) group.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+    for (const group of groups.values())
+      group.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
     return groups;
   }, [dataset.equipment]);
+
+  // Un Hero n'a pas de seconde branche : l'onglet ne doit pas s'afficher pour
+  // une forme qui n'en propose pas.
+  const activeSkillSet =
+    (assignment.rarity === "hero" && slot.player?.heroSkills) ||
+    (assignment.rarity === "basara" && slot.player?.basaraSkills) ||
+    (slot.player ? { skills: slot.player.skills, skillsAlt: slot.player.skillsAlt } : null);
+  const hasAltBranch = (activeSkillSet?.skillsAlt.length ?? 0) > 0;
 
   const modifiers = synergy.power.get(slot.slotId);
   const effective = synergy.effective.get(slot.slotId);
@@ -75,150 +109,255 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
   return (
     <div className="flex flex-col gap-4">
       {/* ── Identity ─────────────────────────────────────────────────────── */}
-      <section className="panel p-3">
+      <Panel raised bodyClassName="p-3">
         {slot.player ? (
           <div className="flex items-start gap-3">
-            <img
-              src={imageUrl(dataset.imageBase, slot.player.image, 128)}
-              alt=""
-              width={64}
-              height={64}
-              className={cn(
-                "size-16 shrink-0 rounded-lg object-cover ring-2 ring-inset",
-                ELEMENT_STYLES[slot.player.element].ring,
-                ELEMENT_STYLES[slot.player.element].bg,
-              )}
-            />
+            {slot.player.image ? (
+              <img
+                src={imageUrl(dataset.imageBase, slot.player.image, 128)}
+                alt={displayName}
+                width={64}
+                height={64}
+                className={cn(
+                  "size-16 shrink-0 object-cover ring-2 ring-inset",
+                  ELEMENT_STYLES[slot.player.element].ring,
+                  ELEMENT_STYLES[slot.player.element].bg,
+                )}
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex size-16 shrink-0 items-center justify-center text-lg font-semibold ring-2 ring-inset",
+                  ELEMENT_STYLES[slot.player.element].ring,
+                  ELEMENT_STYLES[slot.player.element].bg,
+                  ELEMENT_STYLES[slot.player.element].text,
+                )}
+              >
+                {playerInitials(displayName)}
+              </div>
+            )}
 
             <div className="min-w-0 flex-1">
-              <h2 className="truncate font-semibold">{slot.player.name}</h2>
-              <p className="truncate text-xs text-ink-500">{slot.player.game}</p>
+              <h2 className="truncate font-display text-base font-bold uppercase italic">
+                {displayName}
+              </h2>
+              <p className="truncate text-xs text-ink-500">
+                {showOriginalNames &&
+                slot.player.nameOriginal &&
+                slot.player.nameOriginal !== slot.player.name
+                  ? `${slot.player.name} · ${slot.player.game}`
+                  : slot.player.game}
+              </p>
 
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className={cn("rounded border px-1.5 py-0.5 font-semibold", POSITION_STYLE)}>
-                  {slot.player.position}
-                </span>
-                <ElementBadge element={slot.player.element} />
+                <PositionBadge position={slot.player.position} variant="badge" size={18} />
+                <ElementBadge element={slot.player.element} variant="full" size={16} />
+                {slot.buildType && (
+                  <StyleBadge buildType={slot.buildType} variant="full" size={16} />
+                )}
                 <span className="text-ink-500">{slot.player.ageGroup}</span>
               </div>
 
               {!staffOnly && (
                 <div className="mt-2 flex flex-col gap-1">
                   <label className="flex items-center gap-2">
-                    <span className="w-14 shrink-0 text-xs text-ink-500">Rareté</span>
-                    <select
+                    <span className="w-14 shrink-0 text-xs text-ink-500">{t("editor.rarity")}</span>
+                    <Select
                       value={assignment.rarity}
-                      onChange={(event) =>
-                        onChange({ ...assignment, rarity: event.target.value as Rarity })
-                      }
-                      className={cn(
-                        "field min-w-0 flex-1 border py-1",
-                        rarityStyle(assignment.rarity, slot.buildType).badge,
-                      )}
-                    >
-                      {RARITIES.map((rarity) => (
-                        <option key={rarity} value={rarity} className="bg-ink-950 text-ink-100">
-                          {rarityLabel(rarity, slot.buildType)} ×{RARITY_SCALES[rarity].multiplier}
-                          {RARITY_SCALES[rarity].flatBonus > 0 &&
-                            ` +${RARITY_SCALES[rarity].flatBonus}/stat`}
-                        </option>
-                      ))}
-                    </select>
+                      options={RARITIES.map((rarity) => ({
+                        value: rarity,
+                        label: `${rarityDisplayLabel(t, rarity, slot.buildType)} ×${
+                          RARITY_SCALES[rarity].multiplier
+                        }${
+                          RARITY_SCALES[rarity].flatBonus > 0
+                            ? t("editor.flatPerStat", { n: RARITY_SCALES[rarity].flatBonus })
+                            : ""
+                        }`,
+                        render: (
+                          <span className="flex items-center gap-1.5">
+                            <span
+                              aria-hidden="true"
+                              className={cn(
+                                "inline-block h-2.5 w-4 shrink-0",
+                                rarityStyle(rarity, slot.buildType).badge,
+                              )}
+                            />
+                            {rarityDisplayLabel(t, rarity, slot.buildType)} ×
+                            {RARITY_SCALES[rarity].multiplier}
+                          </span>
+                        ),
+                      }))}
+                      onChange={(next) => onChange({ ...assignment, rarity: next as Rarity })}
+                      aria-label={t("editor.rarity")}
+                      className={cn("flex-1", rarityStyle(assignment.rarity, slot.buildType).badge)}
+                    />
                   </label>
 
                   <label className="flex items-center gap-2">
-                    <span className="w-14 shrink-0 text-xs text-ink-500">Archétype</span>
-                    <select
+                    <span className="w-14 shrink-0 text-xs text-ink-500">
+                      {t("editor.archetype")}
+                    </span>
+                    <Select
                       value={assignment.buildType ?? ""}
-                      onChange={(event) =>
-                        onChange({
-                          ...assignment,
-                          buildType: (event.target.value || null) as BuildType | null,
-                        })
+                      options={[
+                        {
+                          value: "",
+                          label: slot.player.buildType
+                            ? t("editor.archetypeFromGame", {
+                                name: buildTypeLabel(t, slot.player.buildType),
+                              })
+                            : t("editor.archetypeUnknown"),
+                        },
+                        ...BUILD_TYPES.map((buildType) => ({
+                          value: buildType,
+                          label: buildTypeLabel(t, buildType),
+                          render: (
+                            <span className="flex items-center gap-1.5">
+                              <StyleBadge buildType={buildType} variant="icon" size={14} />
+                              {buildTypeLabel(t, buildType)}
+                            </span>
+                          ),
+                        })),
+                      ]}
+                      onChange={(next) =>
+                        onChange({ ...assignment, buildType: (next || null) as BuildType | null })
                       }
-                      className="field min-w-0 flex-1 py-1"
-                    >
-                      <option value="">
-                        {slot.player.buildType
-                          ? `Dataset : ${BUILD_TYPE_LABELS[slot.player.buildType]}`
-                          : "Dataset : inconnu"}
-                      </option>
-                      {BUILD_TYPES.map((buildType) => (
-                        <option key={buildType} value={buildType}>
-                          {BUILD_TYPE_LABELS[buildType]}
-                        </option>
-                      ))}
-                    </select>
+                      aria-label={t("editor.archetype")}
+                      className="flex-1"
+                    />
                   </label>
 
-                  <p className="text-[11px] text-ink-500">
-                    L'archétype dépend du drop, pas du personnage — et un Basara le laisse
-                    reconfigurer. Il détermine la variante Hero.
-                  </p>
+                  <p className="text-[11px] text-ink-500">{t("editor.archetypeHint")}</p>
 
                   {assignment.rarity === "hero" && !slot.buildType && (
-                    <p className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">
-                      Archétype non renseigné : impossible de déterminer la variante Hero (rouge,
-                      argent ou rose). Choisis-en un ci-dessus.
-                    </p>
+                    <Callout tone="warn">{t("editor.heroNeedsArchetype")}</Callout>
                   )}
 
-                  {RARITY_SCALES[assignment.rarity].estimated && (
-                    <p className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">
-                      Valeurs estimées : aucun multiplicateur Basara n'a été mesuré. Modélisé comme
-                      Hero +5/stat, d'après l'écart de 30–40 points de total rapporté.
-                    </p>
+                  {assignment.rarity === "hero" && slot.player.heroStats && (
+                    <p className="text-[11px] text-ink-500">{t("editor.realHeroTable")}</p>
                   )}
+                  {assignment.rarity === "basara" && slot.player.basaraStats && (
+                    <p className="text-[11px] text-ink-500">{t("editor.realBasaraTable")}</p>
+                  )}
+                  {assignment.rarity === "hero" &&
+                    !slot.player.heroStats &&
+                    RARITY_SCALES.hero.estimated && (
+                      <Callout tone="warn">
+                        {t("editor.estimatedHero", { mult: RARITY_SCALES.hero.multiplier })}
+                      </Callout>
+                    )}
+                  {assignment.rarity === "basara" &&
+                    !slot.player.basaraStats &&
+                    RARITY_SCALES.basara.estimated && (
+                      <Callout tone="warn">
+                        {t("editor.estimatedBasara", { mult: RARITY_SCALES.basara.multiplier })}
+                      </Callout>
+                    )}
                 </div>
               )}
 
               {!slot.positionMatch && (
-                <p className="mt-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">
-                  Joueur {slot.player.position} placé sur un poste {slot.expectedPosition}.
-                </p>
+                <Callout tone="warn">
+                  {t("editor.outOfPosition", {
+                    player: slot.player.position,
+                    expected: slot.expectedPosition ?? "",
+                  })}
+                </Callout>
               )}
             </div>
 
             <div className="flex flex-col gap-1">
-              <button type="button" onClick={onOpenPicker} className="btn px-2 py-1 text-xs">
-                Changer
-              </button>
-              <button
-                type="button"
+              <Button size="sm" onClick={onOpenPicker}>
+                {t("editor.change")}
+              </Button>
+              <IconButton
+                tone="danger"
                 onClick={() => onChange({ ...assignment, playerId: null })}
-                className="btn px-2 py-1 text-xs"
-                aria-label="Vider le slot"
+                aria-label={t("editor.clear")}
               >
                 <Trash2 className="size-3.5" />
-              </button>
+              </IconButton>
+            </div>
+          </div>
+        ) : staffOnly ? (
+          <div className="flex items-center gap-3">
+            <div className="flex size-16 shrink-0 items-center justify-center border-2 border-ink-700 bg-ink-900">
+              <StaffIcon
+                kind={slot.kind === "coach" ? "coach" : "manager"}
+                size={28}
+                className="opacity-80"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-base font-bold uppercase italic">
+                {slot.kind === "coach"
+                  ? t("pitch.coach")
+                  : t("pitch.manager", {
+                      n: slot.slotId.replace("manager", ""),
+                    })}
+              </h2>
+              <p className="text-xs text-ink-500">{t("pitch.staffHint")}</p>
+              <div className="mt-2">
+                <Button size="sm" onClick={onOpenPicker} icon={<UserPlus className="size-3.5" />}>
+                  {t("editor.assign")}
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={onOpenPicker}
-            className="btn btn-primary w-full justify-center py-3"
+            icon={<UserPlus className="size-4" />}
+            className="w-full py-3"
           >
-            <UserPlus className="size-4" />
-            Assigner un personnage
-          </button>
+            {t("editor.assign")}
+          </Button>
         )}
-      </section>
+      </Panel>
 
       {/* ── Stats ────────────────────────────────────────────────────────── */}
       {slot.player && !staffOnly && (
-        <section className="panel overflow-hidden">
-          <h3 className="panel-title">Stats de base</h3>
-          <div className="p-3">
-          <p className="mb-2 text-[11px] text-ink-500">
+        <Panel as="h3" title={t("editor.baseStats")}>
+          <PanelHint>
             {slot.rarity === "common"
-              ? "Ligne Common du dataset. L'appoint vert vient de l'équipement."
-              : `Ligne Common ×${RARITY_SCALES[slot.rarity].multiplier}` +
-                (RARITY_SCALES[slot.rarity].flatBonus > 0
-                  ? ` +${RARITY_SCALES[slot.rarity].flatBonus}`
-                  : "") +
-                ` (${rarityLabel(slot.rarity, slot.buildType)}), puis équipement.`}
-          </p>
+              ? t("editor.baseStatsCommon")
+              : slot.rarity === "hero" && slot.player.heroStats
+                ? t("editor.baseStatsHero")
+                : slot.rarity === "basara" && slot.player.basaraStats
+                  ? t("editor.baseStatsBasara")
+                  : t("editor.baseStatsScaled", {
+                      mult: RARITY_SCALES[slot.rarity].multiplier,
+                      flat:
+                        RARITY_SCALES[slot.rarity].flatBonus > 0
+                          ? t("editor.flatBonus", { n: RARITY_SCALES[slot.rarity].flatBonus })
+                          : "",
+                      rarity: rarityDisplayLabel(t, slot.rarity, slot.buildType),
+                    })}
+          </PanelHint>
+
+          <div className="mb-3 flex justify-center border-b border-ink-800 pb-3">
+            <StatRadar
+              stats={slot.stats}
+              base={
+                // Only draw the inner ring when gear actually moves a stat —
+                // otherwise the two polys stack and look like a glitch.
+                STAT_KEYS.some((key) => slot.stats[key] !== slot.scaledStats[key])
+                  ? slot.scaledStats
+                  : undefined
+              }
+              size={200}
+            />
+          </div>
+          {STAT_KEYS.some((key) => slot.stats[key] !== slot.scaledStats[key]) && (
+            <p className="mb-2 text-center text-[10px] text-ink-500">
+              <span className="mr-2 inline-block size-2 rounded-full bg-bolt-400 align-middle" />
+              {t("editor.radarFinal")}
+              <span className="mx-2 inline-block w-3 border-t border-dashed border-ink-500 align-middle" />
+              {t("editor.radarBase")}
+            </p>
+          )}
+
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             {STAT_KEYS.map((key) => {
               // Rarity and equipment are separate layers: the multiplier applies
@@ -227,7 +366,7 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
               const scaled = slot.rarity !== "common";
               return (
                 <div key={key} className="flex items-baseline justify-between gap-2">
-                  <dt className="truncate text-xs text-ink-500">{STAT_LABELS[key]}</dt>
+                  <dt className="truncate text-xs text-ink-500">{statLabel(t, key)}</dt>
                   <dd className="tnum font-medium">
                     {scaled && (
                       <span className="mr-1 text-[11px] font-normal text-ink-500">
@@ -249,18 +388,13 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
               <dd className="tnum font-semibold">{slot.total}</dd>
             </div>
           </dl>
-          </div>
-        </section>
+        </Panel>
       )}
 
       {/* ── Power ────────────────────────────────────────────────────────── */}
       {slot.player && !staffOnly && modifiers && effective && potential && (
-        <section className="panel overflow-hidden">
-          <h3 className="panel-title">Puissances</h3>
-          <div className="p-3">
-          <p className="mb-2 text-[11px] text-ink-500">
-            Base → avec passifs garantis. La valeur grise est le plafond conditionnel.
-          </p>
+        <Panel as="h3" title={t("editor.power")}>
+          <PanelHint>{t("editor.powerHint")}</PanelHint>
 
           <table className="w-full text-sm">
             <tbody>
@@ -271,10 +405,10 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                   <tr key={key} className="border-t border-ink-850 first:border-0">
                     <th
                       scope="row"
-                      title={POWER_FORMULAS[key]}
+                      title={powerFormula(t, key)}
                       className="py-1 text-left text-xs font-normal text-ink-500 underline decoration-dotted underline-offset-2"
                     >
-                      {POWER_LABELS[key]}
+                      {powerLabel(t, key)}
                     </th>
                     <td className="py-1 text-right text-xs text-ink-500 tnum">{slot.power[key]}</td>
                     <td className="py-1 text-right font-semibold tnum">
@@ -287,8 +421,14 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                     </td>
                     <td className="w-16 py-1 text-right text-[11px] tnum">
                       {modifier.guaranteed !== 0 && (
-                        <span className={modifier.guaranteed > 0 ? "text-[var(--color-good)]" : "text-[var(--color-bad)]"}>
-                          {formatPercent(modifier.guaranteed)}
+                        <span
+                          className={
+                            modifier.guaranteed > 0
+                              ? "text-[var(--color-good)]"
+                              : "text-[var(--color-bad)]"
+                          }
+                        >
+                          {formatPercent(modifier.guaranteed, locale)}
                         </span>
                       )}
                     </td>
@@ -299,15 +439,12 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
           </table>
 
           <Contributions modifiers={modifiers} />
-          </div>
-        </section>
+        </Panel>
       )}
 
       {/* ── Equipment ────────────────────────────────────────────────────── */}
       {!staffOnly && (
-        <section className="panel overflow-hidden">
-          <h3 className="panel-title">Équipement</h3>
-          <div className="p-3">
+        <Panel as="h3" title={t("editor.equipment")}>
           <div className="flex flex-col gap-2">
             {EQUIPMENT_SLOTS.map((equipmentSlot) => {
               const items = equipmentBySlot.get(equipmentSlot) ?? [];
@@ -317,44 +454,111 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                 <label key={equipmentSlot} className="flex items-center gap-2">
                   <EquipmentIcon item={equipped} />
                   <span className="w-16 shrink-0 text-xs text-ink-500">
-                    {EQUIPMENT_SLOT_LABELS[equipmentSlot]}
+                    {equipmentSlotLabel(t, equipmentSlot)}
                   </span>
-                  <select
+                  <Select
                     value={current}
-                    onChange={(event) =>
+                    options={[
+                      { value: "", label: "—" },
+                      ...items.map((item) => ({
+                        value: item.id,
+                        label: `${item.name} (+${item.total})`,
+                        render: (
+                          <span className="flex items-center gap-1.5">
+                            <EquipmentIcon item={item} size={18} />
+                            <span className="min-w-0 truncate">{item.name}</span>
+                            <span className="ml-auto shrink-0 text-ink-500 tnum">
+                              +{item.total}
+                            </span>
+                          </span>
+                        ),
+                      })),
+                    ]}
+                    onChange={(next) =>
                       onChange({
                         ...assignment,
-                        equipment: {
-                          ...assignment.equipment,
-                          [equipmentSlot]: event.target.value || undefined,
-                        },
+                        equipment: { ...assignment.equipment, [equipmentSlot]: next || undefined },
                       })
                     }
-                    className="field min-w-0 flex-1"
-                  >
-                    <option value="">—</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} (+{item.total})
-                      </option>
-                    ))}
-                  </select>
+                    aria-label={equipmentSlotLabel(t, equipmentSlot)}
+                    searchable
+                    searchPlaceholder={t("editor.search")}
+                    emptyLabel={t("editor.searchEmpty")}
+                    className="flex-1"
+                  />
                 </label>
               );
             })}
           </div>
-          </div>
-        </section>
+        </Panel>
+      )}
+
+      {/* ── Skills ───────────────────────────────────────────────────────── */}
+      {slot.player && !staffOnly && slot.skills.length > 0 && (
+        <Panel as="h3" title={t("editor.skills")}>
+          <PanelHint>{t("editor.skillsHint")}</PanelHint>
+
+          {hasAltBranch && (
+            <div role="tablist" className="mb-2 flex gap-1">
+              <Tab
+                active={!assignment.altBranch}
+                onClick={() => onChange({ ...assignment, altBranch: false })}
+              >
+                {t("editor.branchMain")}
+              </Tab>
+              <Tab
+                active={assignment.altBranch}
+                onClick={() => onChange({ ...assignment, altBranch: true })}
+              >
+                {t("editor.branchAlt")}
+              </Tab>
+            </div>
+          )}
+
+          <DataList>
+            {slot.skills.map((skill) => (
+              <DataRow
+                key={`${skill.level}-${skill.ability.id}`}
+                className={cn(skill.fromAltBranch && "text-bolt-400")}
+                label={
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="w-8 shrink-0 text-ink-500 tnum">
+                      {t("editor.level")} {skill.level}
+                    </span>
+                    {/* Badge puis élément : ce qu'on cherche d'abord dans une
+                        liste, c'est « tir, arrêt, ou quelle aura ». */}
+                    <AbilityIcon ability={skill.ability} size={16} />
+                    {skill.ability.element && (
+                      <ElementBadge element={skill.ability.element} variant="icon" size={14} />
+                    )}
+                    <span className="min-w-0 truncate normal-case not-italic">
+                      {abilityDisplayName(skill.ability, locale)}
+                    </span>
+                  </span>
+                }
+                value={
+                  skill.ability.power > 0 ? (
+                    skill.ability.power
+                  ) : (
+                    <span className="text-[11px] text-ink-500">
+                      {abilityTypeLabel(t, skill.ability.type)}
+                    </span>
+                  )
+                }
+                extra={skill.ability.tension > 0 ? `${skill.ability.tension} TP` : undefined}
+              />
+            ))}
+          </DataList>
+        </Panel>
       )}
 
       {/* ── Passives ─────────────────────────────────────────────────────── */}
-      <section className="panel overflow-hidden">
-        <h3 className="panel-title">Passifs</h3>
-        <div className="p-3">
-        <p className="mb-2 text-[11px] text-ink-500">
-          Le jeu ne publie pas le passif porté par chaque personnage : à toi de le renseigner. La
-          valeur dépend du niveau du passif — les bornes affichées sont les min/max du jeu.
-        </p>
+      <Panel as="h3" title={t("editor.passives")}>
+        <PanelHint>{t("editor.passivesHint")}</PanelHint>
+        {/* Dump ships text + magnitude only — no scope/stat tree yet. */}
+        <Callout tone="info" className="mb-2">
+          {t("editor.passivesEffectsGap")}
+        </Callout>
 
         <div className="flex flex-col gap-2">
           {Array.from({ length: MAX_SLOT_PASSIVES }, (_, index) => {
@@ -367,35 +571,49 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
               <div key={index} className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <span className="w-20 shrink-0 text-xs text-ink-500">
-                    {index === MAX_SLOT_PASSIVES - 1 ? "Custom" : `Preset ${index + 1}`}
+                    {index === MAX_SLOT_PASSIVES - 1
+                      ? t("editor.custom")
+                      : t("editor.preset", { n: index + 1 })}
                   </span>
 
-                  <select
+                  <Select
                     value={current.passiveId ?? ""}
-                    onChange={(event) => {
-                      const passiveId = event.target.value || null;
+                    options={[
+                      { value: "", label: "—" },
+                      ...options.map((passive) => ({
+                        value: passive.id,
+                        label: `#${passive.number} · ${passive.description}`,
+                        render: (
+                          <span className="flex items-baseline gap-1.5">
+                            <span className="shrink-0 text-ink-500 tnum">#{passive.number}</span>
+                            <span className="min-w-0 truncate">{passive.description}</span>
+                          </span>
+                        ),
+                      })),
+                    ]}
+                    onChange={(passiveId) => {
                       const next = options.find((p) => p.id === passiveId);
                       const passives = [...assignment.passives];
                       passives[index] = {
-                        passiveId,
+                        passiveId: passiveId || null,
                         // Seed with the strong value so a freshly picked passive
                         // does something; it stays fully editable.
                         value: passiveId ? (next?.strongValue ?? 0) : 0,
                       };
                       onChange({ ...assignment, passives });
                     }}
-                    className="field min-w-0 flex-1"
-                  >
-                    <option value="">—</option>
-                    {options.map((passive) => (
-                      <option key={passive.id} value={passive.id}>
-                        #{passive.number} · {passive.description}
-                      </option>
-                    ))}
-                  </select>
+                    aria-label={
+                      index === MAX_SLOT_PASSIVES - 1
+                        ? t("editor.custom")
+                        : t("editor.preset", { n: index + 1 })
+                    }
+                    searchable
+                    searchPlaceholder={t("editor.search")}
+                    emptyLabel={t("editor.searchEmpty")}
+                    className="flex-1"
+                  />
 
-                  <input
-                    type="number"
+                  <NumberInput
                     step="0.1"
                     value={current.value || ""}
                     disabled={!current.passiveId}
@@ -407,22 +625,28 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                       };
                       onChange({ ...assignment, passives });
                     }}
-                    className="field w-20 text-right tnum"
-                    aria-label="Valeur en pourcentage"
+                    className="w-20"
+                    aria-label={t("editor.percentValue")}
                   />
                   <span className="text-xs text-ink-500">%</span>
                 </div>
 
                 {selected && (
                   <p className="pl-22 text-[11px] text-ink-500">
-                    Bornes du jeu : {selected.weakValue} % – {selected.strongValue} %
-                    {selected.buildType && ` · build ${BUILD_TYPE_LABELS[selected.buildType]}`}
+                    {t("editor.bounds", {
+                      weak: selected.weakValue,
+                      strong: selected.strongValue,
+                      build: selected.buildType
+                        ? t("editor.buildSuffix", { name: buildTypeLabel(t, selected.buildType) })
+                        : "",
+                      conditions: "",
+                    })}
                     {selected.effects.some((e) => e.conditions.length > 0) && (
                       <span className="text-amber-400/80">
                         {" · "}
                         {selected.effects
                           .flatMap((e) => e.conditions)
-                          .map((c) => CONDITION_LABELS[c])
+                          .map((c) => conditionLabel(t, c))
                           .join(", ")}
                       </span>
                     )}
@@ -432,19 +656,18 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
             );
           })}
         </div>
-        </div>
-      </section>
+      </Panel>
 
       {slot.player && (
-        <a
-          href={`https://zukan.inazuma.jp/en/`}
+        <LinkButton
+          href="https://zukan.inazuma.jp/en/"
           target="_blank"
           rel="noreferrer noopener"
-          className="btn justify-center text-xs"
+          size="sm"
+          icon={<ExternalLink className="size-3.5" />}
         >
-          Voir sur Inazugle
-          <ExternalLink className="size-3.5" />
-        </a>
+          {t("editor.viewInazugle")}
+        </LinkButton>
       )}
     </div>
   );
@@ -454,9 +677,12 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
  * Item art comes from Inazugle and roughly one item in eight has no match, so
  * an empty frame is a normal state rather than a failure to signal.
  */
-function EquipmentIcon({ item }: { item: Equipment | undefined }) {
+function EquipmentIcon({ item, size = 34 }: { item: Equipment | undefined; size?: number }) {
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink-800 bg-ink-950">
+    <span
+      className="flex shrink-0 items-center justify-center overflow-hidden border-2 border-ink-800 bg-ink-950"
+      style={{ width: size, height: size }}
+    >
       {item?.image ? (
         <img
           src={item.image}
@@ -473,8 +699,12 @@ function EquipmentIcon({ item }: { item: Equipment | undefined }) {
 }
 
 function Contributions({ modifiers }: { modifiers: Record<PowerKey, Modifier> }) {
+  const { t, locale, showOriginalNames } = useI18n();
   // One passive usually feeds several power stats; list each passive once.
-  const seen = new Map<string, { description: string; from: string | null; percent: number; conditions: string[] }>();
+  const seen = new Map<
+    string,
+    { description: string; from: string | null; percent: number; conditions: string[] }
+  >();
 
   for (const modifier of Object.values(modifiers)) {
     for (const contribution of modifier.contributions) {
@@ -482,11 +712,11 @@ function Contributions({ modifiers }: { modifiers: Record<PowerKey, Modifier> })
       if (seen.has(key)) continue;
       seen.set(key, {
         description: contribution.description,
-        from: contribution.fromPlayerName,
+        from: contributionPlayerName(contribution, showOriginalNames),
         percent: contribution.percent,
         conditions: [
-          ...contribution.conditions.map((c) => CONDITION_LABELS[c]),
-          ...(contribution.note ? [contribution.note] : []),
+          ...contribution.conditions.map((c) => conditionLabel(t, c)),
+          ...(contribution.note ? [scopeNoteLabel(t, contribution.note)] : []),
         ],
       });
     }
@@ -498,8 +728,13 @@ function Contributions({ modifiers }: { modifiers: Record<PowerKey, Modifier> })
     <ul className="mt-2 flex flex-col gap-1 border-t border-ink-850 pt-2 text-[11px]">
       {[...seen.values()].map((entry, index) => (
         <li key={index} className="flex items-baseline gap-2">
-          <span className={cn("shrink-0 tnum font-semibold", entry.percent > 0 ? "text-[var(--color-good)]" : "text-[var(--color-bad)]")}>
-            {formatPercent(entry.percent)}
+          <span
+            className={cn(
+              "shrink-0 tnum font-semibold",
+              entry.percent > 0 ? "text-[var(--color-good)]" : "text-[var(--color-bad)]",
+            )}
+          >
+            {formatPercent(entry.percent, locale)}
           </span>
           <span className="min-w-0 flex-1 text-ink-300">
             {entry.description}

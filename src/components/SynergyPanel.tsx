@@ -1,191 +1,381 @@
-import { AlertTriangle, Info } from "lucide-react";
-
-import { POWER_KEYS, POWER_LABELS } from "@/domain/stats";
-import {
-  CONDITION_LABELS,
-  GAUGE_STATS,
-  LOWER_IS_BETTER,
-  PASSIVE_STAT_LABELS,
-  squadShape,
-  type SynergyResult,
-} from "@/domain/synergy";
+import { detectBonds } from "@/domain/bonds";
+import { POWER_KEYS } from "@/domain/stats";
+import { GAUGE_STATS, LOWER_IS_BETTER, squadShape, type SynergyResult } from "@/domain/synergy";
 import type { ResolvedTeam } from "@/domain/team";
-import { BUILD_TYPE_LABELS, RARITY_LABELS, type BuildType, type Element } from "@/domain/types";
 import {
-  ELEMENT_LABELS,
-  ELEMENT_STYLES,
-  POSITION_STYLE,
-  cn,
-  formatNumber,
-  formatPercent,
-  rarityStyle,
-} from "@/lib/ui";
+  MAX_TEAM_TACTICS,
+  type BuildType,
+  type Dataset,
+  type Element,
+  type Position,
+  type Tactic,
+} from "@/domain/types";
+import { playerDisplayName, useI18n } from "@/i18n";
+import {
+  buildTypeLabel,
+  conditionLabel,
+  elementLabel,
+  passiveStatLabel,
+  powerLabel,
+  rarityLabelKey,
+  scopeNoteLabel,
+  unresolvedReasonLabel,
+  violationLabel,
+} from "@/i18n/labels";
+import { ELEMENT_STYLES, cn, formatNumber, formatPercent, rarityStyle } from "@/lib/ui";
+import { useMemo } from "react";
+import { ElementBadge, PositionBadge, StyleBadge, TacticIcon } from "./GameIcon";
+import { Callout, Chip, DataList, DataRow, Panel, PanelHint, PanelMeta, Select } from "./ui";
 
 interface Props {
   resolved: ResolvedTeam;
   synergy: SynergyResult;
+  dataset: Dataset;
+  tacticIds: string[];
+  onTacticsChange: (tacticIds: string[]) => void;
 }
 
-export function SynergyPanel({ resolved, synergy }: Props) {
+export function SynergyPanel({ resolved, synergy, dataset, tacticIds, onTacticsChange }: Props) {
+  const { t, locale, showOriginalNames } = useI18n();
   const shape = squadShape(resolved);
+  const bonds = useMemo(
+    () => detectBonds(resolved, dataset.synergies),
+    [resolved, dataset.synergies],
+  );
+  const activeBonds = bonds.filter((b) => b.status === "active");
+  const partialBonds = bonds.filter((b) => b.status === "partial").slice(0, 8);
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="panel overflow-hidden">
-        <header className="panel-title flex items-baseline justify-between">
-          <h2>Composition</h2>
-          <span className="text-xs tnum not-italic">
-            {shape.filled}/{shape.capacity} titulaires
-          </span>
-        </header>
+      <TacticsSection tactics={dataset.tactics} tacticIds={tacticIds} onChange={onTacticsChange} />
 
-        <div className="flex flex-col gap-2 p-3">
+      <Panel
+        title={t("synergy.bonds")}
+        action={
+          activeBonds.length > 0 ? (
+            <PanelMeta>
+              {t("synergy.bondsOf", {
+                present: activeBonds.length,
+                total: dataset.synergies.length,
+              })}
+            </PanelMeta>
+          ) : undefined
+        }
+        bodyClassName="flex flex-col gap-2"
+      >
+        <PanelHint>{t("synergy.bondsHint")}</PanelHint>
+
+        {activeBonds.length === 0 && partialBonds.length === 0 ? (
+          <p className="text-xs text-ink-500">{t("synergy.bondsNone")}</p>
+        ) : (
+          <>
+            {activeBonds.length > 0 && (
+              <BondGroup label={t("synergy.bondsActive")} tone="good">
+                {activeBonds.map((bond) => (
+                  <BondRow
+                    key={bond.synergy.id}
+                    name={bond.synergy.name}
+                    description={bond.synergy.description}
+                    members={bond.synergy.memberNames}
+                    present={bond.present.length}
+                    total={bond.synergy.members.length}
+                    active
+                  />
+                ))}
+              </BondGroup>
+            )}
+            {partialBonds.length > 0 && (
+              <BondGroup label={t("synergy.bondsPartial")} tone="warn">
+                {partialBonds.map((bond) => {
+                  const missingNames = bond.missing.map((id) => {
+                    const idx = bond.synergy.members.indexOf(id);
+                    return bond.synergy.memberNames[idx] ?? `#${id}`;
+                  });
+                  return (
+                    <BondRow
+                      key={bond.synergy.id}
+                      name={bond.synergy.name}
+                      description={bond.synergy.description}
+                      members={bond.synergy.memberNames}
+                      present={bond.present.length}
+                      total={bond.synergy.members.length}
+                      missingLabel={t("synergy.bondsMissing", {
+                        list: missingNames.join(", "),
+                      })}
+                    />
+                  );
+                })}
+              </BondGroup>
+            )}
+          </>
+        )}
+      </Panel>
+
+      <Panel
+        title={t("synergy.composition")}
+        action={
+          <PanelMeta>
+            {t("synergy.starters", { filled: shape.filled, capacity: shape.capacity })}
+          </PanelMeta>
+        }
+        bodyClassName="flex flex-col gap-2"
+      >
+        <Distribution
+          label={t("synergy.rarities")}
+          entries={shape.rarities.map(({ rarity, count }) => ({
+            key: rarity,
+            label: rarityLabelKey(t, rarity),
+            count,
+            className: rarityStyle(rarity, null).badge,
+          }))}
+          total={shape.filled}
+        />
+        <Distribution
+          label={t("synergy.elements")}
+          entries={shape.elements.map(({ element, count }) => ({
+            key: element,
+            label: elementLabel(t, element as Element),
+            count,
+            className: cn(
+              ELEMENT_STYLES[element as Element].bg,
+              ELEMENT_STYLES[element as Element].text,
+            ),
+            icon: <ElementBadge element={element as Element} variant="icon" size={14} />,
+          }))}
+          total={shape.filled}
+        />
+        <Distribution
+          label={t("synergy.positions")}
+          entries={shape.positions.map(({ position, count }) => ({
+            key: position,
+            label: position,
+            count,
+            className: "bg-ink-850 text-ink-200",
+            icon: <PositionBadge position={position as Position} variant="silhouette" size={14} />,
+          }))}
+          total={shape.filled}
+        />
+        {shape.buildTypes.length > 0 && (
           <Distribution
-            label="Raretés"
-            entries={shape.rarities.map(({ rarity, count }) => ({
-              key: rarity,
-              // Hero's variant follows the archetype, which differs per player,
-              // so the aggregate row shows the neutral label.
-              label: RARITY_LABELS[rarity],
+            label={t("synergy.archetypes")}
+            entries={shape.buildTypes.map(({ buildType, count }) => ({
+              key: buildType,
+              label: buildTypeLabel(t, buildType as BuildType),
               count,
-              className: rarityStyle(rarity, null).badge,
+              className: "bg-ink-800 text-ink-300",
+              icon: <StyleBadge buildType={buildType as BuildType} variant="icon" size={14} />,
             }))}
             total={shape.filled}
           />
-          <Distribution
-            label="Éléments"
-            entries={shape.elements.map(({ element, count }) => ({
-              key: element,
-              label: ELEMENT_LABELS[element as Element],
-              count,
-              className: cn(ELEMENT_STYLES[element as Element].bg, ELEMENT_STYLES[element as Element].text),
-            }))}
-            total={shape.filled}
-          />
-          <Distribution
-            label="Postes"
-            entries={shape.positions.map(({ position, count }) => ({
-              key: position,
-              label: position,
-              count,
-              className: POSITION_STYLE,
-            }))}
-            total={shape.filled}
-          />
-          {shape.buildTypes.length > 0 && (
-            <Distribution
-              label="Archétypes"
-              entries={shape.buildTypes.map(({ buildType, count }) => ({
-                key: buildType,
-                label: BUILD_TYPE_LABELS[buildType as BuildType],
-                count,
-                className: "bg-ink-800 text-ink-300",
-              }))}
-              total={shape.filled}
-            />
-          )}
+        )}
 
-          {shape.violations.map((violation) => (
-            <p
-              key={violation}
-              className="flex items-start gap-1.5 border-l-3 border-[var(--color-bad)] bg-[var(--color-bad)]/12 px-2 py-1.5 text-[11px] text-[var(--color-bad)]"
-            >
-              <AlertTriangle className="mt-px size-3.5 shrink-0" />
-              <span>{violation}</span>
-            </p>
-          ))}
+        {shape.violations.map((violation) => (
+          <Callout key={violation.code} tone="bad">
+            {violationLabel(t, violation)}
+          </Callout>
+        ))}
 
-          {shape.outOfPosition.length > 0 && (
-            <p className="flex items-start gap-1.5 border-l-3 border-bolt-500 bg-bolt-500/12 px-2 py-1.5 text-[11px] text-bolt-400">
-              <AlertTriangle className="mt-px size-3.5 shrink-0" />
-              <span>
-                {shape.outOfPosition.length} joueur{shape.outOfPosition.length > 1 ? "s" : ""} hors
-                poste :{" "}
-                {shape.outOfPosition
-                  .map((slot) => `${slot.player?.nickname || slot.player?.name} (${slot.player?.position} → ${slot.expectedPosition})`)
-                  .join(", ")}
-              </span>
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section className="panel overflow-hidden">
-        <h2 className="panel-title">Puissance cumulée</h2>
-        <div className="p-3">
-        <p className="mb-2 text-[11px] text-ink-500">
-          Somme des titulaires, passifs garantis appliqués.
-        </p>
-
-        <table className="w-full text-sm">
-          <tbody>
-            {POWER_KEYS.map((key) => {
-              const effective = synergy.totals.effective[key];
-              const potential = synergy.totals.potential[key];
-              return (
-                <tr key={key} className="border-t border-ink-850 first:border-0">
-                  <th scope="row" className="py-1 text-left text-xs font-normal text-ink-500">
-                    {POWER_LABELS[key]}
-                  </th>
-                  <td className="py-1 text-right font-semibold tnum">{formatNumber(effective)}</td>
-                  <td className="w-20 py-1 text-right text-[11px] text-ink-500 tnum">
-                    {potential !== effective && `→ ${formatNumber(potential)}`}
-                  </td>
-                </tr>
-              );
+        {shape.outOfPosition.length > 0 && (
+          <Callout tone="warn">
+            {t("synergy.outOfPosition", {
+              n: shape.outOfPosition.length,
+              list: shape.outOfPosition
+                .map((slot) =>
+                  t("synergy.outOfPositionItem", {
+                    name: playerDisplayName(slot.player, showOriginalNames) || "?",
+                    from: slot.player?.position ?? "?",
+                    to: slot.expectedPosition ?? "?",
+                  }),
+                )
+                .join(", "),
             })}
-          </tbody>
-        </table>
-        </div>
-      </section>
+          </Callout>
+        )}
+      </Panel>
 
-      <Gauges synergy={synergy} />
+      <Panel title={t("synergy.totalPower")}>
+        <PanelHint>{t("synergy.totalPowerHint")}</PanelHint>
+        <Callout tone="info" className="mb-2">
+          {t("synergy.passivesEffectsGap")}
+        </Callout>
+
+        <DataList>
+          {POWER_KEYS.map((key) => {
+            const effective = synergy.totals.effective[key];
+            const potential = synergy.totals.potential[key];
+            return (
+              <DataRow
+                key={key}
+                label={powerLabel(t, key)}
+                value={formatNumber(effective, locale)}
+                extra={potential !== effective && `→ ${formatNumber(potential, locale)}`}
+              />
+            );
+          })}
+        </DataList>
+      </Panel>
+
+      <GaugesSection synergy={synergy} />
 
       {synergy.unresolved.length > 0 && (
-        <section className="panel overflow-hidden">
-          <h2 className="panel-title flex items-center gap-1.5">
-            <Info className="size-3.5" />
-            Non calculable
-          </h2>
-          <ul className="flex flex-col gap-1.5 p-3 text-[11px]">
-            {synergy.unresolved.map((entry, index) => (
-              <li key={index} className="text-ink-500">
-                <span className="text-ink-300">{entry.description}</span> — {entry.reason}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Panel title={t("synergy.unresolved")} bodyClassName="flex flex-col gap-1.5">
+          {synergy.unresolved.map((item, index) => (
+            <Callout key={index} tone="info">
+              {item.description} — {unresolvedReasonLabel(t, item.reason)}
+            </Callout>
+          ))}
+        </Panel>
       )}
     </div>
   );
 }
 
-function Gauges({ synergy }: { synergy: SynergyResult }) {
-  const active = GAUGE_STATS.map((stat) => ({ stat, modifier: synergy.gauges[stat] })).filter(
-    (entry): entry is { stat: (typeof GAUGE_STATS)[number]; modifier: NonNullable<typeof entry.modifier> } =>
-      entry.modifier !== undefined &&
-      (entry.modifier.guaranteed !== 0 || entry.modifier.conditional !== 0),
-  );
+function TacticsSection({
+  tactics,
+  tacticIds,
+  onChange,
+}: {
+  tactics: Tactic[];
+  tacticIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const { t } = useI18n();
+  const byId = useMemo(() => new Map(tactics.map((x) => [x.id, x])), [tactics]);
 
-  if (active.length === 0) {
-    return (
-      <section className="panel overflow-hidden">
-        <h2 className="panel-title">Jauges</h2>
-        <p className="p-3 text-[11px] text-ink-500">
-          Aucun passif de jauge actif (tension, brèche, lien, taux de faute, drops…).
-        </p>
-      </section>
-    );
-  }
+  const slots = Array.from({ length: MAX_TEAM_TACTICS }, (_, i) => tacticIds[i] ?? "");
+
+  const setSlot = (index: number, id: string) => {
+    const next = [...slots];
+    next[index] = id;
+    // Compact: keep order of filled slots only, hard-cap at the game limit.
+    onChange(next.filter(Boolean).slice(0, MAX_TEAM_TACTICS));
+  };
 
   return (
-    <section className="panel overflow-hidden">
-      <h2 className="panel-title">Jauges</h2>
-      <p className="px-3 pt-3 pb-2 text-[11px] text-ink-500">
-        Effets d'équipe sans équivalent par joueur — comptés une seule fois.
-      </p>
+    <Panel title={t("app.tactics")} bodyClassName="flex flex-col gap-2">
+      {slots.map((id, index) => {
+        const taken = new Set(slots.filter((x, i) => x && i !== index));
+        return (
+          <div key={index} className="flex flex-col gap-0.5">
+            <span className="label-display text-ink-500">
+              {t("app.tacticSlot", { n: index + 1 })}
+            </span>
+            <Select
+              value={id}
+              searchable
+              searchPlaceholder={t("editor.search")}
+              emptyLabel={t("editor.searchEmpty")}
+              placeholder={t("app.tacticEmpty")}
+              aria-label={t("app.tacticSlot", { n: index + 1 })}
+              options={[
+                { value: "", label: t("app.tacticEmpty") },
+                ...tactics.map((tactic) => ({
+                  value: tactic.id,
+                  label: `${tactic.name} (${t("app.tacticTp", { n: tactic.tpCost })})`,
+                  disabled: taken.has(tactic.id),
+                  render: (
+                    <span className="flex items-center gap-1.5">
+                      <TacticIcon tacticId={tactic.id} size={18} title={tactic.name} />
+                      <span className="min-w-0 flex-1 truncate">{tactic.name}</span>
+                      <span className="shrink-0 text-ink-500 tnum">
+                        {t("app.tacticTp", { n: tactic.tpCost })}
+                      </span>
+                    </span>
+                  ),
+                })),
+              ]}
+              onChange={(next) => setSlot(index, next)}
+            />
+            {id && byId.get(id)?.description && (
+              <p className="line-clamp-2 text-[11px] text-ink-500 whitespace-pre-line">
+                {byId.get(id)!.description}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </Panel>
+  );
+}
 
-      <ul className="flex flex-col gap-2 px-3 pb-3">
+function BondGroup({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  tone: "good" | "warn";
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p
+        className={cn(
+          "label-display mb-1",
+          tone === "good" ? "text-[var(--color-good)]" : "text-amber-400/90",
+        )}
+      >
+        {label}
+      </p>
+      <ul className="flex flex-col gap-1.5">{children}</ul>
+    </div>
+  );
+}
+
+function BondRow({
+  name,
+  description,
+  members,
+  present,
+  total,
+  active,
+  missingLabel,
+}: {
+  name: string;
+  description: string;
+  members: string[];
+  present: number;
+  total: number;
+  active?: boolean;
+  missingLabel?: string;
+}) {
+  return (
+    <li
+      className={cn(
+        "border-2 px-2 py-1.5",
+        active ? "border-[var(--color-good)]/50 bg-[var(--color-good)]/5" : "border-ink-800",
+      )}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-display text-sm font-bold uppercase italic">{name}</span>
+        <span className="shrink-0 text-[11px] text-ink-500 tnum">
+          {present}/{total}
+        </span>
+      </div>
+      <p className="mt-0.5 text-[11px] text-ink-400">{members.join(" · ")}</p>
+      {description ? (
+        <p className="mt-0.5 line-clamp-2 text-[11px] text-ink-500">{description}</p>
+      ) : null}
+      {missingLabel ? <p className="mt-0.5 text-[11px] text-amber-400/80">{missingLabel}</p> : null}
+    </li>
+  );
+}
+
+function GaugesSection({ synergy }: { synergy: SynergyResult }) {
+  const { t, locale } = useI18n();
+  const active = GAUGE_STATS.map((stat) => {
+    const modifier = synergy.gauges[stat];
+    if (!modifier || (modifier.guaranteed === 0 && modifier.conditional === 0)) return null;
+    return { stat, modifier };
+  }).filter((row): row is NonNullable<typeof row> => row !== null);
+
+  if (active.length === 0) return null;
+
+  return (
+    <Panel title={t("synergy.gauges")}>
+      <PanelHint>{t("synergy.gaugesHint")}</PanelHint>
+
+      <ul className="flex flex-col gap-2">
         {active.map(({ stat, modifier }) => {
           const lowerIsBetter = LOWER_IS_BETTER.has(stat);
           const good = lowerIsBetter ? modifier.guaranteed < 0 : modifier.guaranteed > 0;
@@ -193,7 +383,7 @@ function Gauges({ synergy }: { synergy: SynergyResult }) {
           return (
             <li key={stat} className="border-t border-ink-850 pt-2 first:border-0 first:pt-0">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm">{PASSIVE_STAT_LABELS[stat]}</span>
+                <span className="text-sm">{passiveStatLabel(t, stat)}</span>
                 <span className="flex items-baseline gap-1.5 tnum">
                   {modifier.guaranteed !== 0 && (
                     <span
@@ -202,12 +392,12 @@ function Gauges({ synergy }: { synergy: SynergyResult }) {
                         good ? "text-[var(--color-good)]" : "text-[var(--color-bad)]",
                       )}
                     >
-                      {formatPercent(modifier.guaranteed)}
+                      {formatPercent(modifier.guaranteed, locale)}
                     </span>
                   )}
                   {modifier.conditional !== 0 && (
                     <span className="text-[11px] text-amber-400/80">
-                      {formatPercent(modifier.conditional)} cond.
+                      {formatPercent(modifier.conditional, locale)} {t("editor.conditional")}
                     </span>
                   )}
                 </span>
@@ -216,11 +406,16 @@ function Gauges({ synergy }: { synergy: SynergyResult }) {
               <ul className="mt-0.5 flex flex-col gap-0.5 text-[11px] text-ink-500">
                 {modifier.contributions.map((contribution, index) => (
                   <li key={index} className="truncate">
-                    {formatPercent(contribution.percent)} · {contribution.description}
-                    {contribution.conditions.length > 0 && (
+                    {formatPercent(contribution.percent, locale)} · {contribution.description}
+                    {(contribution.conditions.length > 0 || contribution.note) && (
                       <span className="text-amber-400/70">
                         {" "}
-                        ({contribution.conditions.map((c) => CONDITION_LABELS[c]).join(", ")})
+                        (
+                        {[
+                          ...contribution.conditions.map((c) => conditionLabel(t, c)),
+                          ...(contribution.note ? [scopeNoteLabel(t, contribution.note)] : []),
+                        ].join(", ")}
+                        )
                       </span>
                     )}
                   </li>
@@ -230,7 +425,7 @@ function Gauges({ synergy }: { synergy: SynergyResult }) {
           );
         })}
       </ul>
-    </section>
+    </Panel>
   );
 }
 
@@ -240,23 +435,31 @@ function Distribution({
   total,
 }: {
   label: string;
-  entries: { key: string; label: string; count: number; className: string }[];
+  entries: {
+    key: string;
+    label: string;
+    count: number;
+    className: string;
+    icon?: React.ReactNode;
+  }[];
   total: number;
 }) {
   if (entries.length === 0) return null;
 
   return (
     <div>
-      <p className="mb-1 text-[11px] text-ink-500">{label}</p>
+      <p className="label-display mb-1">{label}</p>
       <div className="flex flex-wrap gap-1">
         {entries.map((entry) => (
-          <span
+          <Chip
             key={entry.key}
-            className={cn("rounded border border-transparent px-1.5 py-0.5 text-[11px]", entry.className)}
-            title={`${entry.count}/${total}`}
+            icon={entry.icon}
+            className={cn("border-ink-700", entry.className)}
+            title={`${entry.label}: ${entry.count}/${total}`}
           >
-            {entry.label} <span className="font-semibold tnum">{entry.count}</span>
-          </span>
+            {!entry.icon && entry.label}
+            <span className="font-semibold tnum">{entry.count}</span>
+          </Chip>
         ))}
       </div>
     </div>

@@ -1,23 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Copy, FolderOpen, Save, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
+import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { ImportDialog, ShareDialog } from "@/components/ShareModals";
+import { TeamToolbar } from "@/components/TeamToolbar";
+import { TopBar } from "@/components/TopBar";
+import { IconButton, Panel, Tab } from "@/components/ui";
 import { Pitch } from "@/components/Pitch";
 import { PlayerPicker } from "@/components/PlayerPicker";
 import { SlotEditor } from "@/components/SlotEditor";
 import { SynergyPanel } from "@/components/SynergyPanel";
 import { loadDataset } from "@/data/load";
-import { FORMATIONS } from "@/domain/formations";
 import { computeSynergy } from "@/domain/synergy";
 import {
-  applyFormation,
   createTeam,
   emptyAssignment,
+  normalizeTeam,
   resolveTeam,
   type SlotAssignment,
   type Team,
 } from "@/domain/team";
-import type { Dataset } from "@/domain/types";
-import { teamFromLocationHash, teamShareUrl, writeTeamToLocationHash } from "@/lib/share";
+import { playerDisplayName, useI18n } from "@/i18n";
+import {
+  decodeShareInput,
+  encodeShareCode,
+  teamFromLocationHash,
+  teamShareUrl,
+  writeTeamToLocationHash,
+} from "@/lib/share";
 import {
   deleteSavedTeam,
   loadCurrentTeam,
@@ -27,22 +37,26 @@ import {
   saveTeam,
   type SavedTeam,
 } from "@/lib/storage";
-import { cn } from "@/lib/ui";
+import { formatDateTime } from "@/lib/ui";
 
 /** A shared link wins over the local draft — that is the point of opening one. */
 function initialTeam(): Team {
-  return teamFromLocationHash() ?? loadCurrentTeam() ?? createTeam();
+  const loaded = teamFromLocationHash() ?? loadCurrentTeam();
+  return loaded ? normalizeTeam(loaded) : createTeam();
 }
 
 export default function App() {
-  const [dataset, setDataset] = useState<Dataset | null>(null);
+  const { t, locale, showOriginalNames } = useI18n();
+  const [dataset, setDataset] = useState<Awaited<ReturnType<typeof loadDataset>> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [team, setTeam] = useState<Team>(initialTeam);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saved, setSaved] = useState<SavedTeam[]>(() => loadSavedTeams());
   const [savedOpen, setSavedOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
 
   useEffect(() => {
     loadDataset().then(setDataset, (error: unknown) =>
@@ -50,47 +64,77 @@ export default function App() {
     );
   }, []);
 
-  // The URL is the source of truth for sharing, localStorage for coming back.
+  // Debounce hash + localStorage: typing a team name shouldn't rewrite history
+  // 20×/s. 300ms is short enough that a hard refresh still keeps the draft.
   useEffect(() => {
-    writeTeamToLocationHash(team);
-    saveCurrentTeam(team);
+    const handle = window.setTimeout(() => {
+      writeTeamToLocationHash(team);
+      saveCurrentTeam(team);
+    }, 300);
+    return () => window.clearTimeout(handle);
   }, [team]);
 
-  const resolved = useMemo(
-    () => (dataset ? resolveTeam(team, dataset) : null),
-    [team, dataset],
-  );
+  const resolved = useMemo(() => (dataset ? resolveTeam(team, dataset) : null), [team, dataset]);
   const synergy = useMemo(() => (resolved ? computeSynergy(resolved) : null), [resolved]);
 
   const selectedSlot = resolved?.slots.find((slot) => slot.slotId === selectedSlotId) ?? null;
 
-  const updateAssignment = useCallback(
-    (slotId: string, next: SlotAssignment) => {
-      setTeam((current) => ({ ...current, slots: { ...current.slots, [slotId]: next } }));
-    },
-    [],
-  );
+  const updateAssignment = useCallback((slotId: string, next: SlotAssignment) => {
+    setTeam((current) => ({
+      ...current,
+      slots: { ...current.slots, [slotId]: next },
+    }));
+  }, []);
 
-  const handleShare = async () => {
+  const handleCopyCode = async () => {
+    const code = encodeShareCode(team);
     try {
-      await navigator.clipboard.writeText(teamShareUrl(team));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(code);
+      setCopied("code");
+      setTimeout(() => setCopied(null), 2000);
     } catch {
-      // Clipboard can be blocked; the URL bar already holds the same link.
-      window.prompt("Copie ce lien :", teamShareUrl(team));
+      window.prompt(t("app.copyCodePrompt"), code);
     }
+  };
+
+  const handleCopyLink = async () => {
+    const url = teamShareUrl(team);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied("link");
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      window.prompt(t("app.copyLinkPrompt"), url);
+    }
+  };
+
+  const handleImport = (raw: string): boolean => {
+    const next = decodeShareInput(raw);
+    if (!next) return false;
+    setTeam(normalizeTeam(next));
+    setSelectedSlotId(null);
+    setImportOpen(false);
+    return true;
+  };
+
+  const handleSave = () => {
+    const named = team.name.trim() === "" ? { ...team, name: t("team.defaultName") } : team;
+    if (named !== team) setTeam(named);
+    setSaved(saveTeam(named));
   };
 
   if (loadError) {
     return (
       <Centered>
-        <p className="text-sm text-[var(--color-bad)]">Impossible de charger les données.</p>
-        <p className="mt-1 text-xs text-ink-500">{loadError}</p>
-        <p className="mt-3 text-xs text-ink-500">
-          Lance <code className="rounded bg-ink-850 px-1">bun run data</code> pour régénérer{" "}
-          <code className="rounded bg-ink-850 px-1">public/data/</code>.
-        </p>
+        <Panel as="h2" title={t("app.loadError")} className="max-w-md text-left">
+          <p className="text-xs text-ink-500">{loadError}</p>
+          <p className="mt-3 text-xs text-ink-500">
+            {t("app.loadErrorHint", { cmd: "bun run data", path: "public/data/" })}
+          </p>
+          <div className="mt-4">
+            <LanguageSwitch />
+          </div>
+        </Panel>
       </Centered>
     );
   }
@@ -98,85 +142,48 @@ export default function App() {
   if (!dataset || !resolved || !synergy) {
     return (
       <Centered>
-        <p className="text-sm text-ink-500">Chargement des données…</p>
+        <p className="font-display text-sm font-bold tracking-wide text-ink-500 uppercase italic">
+          {t("app.loading")}
+        </p>
       </Centered>
     );
   }
 
   return (
-    // The shell owns the height; the two columns scroll on their own so the
-    // pitch never leaves the screen while you work through a slot's passives.
-    <div className="mx-auto flex h-dvh max-w-[1600px] flex-col gap-3 overflow-hidden p-4">
-      <header className="panel flex shrink-0 flex-wrap items-center gap-2 p-3">
-        <h1 className="mr-1 text-lg font-bold tracking-tight">
-          Kizuna<span className="ml-1.5 text-xs font-normal text-ink-500">Victory Road</span>
-        </h1>
+    <div className="mx-auto flex h-dvh max-w-[1600px] flex-col gap-2 overflow-hidden p-4">
+      <TopBar />
 
-        <input
-          value={team.name}
-          onChange={(event) => setTeam((current) => ({ ...current, name: event.target.value }))}
-          className="field w-56"
-          aria-label="Nom de l'équipe"
-        />
-
-        <select
-          value={team.formationId}
-          onChange={(event) =>
-            setTeam((current) => applyFormation(current, event.target.value))
-          }
-          className="field"
-          aria-label="Formation"
-        >
-          {FORMATIONS.map((formation) => (
-            <option key={formation.id} value={formation.id}>
-              {formation.name}
-            </option>
-          ))}
-        </select>
-
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setSavedOpen((open) => !open)}
-              className="btn"
-              aria-expanded={savedOpen}
-            >
-              <FolderOpen className="size-4" />
-              Mes équipes
-              {saved.length > 0 && (
-                <span className="rounded bg-ink-800 px-1 text-[11px] tnum">{saved.length}</span>
-              )}
-            </button>
-
-            {savedOpen && (
-              <SavedTeamsMenu
-                saved={saved}
-                onClose={() => setSavedOpen(false)}
-                onRestore={(entry) => {
-                  const restored = restoreSavedTeam(entry);
-                  if (restored) {
-                    setTeam(restored);
-                    setSelectedSlotId(null);
-                  }
-                  setSavedOpen(false);
-                }}
-                onDelete={(id) => setSaved(deleteSavedTeam(id))}
-              />
-            )}
-          </div>
-
-          <button type="button" onClick={() => setSaved(saveTeam(team))} className="btn">
-            <Save className="size-4" />
-            Enregistrer
-          </button>
-
-          <button type="button" onClick={handleShare} className="btn btn-primary">
-            {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-            {copied ? "Lien copié" : "Partager"}
-          </button>
-        </div>
-      </header>
+      <TeamToolbar
+        team={team}
+        onTeamChange={setTeam}
+        saved={saved}
+        savedOpen={savedOpen}
+        onSavedOpenChange={setSavedOpen}
+        onSave={handleSave}
+        onImport={() => setImportOpen(true)}
+        onShare={() => {
+          setShareOpen(true);
+          setCopied(null);
+        }}
+        savedMenu={
+          savedOpen ? (
+            <SavedTeamsMenu
+              saved={saved}
+              locale={locale}
+              onClose={() => setSavedOpen(false)}
+              onRestore={(entry) => {
+                const restored = restoreSavedTeam(entry);
+                if (restored) {
+                  setTeam(normalizeTeam(restored));
+                  setSelectedSlotId(null);
+                }
+                setSavedOpen(false);
+              }}
+              onDelete={(id) => setSaved(deleteSavedTeam(id))}
+            />
+          ) : null
+        }
+      />
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="scroll-slim min-h-0 overflow-y-auto pr-1">
@@ -190,14 +197,15 @@ export default function App() {
         </div>
 
         <aside className="flex min-h-0 min-w-0 flex-col gap-3">
-          {/* Tabs stay put; only the panel below them scrolls. */}
-          <div className="flex shrink-0 gap-1">
-            <TabButton active={selectedSlot === null} onClick={() => setSelectedSlotId(null)}>
-              Équipe
-            </TabButton>
-            <TabButton active={selectedSlot !== null} onClick={() => undefined} disabled={!selectedSlot}>
-              {selectedSlot?.player?.nickname || selectedSlot?.player?.name || "Slot"}
-            </TabButton>
+          <div role="tablist" className="flex shrink-0 gap-1">
+            <Tab active={selectedSlot === null} onClick={() => setSelectedSlotId(null)}>
+              {t("app.tabTeam")}
+            </Tab>
+            <Tab active={selectedSlot !== null} disabled={!selectedSlot}>
+              {selectedSlot?.player
+                ? playerDisplayName(selectedSlot.player, showOriginalNames)
+                : t("app.tabSlot")}
+            </Tab>
           </div>
 
           <div className="scroll-slim min-h-0 flex-1 overflow-y-auto pr-1">
@@ -211,23 +219,25 @@ export default function App() {
                 onOpenPicker={() => setPickerOpen(true)}
               />
             ) : (
-              <SynergyPanel resolved={resolved} synergy={synergy} />
+              <SynergyPanel
+                resolved={resolved}
+                synergy={synergy}
+                dataset={dataset}
+                tacticIds={team.tacticIds}
+                onTacticsChange={(tacticIds) => setTeam((current) => ({ ...current, tacticIds }))}
+              />
             )}
           </div>
         </aside>
       </div>
 
-      <footer className="shrink-0 text-center text-[11px] text-ink-500">
-        Projet de fan, sans lien avec Level-5. Données issues du dump communautaire{" "}
-        <a
-          href="https://github.com/lluni/inazuma-eleven-vr-wiki"
-          target="_blank"
-          rel="noreferrer noopener"
-          className="underline hover:text-ink-300"
-        >
-          lluni/inazuma-eleven-vr-wiki
-        </a>
-        , portraits servis via Inazugle.
+      <footer className="shrink-0 text-center font-display text-[11px] font-bold tracking-wide text-ink-500 uppercase italic">
+        {t("app.footer")}{" "}
+        {dataset.generatedAt && (
+          <span className="font-normal normal-case not-italic text-ink-700">
+            {t("app.footerDataOf", { date: dataset.generatedAt.slice(0, 10) })}
+          </span>
+        )}
       </footer>
 
       {pickerOpen && selectedSlot && (
@@ -244,88 +254,82 @@ export default function App() {
           onClose={() => setPickerOpen(false)}
         />
       )}
-    </div>
-  );
-}
 
-function TabButton({
-  active,
-  disabled,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "min-w-0 flex-1 truncate rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-        active
-          ? "border-bolt-500/50 bg-bolt-500/15 text-bolt-400"
-          : "border-ink-800 bg-ink-850 text-ink-500 hover:bg-ink-800 disabled:opacity-40 disabled:hover:bg-ink-850",
+      {shareOpen && (
+        <ShareDialog
+          code={encodeShareCode(team)}
+          copied={copied}
+          onCopyCode={handleCopyCode}
+          onCopyLink={handleCopyLink}
+          onClose={() => setShareOpen(false)}
+        />
       )}
-    >
-      {children}
-    </button>
+
+      {importOpen && <ImportDialog onImport={handleImport} onClose={() => setImportOpen(false)} />}
+    </div>
   );
 }
 
 function SavedTeamsMenu({
   saved,
+  locale,
   onClose,
   onRestore,
   onDelete,
 }: {
   saved: SavedTeam[];
+  locale: import("@/i18n").Locale;
   onClose: () => void;
   onRestore: (entry: SavedTeam) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="panel absolute top-full right-0 z-20 mt-1 max-h-80 w-72 overflow-y-auto p-1 shadow-xl scroll-slim">
+      <Panel
+        padded={false}
+        className="absolute top-full right-0 z-20 mt-2 max-h-80 w-72 overflow-y-auto scroll-slim"
+      >
         {saved.length === 0 ? (
-          <p className="p-3 text-xs text-ink-500">Aucune équipe enregistrée.</p>
+          <p className="p-3 text-xs text-ink-500">{t("app.noSavedTeams")}</p>
         ) : (
           saved.map((entry) => (
-            <div key={entry.id} className="flex items-center gap-1 rounded-lg hover:bg-ink-850">
+            <div
+              key={entry.id}
+              className="flex items-center gap-1 border-b border-ink-800 last:border-0 hover:bg-ink-850"
+            >
               <button
                 type="button"
                 onClick={() => onRestore(entry)}
-                className="min-w-0 flex-1 px-2 py-1.5 text-left"
+                className="min-w-0 flex-1 px-3 py-2 text-left"
               >
-                <span className="block truncate text-sm">{entry.name}</span>
+                <span className="block truncate font-display text-sm font-bold uppercase italic">
+                  {entry.name || t("team.defaultName")}
+                </span>
                 <span className="block text-[11px] text-ink-500">
-                  {new Date(entry.savedAt).toLocaleString("fr-FR")}
+                  {formatDateTime(entry.savedAt, locale)}
                 </span>
               </button>
-              <button
-                type="button"
+              <IconButton
+                tone="danger"
                 onClick={() => onDelete(entry.id)}
-                className="mr-1 rounded p-1.5 text-ink-500 hover:bg-ink-800 hover:text-[var(--color-bad)]"
-                aria-label={`Supprimer ${entry.name}`}
+                className="mr-2 border-transparent bg-transparent"
+                aria-label={t("app.deleteTeam", {
+                  name: entry.name || t("team.defaultName"),
+                })}
               >
                 <Trash2 className="size-3.5" />
-              </button>
+              </IconButton>
             </div>
           ))
         )}
-      </div>
+      </Panel>
     </>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-dvh items-center justify-center p-8">
-      <div className="text-center">{children}</div>
-    </div>
-  );
+  return <div className="flex min-h-dvh items-center justify-center p-8">{children}</div>;
 }

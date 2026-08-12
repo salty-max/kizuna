@@ -10,6 +10,25 @@ bun run data   # regenerate public/data/ from data/raw/
 bun run dev
 ```
 
+## i18n
+
+UI chrome is localised for **fr / en / ja** — the same three languages the
+dataminer ships and the position badge atlases use (`icon_position_*.{fr,en,ja}.png`).
+
+- Catalogues live in [`src/i18n/messages/`](src/i18n/messages/); keys are typed.
+- Locale is stored in `localStorage` (`kizuna.locale`), with a browser-language
+  fallback on first visit. Switcher sits in the header.
+- Domain code emits **stable codes** (violations, unresolved passive reasons,
+  scope notes); the UI translates them. Never put a French sentence in
+  `src/domain/`.
+- Position badges follow the active locale via `PositionBadge` →
+  `positionBadgePath(pos, locale)`.
+
+**Content names** (players, equipment, hissatsu) still come from the build-time
+dataminer language (`LANG` in `build-data.ts`, currently `fr`). Switching the
+UI language does not yet swap those strings — that is the next step (locale
+name packs loaded at runtime).
+
 ## Why the synergy engine is the point
 
 Passives in the community dataset are not free text — they carry a structured
@@ -22,8 +41,13 @@ effect model:
   "strongValue": 1.5,
   "weakValue": 1,
   "effects": [
-    { "scope": "alliesSameElement", "stat": "shotAT",
-      "mode": "percent", "direction": "increase", "conditions": [] }
+    {
+      "scope": "alliesSameElement",
+      "stat": "shotAT",
+      "mode": "percent",
+      "direction": "increase",
+      "conditions": []
+    }
   ]
 }
 ```
@@ -32,62 +56,54 @@ effect model:
 against an actual squad rather than just print its description.
 
 The key thing to understand: **passives do not modify the seven base stats.**
-They modify the derived *power* stats, which are what resolve duels:
+They modify the derived _power_ stats, which are what resolve duels:
 
-| Power stat | Formula |
-| --- | --- |
-| `shootAT` | Kick + Control |
-| `focusAT` | Technique + Control + Kick×0.5 |
-| `focusDF` | Technique + Intelligence + Agility×0.5 |
-| `wallDF` | Pressure + Physical |
-| `scrambleAT` | Intelligence + Physical |
-| `scrambleDF` | Intelligence + Pressure |
-| `kp` | Pressure×2 + Physical×3 + Agility×4 |
+| Power stat   | Formula                                |
+| ------------ | -------------------------------------- |
+| `shootAT`    | Kick + Control                         |
+| `focusAT`    | Technique + Control + Kick×0.5         |
+| `focusDF`    | Technique + Intelligence + Agility×0.5 |
+| `wallDF`     | Pressure + Physical                    |
+| `scrambleAT` | Intelligence + Physical                |
+| `scrambleDF` | Intelligence + Pressure                |
+| `kp`         | Pressure×2 + Physical×3 + Agility×4    |
 
 Equipment goes the other way: it raises base stats, and power is derived after.
 
 ## Levels and rarity
 
-The dataset holds **one stat line per character and no level or rarity field**.
-Totals cluster hard — 4617 of 4840 characters sit between 600 and 649, with
-617/619/620 alone covering half the roster — so that line is a *Common-rarity
-reference*, not what any particular player has on the pitch.
+The dataminer ships **real Common / Hero / Basara tables at level 50 and 99**.
+Kizuna builds at **level 99** by default. Intermediate rarities (Rising →
+Legendary) still have no dedicated table, so they scale the Common line with
+the community's measured multipliers. Hero and Basara **prefer the real table**
+when the character has one (73 Heroes, 72 Basaras in build 6.00.23.00); only
+characters without a row fall back to a ratio estimate.
 
-In game, a displayed stat is that reference put through, in order: rarity,
-level (1–99), the Abilearn board from level 15, training beans, and equipment.
+| Rarity | Common | Rising | Advanced | Top  | Legendary | Hero                    | Basara                  |
+| ------ | ------ | ------ | -------- | ---- | --------- | ----------------------- | ----------------------- |
+| Source | table  | ×1.1   | ×1.2     | ×1.3 | ×1.4      | **table** (else ×1.206) | **table** (else ×1.444) |
 
-Kizuna models **rarity and equipment**, because both have usable numbers:
+The intermediate multipliers are the community's _tested_ values against a
+Common reference. Several guides instead state "+20% of Common per rank", which
+would give 1.2/1.4/1.6/1.8 — measured wins. The Hero/Basara fallback ratios are
+the mean of every stat on every character that _does_ have a real row
+(stdev < 0.02); the UI flags the estimate when it is used.
 
-| Rarity | Common | Rising | Advanced | Top | Legendary | Hero | Basara |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Multiplier | 1.0 | 1.1 | 1.2 | 1.3 | 1.4 | 1.67 | 1.67 **+5/stat** |
-
-The first six are the community's *measured* values. Several guides instead
-state "+20% of Common per rank", which would give 1.2/1.4/1.6/1.8 — the two
-disagree and measured wins, but the claim is out there.
-
-**Basara is an estimate and the UI says so.** No tested multiplier exists; what
-is reported is that a Basara lands 30–40 total points above the Hero version of
-the same character, so it is modelled as Hero plus a flat +5 per stat (7 × 5 =
-+35). Revise `RARITY_SCALES` when better figures turn up.
-
-Hero is approximate too — the real formula reportedly reshuffles the stat spread
-toward the character's position rather than scaling flat.
-
-Order matters and is tested: rarity multiplies the character, then equipment is
-added flat on top. `100 × 1.4 + 10 = 150`, never `(100 + 10) × 1.4 = 154`.
+The old 1.67× Hero figure applied to a _different_ (community-scrape) reference
+line and is gone. Equipment is always flat on top of whatever line rarity
+picked: `table + 10`, never `(table + 10) × mult`.
 
 ### Hero variants
 
 Hero is not one tier but three, and the colour follows the build archetype:
 
-| Variant | Archetypes |
-| --- | --- |
-| Hero red | Tension, Rough Play |
-| Hero silver | Justice, Bond |
-| Hero pink | Breach, Counter |
+| Variant     | Archetypes          |
+| ----------- | ------------------- |
+| Hero red    | Tension, Rough Play |
+| Hero silver | Justice, Bond       |
+| Hero pink   | Breach, Counter     |
 
-So the variant is *derived* from the archetype rather than asked for, which
+So the variant is _derived_ from the archetype rather than asked for, which
 makes an invalid Hero/archetype pairing unrepresentable.
 
 ### Archetype belongs to the drop, not the character
@@ -110,11 +126,11 @@ All eight are the game's own, and so are their shapes.
 on [Level-5's formations page](https://zukan.inazuma.jp/en/soccer_formation/),
 where every slot is a literal `left: x%; top: y%` — not redrawn by eye.
 
-| | |
-| --- | --- |
-| 4-4-2 Diamond · 4-4-2 Box | 3-5-2 Freedom |
-| 4-3-3 Triangle · 4-3-3 Delta | 4-5-1 Balanced |
-| 3-6-1 Hexa | 5-4-1 Double Volante |
+|                              |                      |
+| ---------------------------- | -------------------- |
+| 4-4-2 Diamond · 4-4-2 Box    | 3-5-2 Freedom        |
+| 4-3-3 Triangle · 4-3-3 Delta | 4-5-1 Balanced       |
+| 3-6-1 Hexa                   | 5-4-1 Double Volante |
 
 Two transformations happen at generation: the vertical axis is flipped so `y = 0`
 is your own goal, and `y` is renormalised over 0–100 because the official page
@@ -160,7 +176,7 @@ place so it can be revised when the game proves it wrong.
 - **There is no pitch.** A green rectangle with chalk lines said nothing the
   cards did not, and it trapped them in a fixed aspect ratio where the wide
   slots hung over the edges. The squad is drawn as cards alone, inside a box
-  inset by half a card, so `x = 0` puts a card's *edge* on the boundary rather
+  inset by half a card, so `x = 0` puts a card's _edge_ on the boundary rather
   than its centre. The board scrolls itself on narrow screens; the page never
   scrolls sideways.
 - **Rarity scales the character, not their gear** — see above.
@@ -180,7 +196,7 @@ on zukan.inazuma.jp — the electric yellow, the vermilion, and the rarity ribbo
 gradients (`#ED6700 → #FFF100`, `#EB0000 → #FF8200`) are the game's, lifted from
 the CSS rather than eyeballed from a screenshot.
 
-The direction is the *hissatsu cut-in* — the special-move screen — with one
+The direction is the _hissatsu cut-in_ — the special-move screen — with one
 deliberate subtraction: **no background**. The first pass had converging speed
 lines and a radial burst; they looked right for three seconds and became
 unbearable over an hour. Removing them was the single best decision in the
@@ -201,87 +217,169 @@ Ground is near-black with a red bias (`#0F0B0D`) rather than a neutral grey, so
 it sits under the vermilion instead of fighting it. Text is warm white
 (`#FFF4E6`). The app commits to a single dark theme on purpose.
 
+### The primitives
+
+[`src/components/ui/`](src/components/ui/) holds the whole vocabulary — `Panel`,
+`Button`, `IconButton`, `LinkButton`, `Tab`, `Chip`, `FilterChip`, `Callout`,
+`Field`, `Select`, `NumberInput`, `DataRow`. **None of them know the domain**:
+no player, no rarity, no synergy. They only know what the app looks like.
+
+They exist because the app had 27 hand-written panels, each improvising its own
+body padding — `p-3` here, `px-3 pt-3 pb-2` there, `panel-body` on two of
+eleven — and two competing treatments for the same explanatory line. That drift
+is invisible in any single file and obvious across the app.
+
+**No native form controls.** `<select>` and `<input type="checkbox">` cannot
+join a design system: their height, chevron, dropdown and checkbox glyph come
+from the OS, and no CSS reaches them. On a toolbar where everything else is
+exactly `--control-h`, they were the only things that would not line up. So
+[`Select`](src/components/ui/Select.tsx) is a real listbox — `role="combobox"`
+trigger, portalled `role="listbox"`, arrow keys, Home/End, typeahead, Escape,
+click-outside, active option scrolled into view — and
+[`Toggle`](src/components/ui/Toggle.tsx) is a `role="switch"` with a square
+knob. Button, select, text field, toggle and tab now all measure 34px.
+
+The listbox is portalled to `document.body` with `position: fixed` for a
+specific reason: `Panel` carries `overflow-hidden` to keep its title bar flush
+to the border, and the right rail scrolls. An absolutely-positioned menu would
+be clipped by the first and carried away by the second. It repositions on
+scroll rather than closing, because you scroll the rail while browsing 224
+pairs of boots.
+
+**Long lists get `searchable`; short ones don't.** Equipment (224 items) and
+passives (60 per preset) turn the trigger into a filter field. Rarity,
+archetype, formation and locale stay plain — a text cursor on seven options is
+noise. Filtering matters because typeahead only ever matches a _prefix_: there
+is no way to reach "Crampons Étrangers de Zanark" by typing _zanark_. Search
+is substring and **accent-folded**, so _etrangers_ finds _Étrangers_ — on a
+French catalogue, an accent-sensitive search is a trap rather than a feature.
+
+Escape clears the query before it closes the list. Losing 224 options to fix
+one typo is the kind of small cruelty that makes people stop using a filter.
+
+Three rules make the whole thing cohere:
+
+- **Structure, depth and tint are separate.** `.btn` describes shape and voice
+  and nothing else; `.pressable` owns the shadow and the press; a tone utility
+  says what colour that shadow is. A player card and a button therefore depress
+  identically — same 3px travel, same shadow collapse — without sharing a line
+  of code. A card just injects its rarity as the tint.
+- **Interactive things look interactive, static things don't.** `Chip` is a
+  `<span>` with no hover; `FilterChip` is a `<button>` with `aria-pressed`.
+  Making them one component would have left half the app's pills pretending to
+  be clickable.
+- **The scale has no holes.** `--color-ink-*` runs 100→950 with nothing missing.
+  A gap is worse than it sounds: a missing shade is silently dropped inside a
+  `class` attribute and a hard build error inside `@apply`.
+
+One CSS trap is worth knowing, because it cost a real debugging pass: a custom
+property declared on `:root` resolves its inner `var()` **on the root**. So
+`--shadow-hard: 5px 6px 0 var(--shadow-hard-color)` inherits down as an
+already-black string, and overriding the tint on a card changes nothing. The
+geometry is written where the shadow is set, and the colour is the only thing
+that varies.
+
+## Moves
+
+Every character carries the moves they learn: six on the main branch at levels
+1/13/20/30/38/43, and a second branch of three that **replaces** the tail at
+30/38/43 — not three extra slots. That branch is the only real build choice on
+moves; the rest is learnt outright.
+
+Three findings drove the implementation, each verified rather than assumed:
+
+- **The catalogue is three tables, not one.** A slot may point at `hissatsu`,
+  `aura_hissatsu` or `auras`. Reading only `hissatsu` silently loses **a third**
+  of all slots (auras alone are 22%), and it touches 5416 of 5418 characters —
+  so it fails everywhere at once, quietly. Ids do not collide, so one merged
+  Map resolves all 50 292 references with zero unknowns, and `build-data`
+  aborts if that ever stops being true.
+- **Moves depend on rarity, exactly like stats.** Of the 72 characters present
+  in both `characters` and `heroes`, all 72 have different move lists. So Hero
+  and Basara carry their own sets rather than inheriting the base one.
+- **Hero has no second branch** — 147 of 147. The branch tabs therefore appear
+  per _form_, not per character: switch a slot to Hero and the choice
+  disappears, because the game does not offer it.
+
+Auras carry a mechanic (`keshin`, `armed`, `mixi_max`, `totem`,
+`bond_transform`, `awakening_power`, `mode_change`, `awakening_change`) read
+from their string-id prefix — those eight are certain. **Which badge belongs to
+which is inferred**, graded in
+[`_aura_types.csv`](data/raw/icons/aura/_aura_types.csv): strong for mixi max /
+armed / keshin, weak for totem and mode change. `awakening_change` has one aura
+and no badge left over, so it renders none rather than borrowing another
+mechanic's glyph. The badges are decoration — a wrong one misleads the eye, not
+the maths.
+
 ## What the data cannot tell you
 
-`players.json` has **no link to hissatsu or to passives**. `abilities.json` is a
-standalone catalogue of 427 techniques with no player association, and no source
-lists which passive a given character carries. So passives are entered by hand,
-six slots per player (five presets + one custom), and the value is yours to set
-— `strongValue`/`weakValue` are only the game's bounds, since the real number
-depends on the passive's level.
+Still open after the dataminer pass (see [`data/raw/dataminer/HANDOFF.md`](data/raw/dataminer/HANDOFF.md)):
 
-Closing that gap means extracting from the game yourself with
-[`Telmo26/ievr_dataminer`](https://github.com/Telmo26/ievr_dataminer).
+- **Character → passive.** No file yet says which passives a given character can
+  carry. Hand entry stays (six slots: five presets + one custom).
+- **Structured passive effects.** The game dump has magnitude (`value`) and
+  text, but not scope/stat/condition — the synergy engine has nothing to apply
+  until that model is extracted from the game files.
+- **Level 1–98 curve, Abilearn, beans.** Only lv50 and lv99 tables are extracted.
+  The builder targets lv99.
 
 ## Layout
 
 ```
-data/raw/            vendored upstream dump — never read at runtime
+data/raw/
+  dataminer/           game bundles (ievr.{en,fr,ja}.json)
+  icons/               game UI icons extracted from .g4tx atlases
+  player-images.json   Inazugle portrait index (`bun run data:player-images`)
+  equipment-images.json Inazugle gear icons (`bun run data:images`)
 scripts/
-  fetch-raw.ts             refresh data/raw/ from upstream (manual, then diff)
-  fetch-equipment-images.ts  scrape item icons from Inazugle (manual)
-  build-data.ts            raw → public/data/, with hard validation
-public/data/         what the app fetches: index + 22 lazy detail buckets
+  fetch-player-images.ts   scrape portraits from Inazugle
+  fetch-equipment-images.ts scrape item icons from Inazugle
+  build-data.ts            raw → public/data/ + public/icons/
+public/data/         what the app fetches
+public/icons/        element / style / hissatsu / position / tactic glyphs
 src/domain/          stats, types, formations, team model, synergy engine
 src/lib/             share encoding, localStorage, UI helpers
 src/components/      pitch, picker, slot editor, synergy panel
 ```
 
 `build-data.ts` **aborts** on any value it does not recognise — a new element or
-passive scope from upstream must fail the build, not get silently dropped and
-leave the engine quietly wrong. It also strips the ~560 placeholder rows
-(`Name: "???"`) that would otherwise pollute every filter, leaving 4840
-characters.
+passive scope must fail the build, not get silently dropped and leave the engine
+quietly wrong. Position and style codes are mapped with mappings verified
+against known characters and the community dump (~99% majority agreement); see
+the comments in the script.
 
 ## Persistence
 
 Teams are encoded into the URL hash by [share.ts](src/lib/share.ts) — a filled
 4-4-2 with equipment and passives fits in ~400 characters. localStorage stores
 the same encoding, so the saved format and the link format cannot drift apart.
-The `2~` version prefix is load-bearing: bump it when the layout changes so old
-links fail cleanly instead of decoding into a wrong squad. It has already earned
-its keep — adding rarity shifted every slot field by one, and a v1 link decoded
-under v2 rules would have silently mis-assigned all the equipment.
+The version prefix is load-bearing:
 
-The archetype override that came later needed *no* bump, because it was appended
-to the end of the slot's fields rather than inserted: older payloads still
-decode correctly and simply inherit the dataset's archetype. Append when you
-can, bump when you must.
+| Version | Why                                                        |
+| ------- | ---------------------------------------------------------- |
+| `1~`    | pre-rarity slot layout                                     |
+| `2~`    | community sequential player ids, `slot:rawId` equipment    |
+| `3~`    | dataminer player ids, game equipment string ids (`eq_sh…`) |
+| `4~`    | dataminer passive `string_id`s (no community passive_###)  |
+
+Old links fail cleanly instead of decoding into a wrong squad. Append new
+optional fields at the end of a slot when you can; bump when you must.
 
 ## Data provenance
 
-Character data comes from the community dump
-[`lluni/inazuma-eleven-vr-wiki`](https://github.com/lluni/inazuma-eleven-vr-wiki),
-which itself scrapes the official [Inazugle](https://zukan.inazuma.jp/en/)
-database. **That repo carries no license**, so none of its code is reused here —
-this is an independent implementation. The game formulas above are gameplay
-facts, not authored work.
+**Primary:** datamined game files (build 6.00.23.00) under
+[`data/raw/dataminer/`](data/raw/dataminer/README.md) — characters, Hero/Basara
+tables, equipment, hissatsu, passives, synergies, tactics, UI icons.
 
-Portraits are hotlinked from the dataset's CDN through
-[images.weserv.nl](https://images.weserv.nl) for resizing (37 KB PNG → ~4 KB
-WebP, which matters across 4840 thumbnails). If this ever becomes more than a
-personal project, rehost them.
+**Portraits & gear icons:** scraped from the official
+[Inazugle](https://zukan.inazuma.jp/en/) codex (`bun run data:player-images` /
+`bun run data:images`), hotlinked from the Level-5 CDN via
+[images.weserv.nl](https://images.weserv.nl) for resize. No community dump.
 
-**Element icons do not exist to fetch.** Inazugle renders the four elements as
-plain text — they are checkbox labels in its filter and nothing more — with no
-artwork in its markup, its CSS, or its character sheets, and the dump has none
-either.
-
-So elements are shown as their kanji: **風林火山**, Fūrinkazan, the way the games
-write them. Drawn SVG glyphs were the first attempt and lost — a single dense
-character stays legible in a 17px badge where a line drawing turns to mush, it
-needs no artwork, and it is what the source material actually uses. The only
-cost is a CJK font stack (`.kanji` in [styles.css](src/styles.css)), since the
-Latin UI stack has no glyphs for them.
-
-**Equipment icons** are not in the dump at all — the upstream wiki renders gear
-without art. `bun run data:images` scrapes them from Inazugle's `item/equip`
-pages, where each item's name sits in the `alt` attribute. Name is the only
-join key the two sources share, matched case- and punctuation-insensitively,
-which lands **246 of 281 items**. The rest are naming drift between the sources
-("Little Gigants" in the dump vs "Little Giants" on the codex) and fall back to
-a slot glyph. The scraper paces itself at one page per 700 ms — it is someone
-else's server and the whole job is a few dozen requests.
+**Passives:** magnitudes and text from the dataminer. The structured
+scope/stat/condition model the synergy engine needs is **not** in the dump yet
+— effects ship empty until that is extracted from the game. Character → passive
+is still open; passives are entered by hand in the UI.
 
 Fan project, unaffiliated with Level-5.
 

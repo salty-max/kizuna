@@ -1,34 +1,45 @@
 @import "tailwindcss";
 
 /**
- * Direction « Hissatsu » — l'écran de technique spéciale, fond calme.
+ * Direction « Hissatsu » — un seul langage pour toute l'UI.
  *
- * L'énergie vient des formes, pas de la texture : cisaillement à −9°, ombres
- * portées pleines, typo condensée italique. Le sol reste plat et sombre — les
- * lignes de vitesse et l'explosion radiale de la maquette ne survivent pas à
- * une session d'une heure, et sans elles la direction tient mieux.
+ * Les cartes joueur définissent la grammaire ; le reste de l'app doit la parler,
+ * pas un second thème « material soft » en parallèle :
+ *
+ *  - coins durs (0–2px), jamais de pill arrondi
+ *  - bordure 2px + ombre portée pleine `5px 6px 0` (pas de blur)
+ *  - `font-display` condensée italique caps pour titres, boutons, labels d'action
+ *  - vermillon structurel (barres de panel), jaune éclair pour l'action seule
+ *  - shear réservé aux cartes pitch (`.shear`), pas aux panels
  */
 
 @theme {
-  /* Sol quasi-noir à biais rouge, accordé au vermillon plutôt qu'à un gris neutre. */
+  /**
+   * Sol quasi-noir à biais rouge, accordé au vermillon plutôt qu'à un gris
+   * neutre. La gamme est complète (100 → 950) : un trou dans l'échelle produit
+   * une classe silencieusement ignorée dans un composant et une erreur de build
+   * dans un `@apply` — deux façons de perdre du temps pour la même cause.
+   */
   --color-ink-950: #0f0b0d;
   --color-ink-900: #171114;
   --color-ink-850: #1d1519;
   --color-ink-800: #2a1f23;
   --color-ink-700: #3b2c31;
+  --color-ink-600: #5e4a4e;
   --color-ink-500: #8a7278;
+  --color-ink-400: #a8938f;
   --color-ink-300: #c9b3ad;
+  --color-ink-200: #e8d9cd;
   --color-ink-100: #fff4e6;
 
-  /* Jaune éclair — l'accent d'action. Une seule couleur porte l'attention. */
+  /* Jaune éclair — seule couleur d'action. */
   --color-bolt-400: #fff100;
   --color-bolt-500: #ffd400;
 
-  /* Vermillon — l'énergie structurelle : en-têtes, ombres de carte, alertes. */
+  /* Vermillon — structure : en-têtes, ombres, alertes. */
   --color-flare-500: #ff2e00;
   --color-flare-300: #ff8a5c;
 
-  /* Éléments, réaccordés pour tenir sur un sol chaud. */
   --color-fire: #ff5a3c;
   --color-wind: #57d2e8;
   --color-forest: #7cff85;
@@ -37,8 +48,48 @@
   --color-good: #7cff85;
   --color-bad: #ff6b5a;
 
-  /* Condensée et lourde : la typo du poster, pas celle du tableur. */
   --font-display: "Avenir Next Condensed", "Avenir Next", "Arial Narrow", system-ui, sans-serif;
+
+  /**
+   * Ombre manga : une seule géométrie (`5px 6px 0`, sans blur), un seul état
+   * enfoncé (`2px 2px 0`), une seule variable — la couleur.
+   *
+   * Surtout pas de `--shadow-hard: 5px 6px 0 var(--shadow-hard-color)` ici :
+   * une propriété personnalisée déclarée sur `:root` résout ses `var()`
+   * internes *sur le root*. Les enfants hériteraient d'une chaîne déjà noire,
+   * et redéfinir la teinte plus bas dans l'arbre ne changerait rien. La
+   * géométrie est donc écrite là où l'ombre est posée, et la teinte reste la
+   * seule chose qui varie.
+   */
+  --shadow-hard-color: #000000a6;
+  --press-travel: 3px;
+
+  /**
+   * Hauteur des contrôles. Une seule mesure pour boutons, selects, champs,
+   * bascules et onglets : c'est ce qui fait qu'une barre d'outils s'aligne
+   * toute seule au lieu d'être rattrapée au pixel par des `py-*` différents.
+   * Les contrôles natifs ne peuvent pas la respecter — leur hauteur vient de
+   * l'OS — ce qui est la vraie raison pour laquelle select et bascule sont
+   * réimplémentés ici.
+   */
+  --control-h: 34px;
+  --control-h-sm: 26px;
+}
+
+/**
+ * Déclarées avec `@utility` et non dans `@layer base` : une classe de `base`
+ * n'est pas `@apply`-able, et `.badge-count` s'en sert. Le build échoue à la
+ * compilation, pas au runtime — mais seulement le jour où on l'applique.
+ */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility kanji {
+  font-family:
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", "Meiryo",
+    "MS Gothic", sans-serif;
+  font-weight: 700;
 }
 
 @layer base {
@@ -49,56 +100,215 @@
   body {
     @apply bg-ink-950 text-ink-100 antialiased;
     font-family:
-      ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      sans-serif;
   }
 
-  /* Tabular figures everywhere numbers are compared column-to-column. */
-  .tnum {
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Element marks are CJK; the Latin UI stack has no glyphs for them. */
-  .kanji {
-    font-family:
-      "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", "Meiryo",
-      "MS Gothic", sans-serif;
-    font-weight: 700;
+  /* Kill the soft default look on native controls. */
+  button,
+  input,
+  select,
+  textarea {
+    border-radius: 0;
   }
 }
 
 @layer components {
-  /* Panels stay square and calm — the shear is spent on what you act on. */
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+
+  /**
+   * Panel = boîte manga carrée. Coins nuls, bordure 2px, ombre dure.
+   * Les titres de panel restent flush (pas de padding autour du vermillon).
+   */
   .panel {
-    @apply rounded-lg border border-ink-800 bg-ink-900;
+    @apply border-2 border-ink-800 bg-ink-900;
+    border-radius: 0;
+    box-shadow: 5px 6px 0 var(--shadow-hard-color);
+  }
+
+  .panel-flat {
+    @apply border-2 border-ink-800 bg-ink-900;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .panel-title {
-    @apply bg-flare-500 px-3 py-1 font-display text-sm font-bold tracking-wide text-ink-950 uppercase italic;
+    @apply flex items-center gap-2 bg-flare-500 px-3 py-1.5 font-display text-sm font-bold
+      tracking-wide text-ink-950 uppercase italic;
   }
+
+  .panel-title .muted {
+    @apply text-[11px] font-normal normal-case not-italic text-ink-950/70;
+  }
+
+  .panel-body {
+    @apply p-3;
+  }
+
+  /* ── Fields ───────────────────────────────────────────────────────────── */
 
   .field {
-    @apply rounded border border-ink-800 bg-ink-950 px-2.5 py-1.5 text-sm text-ink-100
+    @apply border-2 border-ink-800 bg-ink-950 px-2.5 text-sm text-ink-100
       outline-none transition-colors placeholder:text-ink-500
-      focus:border-bolt-400/70 focus:ring-2 focus:ring-bolt-400/25;
+      focus:border-bolt-400 focus:bg-ink-900;
+    height: var(--control-h);
+    border-radius: 0;
+    box-shadow: none;
   }
 
+  .field:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
+
+  /**
+   * Même grammaire que les cartes : bord 2px, ombre dure, display caps.
+   * Pas de shear ici — le shear est pour le pitch, pas pour la chrome.
+   */
+  /**
+   * `.btn` ne décrit que la forme et la voix : la profondeur vient de
+   * `.pressable`, la couleur d'ombre d'un utilitaire de teinte. Les trois se
+   * composent, donc une carte joueur et un bouton s'enfoncent identiquement
+   * sans partager une ligne de code.
+   */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 border-2 border-ink-800 bg-ink-850
-      px-3 py-1.5 font-display text-sm font-bold tracking-wide text-ink-100 uppercase italic
-      transition-colors hover:border-ink-700 hover:bg-ink-800
+    @apply inline-flex items-center justify-center gap-1.5 border-2 border-ink-700
+      bg-ink-850 px-3 font-display text-sm font-bold tracking-wide
+      text-ink-100 uppercase italic
+      hover:border-ink-500 hover:bg-ink-800
       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400
-      disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-ink-850;
+      disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink-700
+      disabled:hover:bg-ink-850;
+    height: var(--control-h);
+    border-radius: 0;
+  }
+
+  .btn-sm {
+    @apply px-2 text-xs;
+    height: var(--control-h-sm);
   }
 
   .btn-primary {
-    @apply border-bolt-400 bg-bolt-400 text-ink-950 hover:border-bolt-500 hover:bg-bolt-500;
+    @apply border-bolt-400 bg-bolt-400 text-ink-950
+      hover:border-bolt-500 hover:bg-bolt-500;
+  }
+
+  .btn-ghost {
+    @apply border-transparent bg-transparent
+      hover:border-ink-800 hover:bg-ink-850;
+    box-shadow: none;
+  }
+
+  .btn-ghost:active:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .btn-danger {
+    @apply border-bad/60 text-bad hover:border-bad hover:bg-bad/10;
+  }
+
+  /* Compact square icon hit target (trash, close). */
+  .btn-icon {
+    @apply inline-flex aspect-square shrink-0 items-center justify-center border-2 border-ink-800
+      bg-ink-850 text-ink-300
+      hover:border-ink-600 hover:bg-ink-800 hover:text-ink-100
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400
+      disabled:cursor-not-allowed disabled:opacity-40;
+    height: var(--control-h);
+    border-radius: 0;
+  }
+
+  /* ── Tabs / chips ─────────────────────────────────────────────────────── */
+
+  .tab {
+    @apply min-w-0 flex-1 truncate border-2 border-ink-800 bg-ink-850 px-3
+      font-display text-sm font-bold tracking-wide text-ink-500 uppercase italic
+      hover:border-ink-600 hover:text-ink-300
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400
+      disabled:cursor-not-allowed disabled:opacity-40;
+    height: var(--control-h);
+    border-radius: 0;
+  }
+
+  .tab-active {
+    @apply border-bolt-400 bg-bolt-400/15 text-bolt-400;
+  }
+
+  /**
+   * `.chip` est muet : une répartition d'éléments ne se clique pas. Le hover
+   * est réservé à `.chip-interactive`, sinon la moitié des pastilles de l'app
+   * prétendent être des boutons.
+   */
+  .chip {
+    @apply inline-flex items-center gap-1 border-2 border-ink-800 bg-ink-850
+      px-2 py-1 font-display text-[11px] font-bold tracking-wide text-ink-300
+      uppercase italic;
+    border-radius: 0;
+  }
+
+  .chip-interactive {
+    @apply transition-colors hover:border-ink-600 hover:bg-ink-800
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400;
+  }
+
+  .chip-active {
+    @apply border-bolt-400 bg-bolt-400/15 text-bolt-400;
+  }
+
+  /* ── Callouts ─────────────────────────────────────────────────────────── */
+
+  .callout {
+    @apply border-l-4 px-2 py-1.5 text-[11px];
+  }
+
+  .callout-warn {
+    @apply border-bolt-400 bg-bolt-400/10 text-bolt-400;
+  }
+
+  .callout-bad {
+    @apply border-bad bg-bad/12 text-bad;
+  }
+
+  .callout-info {
+    @apply border-ink-700 bg-ink-850 text-ink-300;
+  }
+
+  /* ── Misc chrome ──────────────────────────────────────────────────────── */
+
+  .badge-count {
+    @apply border border-ink-700 bg-ink-800 px-1 font-display text-[11px]
+      font-bold text-ink-300 tnum;
+    border-radius: 0;
+  }
+
+  .divider-v {
+    @apply mx-0.5 h-5 w-px bg-ink-800;
+  }
+
+  .overlay {
+    @apply fixed inset-0 z-50 bg-ink-950/85;
+  }
+
+  /* Même grammaire que `.panel`, écrite en clair : une classe de `components`
+     n'est pas `@apply`-able depuis une autre. */
+  .modal {
+    @apply flex max-h-full w-full flex-col overflow-hidden border-2 border-ink-800 bg-ink-900;
+    border-radius: 0;
+    box-shadow: 5px 6px 0 var(--shadow-hard-color);
   }
 }
 
 @layer utilities {
   /**
-   * Le geste central. `shear` penche le conteneur, `shear-flat` remet son
-   * contenu d'aplomb — sans quoi le texte penche aussi et devient illisible.
+   * Le geste central des cartes pitch. Conteneur penché, contenu redressé.
+   * Ne pas étendre aux panels / boutons — la chrome reste d'aplomb.
    */
   .shear {
     transform: skewX(-9deg);
@@ -108,13 +318,60 @@
     transform: skewX(9deg);
   }
 
-  /* Ombre portée pleine, décalée — pas de flou : c'est une case de manga. */
+  /**
+   * Tout ce qui répond au clic partage ce geste : l'ombre se rétracte et
+   * l'élément descend d'exactement ce qu'elle a perdu, donc le coin bas-droit
+   * ne bouge pas. Boutons, onglets et cartes joueur, sans exception.
+   */
+  .pressable {
+    box-shadow: 5px 6px 0 var(--shadow-hard-color);
+    transition:
+      transform 90ms ease-out,
+      box-shadow 90ms ease-out,
+      background-color 120ms ease-out,
+      border-color 120ms ease-out,
+      filter 120ms ease-out;
+  }
+
+  .pressable:active:not(:disabled):not([aria-disabled="true"]) {
+    box-shadow: 2px 2px 0 var(--shadow-hard-color);
+    transform: translate(var(--press-travel), var(--press-travel));
+  }
+
+  /* Le pitch penche ses cartes : l'appui doit composer avec le shear. */
+  .shear.pressable:active:not(:disabled) {
+    transform: skewX(-9deg) translate(var(--press-travel), var(--press-travel));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pressable {
+      transition-duration: 1ms;
+    }
+  }
+
+  /**
+   * Teintes d'ombre. Elles ne posent pas d'ombre, elles disent seulement de
+   * quelle couleur elle est : `.pressable.tone-bolt` suffit, et une carte
+   * injecte sa rareté via `--shadow-hard-color` en style inline.
+   */
+  .tone-bolt {
+    --shadow-hard-color: #7a6f00;
+  }
+
+  .tone-flare {
+    --shadow-hard-color: #6b1000;
+  }
+
   .hard-shadow {
-    box-shadow: 5px 6px 0 var(--hard-shadow-color, --alpha(var(--color-flare-500) / 80%));
+    box-shadow: 5px 6px 0 var(--shadow-hard-color);
   }
 
   .scroll-slim {
     scrollbar-width: thin;
     scrollbar-color: var(--color-ink-700) transparent;
+  }
+
+  .label-display {
+    @apply font-display text-xs font-bold tracking-wide text-ink-500 uppercase italic;
   }
 }

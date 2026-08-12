@@ -7,6 +7,8 @@ import { ELEMENT_STYLES, cn } from "@/lib/ui";
 interface Props {
   player: Player;
   imageBase: string;
+  /** Name used for initials fallback; defaults to `player.name`. */
+  displayName?: string;
   /** Square shorthand; pass `width`/`height` when the portrait is not square. */
   size?: number;
   width?: number;
@@ -31,6 +33,7 @@ interface Props {
 export function PlayerAvatar({
   player,
   imageBase,
+  displayName,
   size,
   width,
   height,
@@ -42,8 +45,12 @@ export function PlayerAvatar({
 
   const boxWidth = width ?? size ?? 40;
   const boxHeight = height ?? size ?? 40;
+  const src = player.image
+    ? imageUrl(imageBase, player.image, Math.ceil(Math.max(boxWidth, boxHeight) * 2))
+    : "";
+  const showFallback = failed || !src;
 
-  const initials = player.name
+  const initials = (displayName ?? player.name)
     .split(/\s+/)
     .slice(0, 2)
     .map((word) => word[0] ?? "")
@@ -55,13 +62,13 @@ export function PlayerAvatar({
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
         "ring-2 ring-inset",
-        failed && element.bg,
+        showFallback && element.bg,
         ringClassName === null ? "ring-0" : (ringClassName ?? element.ring),
         className,
       )}
       style={{ width: boxWidth, height: boxHeight }}
     >
-      {failed ? (
+      {showFallback ? (
         <span
           className={cn("font-semibold", element.text)}
           style={{ fontSize: Math.max(10, Math.min(boxWidth, boxHeight) * 0.36) }}
@@ -70,7 +77,7 @@ export function PlayerAvatar({
         </span>
       ) : (
         <img
-          src={imageUrl(imageBase, player.image, Math.ceil(Math.max(boxWidth, boxHeight) * 2))}
+          src={src}
           alt=""
           loading="lazy"
           decoding="async"
