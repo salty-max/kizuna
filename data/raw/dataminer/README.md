@@ -104,6 +104,13 @@ mapping is per group or per archetype, not per character. Unverified.
 - **Heroes repeat their `id`.** 147 hero entries cover 73 characters, one per rarity tier, and the
   tiers differ in stats only — the skill sets were checked and are identical across all 73. So
   grouping heroes by `id` is safe for skills and wrong for stats.
+- **Some `description` fields are permanently null**, and it is not a gap in the extraction. All
+  37 synergies and 418 of the 468 equipment pieces carry `description_id = 0` in the game's own
+  item config — there is no text to fetch. `item_text` holds 545 descriptions in total against
+  2265 names, which is the whole budget. Tactics and techniques are complete, 86/86 and 852/852.
+  For synergies the in-game panel is assembled from structured data instead: the member list,
+  which the bundles now carry, and an effect id with a magnitude. Those 29 effect ids appear in
+  none of the 4068 text files, so there is no label for them either — do not go looking.
 - **`value` is an f32**, hence `0.699999988079071`. Round at display time.
 - **Passive `value` is present on 1700 of 1716.** The 16 without carry no effect at all.
 - **22 passives have no name** in any language — 7 name ids have no text entry upstream.
