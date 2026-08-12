@@ -28,7 +28,7 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "game_version": "6.00.23.00",
   "legend": { "element": { "1": "wind", "2": "forest", "3": "fire", "4": "mountain" } },
   "characters": [{
-    "id", "name", "name_original", "description", "series",
+    "id", "name", "name_original", "description", "series", "gender",
     "element", "main_position", "alt_position", "style",
     "stats_lv50": { "kick", "control", "technique", "pressure", "physical", "agility", "intelligence" },
     "stats_lv99": { … },
@@ -82,6 +82,11 @@ mapping is per group or per archetype, not per character. Unverified.
   leaked into all nine locales, furigana included.
 - **`main_position`, `alt_position` and `style` are raw game codes.** No verified label mapping
   exists, so none is invented here.
+- **`gender` is `"male"`, `"female"` or `"other"`**, resolved rather than left as a code, from
+  `chara_base` column 11. Every character, hero and basara has one — 4369 male, 1009 female and
+  40 other among the characters. `other` is the game's own third value, used for things like the
+  Terracotta Warriors; the unset value only appears on props, mannequins and event assets, none
+  of which reach the bundles.
 - **`hissatsu.category` is now documented** in `legend.hissatsu_category`: 1 shoot, 2 dribble,
   3 block, 4 catch. Checked against moves whose type is not in doubt — Fire Tornado is 1, Killer
   Slide and The Tower are 3, Mugen The Hand is 4. Catch is goalkeeper-only.
