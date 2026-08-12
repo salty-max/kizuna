@@ -1,0 +1,98 @@
+/**
+ * Domain-enum → message key helpers. Keep enum ids stable; only the catalogue
+ * strings move between languages.
+ */
+
+import type { PowerKey, StatKey } from "@/domain/stats";
+import type { ScopeNote, UnresolvedReason, Violation } from "@/domain/synergy";
+import {
+  heroVariantFor,
+  type AuraType,
+  type BuildType,
+  type Element,
+  type EquipmentSlot,
+  type HeroVariant,
+  type PassiveCondition,
+  type PassiveStat,
+  type Rarity,
+} from "@/domain/types";
+import type { MessageKey, Translator } from "./translate";
+
+/** Localised hissatsu category label (Shoot / Dribble / … / Aura). */
+export function abilityTypeLabel(t: Translator["t"], type: string): string {
+  const key = `editor.abilityTypes.${type}` as MessageKey;
+  const label = t(key);
+  // Missing key falls back to the raw type rather than the dotted path.
+  return label.startsWith("editor.abilityTypes.") ? type : label;
+}
+
+/** Mécanique d'aura : keshin, armed, mixi max… */
+export function auraTypeLabel(t: Translator["t"], type: AuraType): string {
+  return t(`editor.auraTypes.${type}` as MessageKey);
+}
+
+export function elementLabel(t: Translator["t"], element: Element): string {
+  return t(`elements.${element}` as MessageKey);
+}
+
+export function rarityLabelKey(t: Translator["t"], rarity: Rarity): string {
+  return t(`rarities.${rarity}` as MessageKey);
+}
+
+function heroVariantLabel(t: Translator["t"], variant: HeroVariant): string {
+  return t(`heroVariants.${variant}` as MessageKey);
+}
+
+/** Full rarity label, resolving Hero to its colour variant when known. */
+export function rarityDisplayLabel(
+  t: Translator["t"],
+  rarity: Rarity,
+  buildType: BuildType | null,
+): string {
+  if (rarity !== "hero") return rarityLabelKey(t, rarity);
+  const variant = heroVariantFor(buildType);
+  return variant ? heroVariantLabel(t, variant) : rarityLabelKey(t, "hero");
+}
+
+export function buildTypeLabel(t: Translator["t"], buildType: BuildType): string {
+  return t(`buildTypes.${buildType}` as MessageKey);
+}
+
+export function equipmentSlotLabel(t: Translator["t"], slot: EquipmentSlot): string {
+  return t(`equipmentSlots.${slot}` as MessageKey);
+}
+
+export function statLabel(t: Translator["t"], key: StatKey): string {
+  return t(`stats.${key}` as MessageKey);
+}
+
+export function powerLabel(t: Translator["t"], key: PowerKey): string {
+  return t(`power.${key}` as MessageKey);
+}
+
+export function powerFormula(t: Translator["t"], key: PowerKey): string {
+  return t(`powerFormulas.${key}` as MessageKey);
+}
+
+export function passiveStatLabel(t: Translator["t"], stat: PassiveStat): string {
+  return t(`passiveStats.${stat}` as MessageKey);
+}
+
+export function conditionLabel(t: Translator["t"], condition: PassiveCondition): string {
+  return t(`conditions.${condition}` as MessageKey);
+}
+
+export function unresolvedReasonLabel(t: Translator["t"], reason: UnresolvedReason): string {
+  return t(`unresolved.${reason}` as MessageKey);
+}
+
+export function scopeNoteLabel(t: Translator["t"], note: ScopeNote): string {
+  return t(`notes.${note}` as MessageKey);
+}
+
+export function violationLabel(t: Translator["t"], violation: Violation): string {
+  return t(`violations.${violation.code}` as MessageKey, {
+    count: violation.count,
+    max: violation.max,
+  });
+}
