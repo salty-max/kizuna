@@ -13,9 +13,9 @@ plus path helpers for tactics and (unlabelled) passive cells.
 | Folder | Count | Named by | Joins to |
 | --- | --- | --- | --- |
 | `elements/` | 4 | element name | `legend.element` in the bundles |
-| `styles/` | 6 | style name | nothing yet — `style` is still a raw code |
+| `styles/` | 6 | style name | `legend.style` |
 | `hissatsu/` | 4 | category name | `legend.hissatsu_category` |
-| `positions/` | 18 | position name | nothing yet — `main_position` is a raw code |
+| `positions/` | 18 | position name | `legend.position` |
 | `tactics/` | 70 | `wht*` string id | `tactics[].string_id` |
 | `aura/` | 7 | aura type | `auras[].type` — **proposed, see below** |
 | `gender/` | 2 | male / female | `characters[].gender` |

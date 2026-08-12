@@ -95,18 +95,15 @@ col 41 is the rarity: 0 with a full second branch is a character, 5–7 a hero, 
    that indexes into `PASSIVE_SKILL_EFFECT_LIST`. The 410 rarity-table ids that resolve to nothing
    were checked against all 60 247 `cfg.bin` files in the extraction and exist nowhere else — cut
    or unreleased, not a missing file.
-3. **Position / style codes.** Still raw integers. No verified mapping was found, and none was
-   invented. `hissatsu.category` *is* now resolved (see README) — the same approach, checking
-   codes against entries whose type is not in doubt, should crack these two as well.
-4. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: no `.g4tp`
+3. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: no `.g4tp`
    descriptor ships for the icon atlases, the menu Lua is compiled bytecode, and no config column
    predicts the cell (all 17 of `SPECIAL_TACTICS_INFO` were tested against 70 known tactic cells;
    best was 3/81). The realistic route is an in-game screenshot of the synergy list, then
    pixel-matching. The icons are cut and numbered outside the repo, in
    `C:\Users\maxim\Downloads\icons_raw\synergy\` with a `_synergies.csv` listing all 37 with their
    members.
-5. **`passives/` icons are unlabelled**, for the same reason. 49 files, numbered by atlas cell.
-6. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
+4. **`passives/` icons are unlabelled**, for the same reason. 49 files, numbered by atlas cell.
+5. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
    covers place names too, if the wiki ever needs them.
 
 ## Wiring it into the app
