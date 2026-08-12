@@ -15,7 +15,8 @@
     "src/lib/ui.ts",
     "src/lib/share.ts",
     "src/lib/storage.ts",
-    "src/data/load.ts"
+    "src/data/load.ts",
+    "src/pages/**/*.{ts,tsx}"
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
   "ignoreDependencies": ["tailwindcss"],
