@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "scripts/**/*.ts",
+    "src/components/ui/index.ts",
+    "src/i18n/index.ts",
+    "src/domain/types.ts",
+    "src/domain/formations.ts",
+    "src/domain/team.ts",
+    "src/domain/synergy.ts",
+    "src/domain/stats.ts",
+    "src/domain/bonds.ts",
+    "src/domain/layoutPitch.ts",
+    "src/lib/icons.ts",
+    "src/lib/ui.ts",
+    "src/lib/share.ts",
+    "src/lib/storage.ts",
+    "src/data/load.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
+  "ignoreDependencies": ["tailwindcss"],
+  "vite": true,
+  "exclude": ["enumMembers"]
+}

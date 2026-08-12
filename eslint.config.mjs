@@ -1,12 +1,19 @@
 import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import globals from "globals";
+import eslintConfigPrettier from "eslint-config-prettier";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "src/data/generated/**", "data/raw/**"],
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "src/data/generated/**",
+      "data/raw/**",
+      "public/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -14,7 +21,11 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "warn",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true },
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
       ],
     },
   },
@@ -33,4 +44,6 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
+  // Turn off ESLint rules that fight Prettier — must be last.
+  eslintConfigPrettier,
 );

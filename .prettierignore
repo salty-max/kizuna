@@ -1,0 +1,9 @@
+node_modules
+dist
+bun.lock
+public/data
+public/icons
+data/raw
+*.png
+*.webp
+*.jpg

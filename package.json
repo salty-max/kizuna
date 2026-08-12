@@ -13,13 +13,28 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "data": "bun run scripts/build-data.ts",
-    "data:fetch": "bun run scripts/fetch-raw.ts",
     "data:images": "bun run scripts/fetch-equipment-images.ts",
+    "data:player-images": "bun run scripts/fetch-player-images.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run knip && bun test",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs,cjs,js,jsx,json,md,css,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx,mjs}": [
+      "eslint --fix --max-warnings 0"
+    ]
   },
   "dependencies": {
+    "@base-ui/react": "^1.7.0",
     "clsx": "^2.1.1",
+    "fflate": "^0.8.3",
     "lucide-react": "^1.24.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -33,9 +48,14 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "knip": "^6.32.2",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.64.0",
