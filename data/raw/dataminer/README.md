@@ -80,8 +80,14 @@ mapping is per group or per archetype, not per character. Unverified.
   To render ruby instead: `s.replace(/\[([^\/\]]+)\/([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>')`.
   Apply it to every language, not just `ja`: entry `-661571557` is an untranslated row that
   leaked into all nine locales, furigana included.
-- **`main_position`, `alt_position` and `style` are raw game codes.** No verified label mapping
-  exists, so none is invented here.
+- **`main_position`, `alt_position` and `style` are now decoded** in `legend.position` and
+  `legend.style`, by joining this roster against the Inazugle scrape beside it on player name.
+  Position lands at 99.2–99.7% agreement per code (1 GK, 2 FW, 3 MF, 4 DF); style at 83–85%
+  (0 breach, 1 counter, 2 bond, 3 tension, 4 rough_play, 5 justice). The looser style figure is
+  homonym noise — 5418 characters share only 5153 distinct names, so a name join lands on the
+  wrong variant sometimes — not competing labels: each code has one dominant label and the six
+  are disjoint. The same join reproduces the already-known `element` mapping at 99.5%, which is
+  what makes the other two trustworthy.
 - **`spirit_drop` says the game's drop tables hand you this character's spirit**: 396 of the 5418
   characters, 92 of 147 heroes, 46 of 72 basaras. It is the union of `m_spiritTableDataList` in
   `soccer_drop_config` with the fixed-reward and victory-box tables. It is **not** the same as
