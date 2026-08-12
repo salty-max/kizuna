@@ -1,9 +1,10 @@
 /**
- * Scrapes character portraits from Inazugle into `data/raw/player-images.json`.
+ * Scrapes character portraits + gender from Inazugle into
+ * `data/raw/player-images.json`.
  *
- * The only portrait source for the build. Inazugle's `/en/chara_list/` ships
- * every portrait with the English name in `data-chara-name`, so name is the join
- * key once whitespace / HTML entities are normalised.
+ * The only portrait / gender source for the build — the dataminer dump has
+ * neither. Inazugle's `/en/chara_list/` ships every row with the English name
+ * in `data-chara-name` and a Gender cell (Male / Female / Unknown / Neutral).
  *
  * Run by hand, then `bun run data`. Paced at one page per ~700 ms — ~28 pages.
  */
@@ -13,6 +14,8 @@ const PER_PAGE = 200;
 const DELAY_MS = 700;
 const OUT = new URL("../data/raw/player-images.json", import.meta.url);
 
+type ScrapedGender = "Male" | "Female" | "Unknown" | "Neutral";
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface ScrapedPortrait {
@@ -20,6 +23,8 @@ interface ScrapedPortrait {
   image: string;
   /** Inazugle path id (`k/d/w/dwho-wi8ruk`) — useful if we ever rehost. */
   charaId: string;
+  /** From the Gender column; empty when the cell was missing. */
+  gender: ScrapedGender | "";
 }
 
 async function fetchPage(page: number): Promise<string> {
@@ -43,10 +48,16 @@ function decodeEntities(value: string): string {
     .replace(/&apos;/g, "'");
 }
 
+function parseGender(window: string): ScrapedGender | "" {
+  const match = window.match(/<td rowspan="2">(Male|Female|Unknown|Neutral)<\/td>/);
+  if (!match) return "";
+  return match[1] as ScrapedGender;
+}
+
 /**
- * Each row carries `data-chara-id` + `data-chara-name` on the checkbox, and a
- * matching `<img src="…/1/k/….png" alt="Name">` nearby. Prefer the data attrs
- * for the name (stable) and rebuild the CDN URL from the id.
+ * Each row carries `data-chara-id` + `data-chara-name` on the checkbox.
+ * Gender sits later in the same `<tr>` as `<td rowspan="2">Male|Female|…</td>`.
+ * Rebuild the CDN URL from the chara id.
  */
 function extract(html: string): ScrapedPortrait[] {
   const out: ScrapedPortrait[] = [];
@@ -57,7 +68,8 @@ function extract(html: string): ScrapedPortrait[] {
     if (!charaId || !name) continue;
     // ids look like `k/d/w/dwho-wi8ruk` → CDN path `/1/k/d/w/dwho-wi8ruk.png`
     const image = `https://dxi4wb638ujep.cloudfront.net/1/${charaId}.png`;
-    out.push({ name, image, charaId });
+    const gender = parseGender(html.slice(match.index ?? 0, (match.index ?? 0) + 5000));
+    out.push({ name, image, charaId, gender });
   }
   return out;
 }
@@ -81,8 +93,9 @@ for (let page = 1; page <= 40; page++) {
       added++;
     }
   }
+  const withGender = rows.filter((r) => r.gender).length;
   console.log(
-    `page ${String(page).padStart(2)}: ${rows.length} rows, +${added} new (total ${byName.size})`,
+    `page ${String(page).padStart(2)}: ${rows.length} rows, +${added} new (total ${byName.size}, gender ${withGender}/${rows.length})`,
   );
 
   // Page 1 sometimes returns 199 for no clear reason — only stop on a truly
@@ -92,4 +105,5 @@ for (let page = 1; page <= 40; page++) {
 
 const list = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 await Bun.write(OUT, JSON.stringify(list, null, 2));
-console.log(`\n${list.length} portraits → data/raw/player-images.json`);
+const gendered = list.filter((r) => r.gender).length;
+console.log(`\n${list.length} portraits (${gendered} with gender) → data/raw/player-images.json`);

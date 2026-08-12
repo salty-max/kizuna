@@ -23,11 +23,14 @@ import {
   type Element,
   type Equipment,
   type EquipmentSlot,
+  type Gender,
+  type LocalizedNames,
   type Passive,
   type PassiveSource,
   type Player,
   type PlayerDetails,
   type Position,
+  GENDERS,
 } from "../src/domain/types";
 import { STAT_KEYS, totalOf, type BaseStats } from "../src/domain/stats";
 
@@ -272,24 +275,157 @@ function normalizeName(name: string): string {
   return name.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+interface InazuglePortrait {
+  image: string;
+  gender: Gender;
+}
+
 /**
- * Inazugle scrape (`bun run data:player-images`) — the only portrait source.
+ * Inazugle scrape (`bun run data:player-images`) — portraits + gender.
+ * Keyed by normalised English name.
  */
-async function loadInazuglePortraits(): Promise<Map<string, string>> {
+async function loadInazuglePortraits(): Promise<Map<string, InazuglePortrait>> {
   const file = Bun.file(new URL("player-images.json", RAW));
   if (!(await file.exists())) {
     problems.push("data/raw/player-images.json absent — lance `bun run data:player-images`");
     return new Map();
   }
 
-  const raw = (await file.json()) as { name: string; image: string }[];
-  const map = new Map<string, string>();
+  const raw = (await file.json()) as { name: string; image: string; gender?: string }[];
+  const map = new Map<string, InazuglePortrait>();
   for (const row of raw) {
     if (!row?.name || !row?.image) continue;
     const key = normalizeName(row.name);
-    if (!map.has(key)) map.set(key, row.image);
+    if (map.has(key)) continue;
+    const gender =
+      row.gender && (GENDERS as readonly string[]).includes(row.gender)
+        ? (row.gender as Gender)
+        : "Unknown";
+    map.set(key, { image: row.image, gender });
   }
   return map;
+}
+
+/**
+ * Resolve portrait + gender by trying every localised name form we have —
+ * EN first (Inazugle join key), then the rest.
+ */
+function portraitFor(
+  portraits: Map<string, InazuglePortrait>,
+  candidates: string[],
+): InazuglePortrait | null {
+  for (const raw of candidates) {
+    const name = raw.replace(/\s+/g, " ").trim();
+    if (!name) continue;
+    const scraped = portraits.get(normalizeName(name));
+    if (!scraped) continue;
+    const image = scraped.image.startsWith(IMAGE_BASE)
+      ? scraped.image.slice(IMAGE_BASE.length)
+      : scraped.image;
+    return { image, gender: scraped.gender };
+  }
+  return null;
+}
+
+/**
+ * Test / dummy rows the dump still ships. Parenthetical "for X" Japanese names
+ * and a handful of VR debug kraken variants are not real roster picks.
+ */
+function isJunkPlayer(player: Pick<Player, "id" | "name" | "names" | "nameOriginal">): boolean {
+  const blob = [player.name, player.nameOriginal, ...Object.values(player.names ?? {})].join(" ");
+  if (/（[^）]*用）/.test(blob)) return true;
+  if (/ジグザグドリブル/.test(blob)) return true;
+  if (/\(test\)|dummy|ダミー/i.test(blob)) return true;
+  // Known VR debug / non-playable kraken shells (no Inazugle art either).
+  if (player.id === 4743 || player.id === 4939 || player.id === 4949 || player.id === 5794) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Two roster rows that share this fingerprint are the same mechanical character
+ * under different series/team labels (Protocol Omega vs 3.0, pure Ares clones…).
+ * Different move trees or stats → different fingerprint → both stay.
+ */
+function playerFingerprint(player: Player): string {
+  return JSON.stringify({
+    name: normalizeName(player.name),
+    original: normalizeName(player.nameOriginal),
+    position: player.position,
+    element: player.element,
+    buildType: player.buildType,
+    stats: player.stats,
+    skills: player.skills,
+    skillsAlt: player.skillsAlt,
+  });
+}
+
+/** Prefer playable, illustrated Victory Road rows when collapsing exact clones. */
+function clonePreference(player: Player): number {
+  let score = 0;
+  if (player.image) score += 100;
+  if (/Victory Road/i.test(player.game)) score += 80;
+  if (/Arès|Ares/i.test(player.game)) score += 30;
+  if (/Galaxy/i.test(player.game)) score += 20;
+  if (/GO 2/i.test(player.game)) score += 15;
+  if (/\bGO\b/i.test(player.game)) score += 10;
+  if (player.heroStats) score += 25;
+  if (player.basaraStats) score += 25;
+  if (
+    player.team &&
+    !/Personnage secondaire|Secondary character|サイドキャラ|Unaffiliated|Non-affili/i.test(
+      player.team,
+    )
+  ) {
+    score += 15;
+  }
+  // Stable tie-break: lower game id first (classic roster).
+  score -= player.id / 1_000_000;
+  return score;
+}
+
+/**
+ * Drop junk rows, then keep a single representative per identical mechanical
+ * clone group. Series variants with different skills stay — they are real picks.
+ */
+function finalizePlayers(players: Player[]): {
+  players: Player[];
+  droppedClones: number;
+  junk: number;
+} {
+  let junk = 0;
+  const usable: Player[] = [];
+  for (const player of players) {
+    if (isJunkPlayer(player)) {
+      junk++;
+      continue;
+    }
+    usable.push(player);
+  }
+
+  const groups = new Map<string, Player[]>();
+  for (const player of usable) {
+    const key = playerFingerprint(player);
+    const group = groups.get(key);
+    if (group) group.push(player);
+    else groups.set(key, [player]);
+  }
+
+  const kept: Player[] = [];
+  let droppedClones = 0;
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      kept.push(group[0]!);
+      continue;
+    }
+    group.sort((a, b) => clonePreference(b) - clonePreference(a) || a.id - b.id);
+    kept.push(group[0]!);
+    droppedClones += group.length - 1;
+  }
+
+  kept.sort((a, b) => a.id - b.id);
+  return { players: kept, droppedClones, junk };
 }
 
 /* ── Players ──────────────────────────────────────────────────────────────── */
@@ -328,7 +464,90 @@ function firstById(rows: RawCharacter[]): Map<number, RawCharacter> {
   return map;
 }
 
-async function buildPlayers(display: Bundle, en: Bundle, knownAbilityIds: Set<string>) {
+type LocaleKey = "fr" | "en" | "ja";
+const LOCALES: LocaleKey[] = ["fr", "en", "ja"];
+
+function pickLangText(map: LocalizedNames, fallback = ""): string {
+  return map[LANG] || map.en || map.fr || map.ja || fallback;
+}
+
+function setLocalized(
+  map: Map<string, LocalizedNames>,
+  key: string,
+  locale: LocaleKey,
+  value: string,
+) {
+  if (!value) return;
+  const entry = map.get(key) ?? {};
+  entry[locale] = value;
+  map.set(key, entry);
+}
+
+/** team_id → fr/en/ja club names (same id across the three dataminer bundles). */
+function collectTeamNames(locales: Record<LocaleKey, Bundle>): Map<number, LocalizedNames> {
+  const map = new Map<number, LocalizedNames>();
+  for (const locale of LOCALES) {
+    const bundle = locales[locale];
+    for (const rows of [bundle.characters, bundle.heroes, bundle.basaras]) {
+      for (const row of rows) {
+        if (row.team_id == null) continue;
+        const name = cleanText(row.team ?? "");
+        if (!name) continue;
+        const entry = map.get(row.team_id) ?? {};
+        entry[locale] = name;
+        map.set(row.team_id, entry);
+      }
+    }
+  }
+  return map;
+}
+
+/** character id → localised display names. */
+function collectPlayerNames(locales: Record<LocaleKey, Bundle>): Map<number, LocalizedNames> {
+  const map = new Map<number, LocalizedNames>();
+  for (const locale of LOCALES) {
+    const bundle = locales[locale];
+    for (const rows of [bundle.characters, bundle.heroes, bundle.basaras]) {
+      for (const row of rows) {
+        const name = cleanText(row.name_plain ?? row.name)
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!name) continue;
+        const entry = map.get(row.id) ?? {};
+        entry[locale] = name;
+        map.set(row.id, entry);
+      }
+    }
+  }
+  return map;
+}
+
+/** character id → localised bios. */
+function collectPlayerDescriptions(
+  locales: Record<LocaleKey, Bundle>,
+): Map<number, LocalizedNames> {
+  const map = new Map<number, LocalizedNames>();
+  for (const locale of LOCALES) {
+    const bundle = locales[locale];
+    for (const rows of [bundle.characters, bundle.heroes, bundle.basaras]) {
+      for (const row of rows) {
+        const description = cleanText(row.description_plain ?? row.description);
+        if (!description) continue;
+        const entry = map.get(row.id) ?? {};
+        entry[locale] = description;
+        map.set(row.id, entry);
+      }
+    }
+  }
+  return map;
+}
+
+async function buildPlayers(
+  display: Bundle,
+  en: Bundle,
+  locales: Record<"fr" | "en" | "ja", Bundle>,
+  knownAbilityIds: Set<string>,
+) {
   const enNameById = new Map(
     en.characters.map((c) => [c.id, c.name.replace(/\s+/g, " ").trim()] as const),
   );
@@ -338,6 +557,9 @@ async function buildPlayers(display: Bundle, en: Bundle, knownAbilityIds: Set<st
     }
   }
 
+  const teamNamesById = collectTeamNames(locales);
+  const playerNamesById = collectPlayerNames(locales);
+  const playerDescriptionsById = collectPlayerDescriptions(locales);
   const portraits = await loadInazuglePortraits();
 
   const baseById = firstById(display.characters);
@@ -371,30 +593,49 @@ async function buildPlayers(display: Bundle, en: Bundle, knownAbilityIds: Set<st
     const hero = heroById.get(id);
     const basara = basaraById.get(id);
 
-    const enName = (enNameById.get(id) ?? base.name).replace(/\s+/g, " ").trim();
-    const scraped = portraits.get(normalizeName(enName));
-    let image = "";
-    if (scraped) {
-      portraitsMatched++;
-      image = scraped.startsWith(IMAGE_BASE) ? scraped.slice(IMAGE_BASE.length) : scraped;
-    }
-
-    const name = cleanText(base.name_plain ?? base.name)
+    const names: LocalizedNames = { ...(playerNamesById.get(id) ?? {}) };
+    const nameFromBase = cleanText(base.name_plain ?? base.name)
       .replace(/\s+/g, " ")
       .trim();
+    if (nameFromBase && !names[LANG]) names[LANG] = nameFromBase;
+    const name = pickLangText(names, nameFromBase) || String(id);
     const nameOriginal = cleanText(base.name_original_plain ?? base.name_original ?? "")
       .replace(/\s+/g, " ")
       .trim();
     const series = cleanText(base.series_plain ?? base.series ?? "");
 
+    const enName = (enNameById.get(id) ?? names.en ?? base.name).replace(/\s+/g, " ").trim();
+    const portrait = portraitFor(portraits, [
+      enName,
+      names.en ?? "",
+      names.fr ?? "",
+      names.ja ?? "",
+      name,
+      nameOriginal,
+    ]);
+    const image = portrait?.image ?? "";
+    const gender: Gender = portrait?.gender ?? "Unknown";
+    if (image) portraitsMatched++;
+
+    const teamId = typeof base.team_id === "number" ? base.team_id : null;
+    const teamNames: LocalizedNames =
+      teamId != null ? { ...(teamNamesById.get(teamId) ?? {}) } : {};
+    // Ensure the build lang has a value even if only this row carried a name.
+    const displayTeam = cleanText(base.team ?? "");
+    if (displayTeam && !teamNames[LANG]) teamNames[LANG] = displayTeam;
+    const team = pickLangText(teamNames, displayTeam);
+
     players.push({
       id,
       name,
+      names,
       nameOriginal,
       nickname: nameOriginal && nameOriginal !== name ? nameOriginal : "",
       image,
       game: series,
-      team: cleanText(base.team ?? ""),
+      team,
+      teamId,
+      teamNames,
       position,
       altPosition,
       element,
@@ -402,7 +643,7 @@ async function buildPlayers(display: Bundle, en: Bundle, knownAbilityIds: Set<st
       // Game dump has no staff role; everyone is a field character. Staff slots
       // pick from the full roster.
       role: "Player",
-      gender: "Unknown",
+      gender,
       ageGroup: "Unknown",
       year: "-",
       stats: statsLv99,
@@ -423,16 +664,24 @@ async function buildPlayers(display: Bundle, en: Bundle, knownAbilityIds: Set<st
         : null,
     });
 
+    const descriptions: LocalizedNames = { ...(playerDescriptionsById.get(id) ?? {}) };
+    const descriptionFromBase = cleanText(base.description_plain ?? base.description);
+    if (descriptionFromBase && !descriptions[LANG]) descriptions[LANG] = descriptionFromBase;
     details.push({
       id,
-      description: cleanText(base.description_plain ?? base.description),
+      description: pickLangText(descriptions, descriptionFromBase),
+      descriptions,
       howToObtain: "",
       inazugleLink: "",
     });
   }
 
+  const finalized = finalizePlayers(players);
+  const keepIds = new Set(finalized.players.map((p) => p.id));
+  const keptDetails = details.filter((d) => keepIds.has(d.id));
+
   const buckets = new Map<number, PlayerDetails[]>();
-  for (const d of details) {
+  for (const d of keptDetails) {
     const key = Math.floor(d.id / DETAIL_BUCKET_SIZE);
     const bucket = buckets.get(key);
     if (bucket) bucket.push(d);
@@ -442,13 +691,15 @@ async function buildPlayers(display: Bundle, en: Bundle, knownAbilityIds: Set<st
     await write(`players/${key}.json`, rows);
   }
 
-  const games = [...new Set(players.map((p) => p.game).filter(Boolean))].sort();
+  const games = [...new Set(finalized.players.map((p) => p.game).filter(Boolean))].sort();
 
   return {
-    players,
+    players: finalized.players,
     games,
     imageBase: IMAGE_BASE,
     portraitsMatched,
+    droppedClones: finalized.droppedClones,
+    junk: finalized.junk,
     buckets: buckets.size,
     gameVersion: display.game_version,
     portraitIndexSize: portraits.size,
@@ -477,16 +728,33 @@ function passiveSourceFromStringId(stringId: string): PassiveSource {
   return "player";
 }
 
-function buildPassives(display: Bundle): Passive[] {
+function passiveText(raw: RawPassive, value: number): string {
+  // Substitute the magnitude into the text before stripping other markup.
+  const rawName = (raw.name ?? "").replace(/<VALUE>/gi, value ? String(value) : "?");
+  return cleanText(rawName).replace(/\s+/g, " ").trim();
+}
+
+function buildPassives(display: Bundle, locales: Record<LocaleKey, Bundle>): Passive[] {
+  const descriptionsById = new Map<string, LocalizedNames>();
+  const valueById = new Map<string, number>();
+
+  for (const locale of LOCALES) {
+    for (const r of locales[locale].passives) {
+      const value = r.value == null ? 0 : roundValue(num(r.value));
+      if (!valueById.has(r.string_id)) valueById.set(r.string_id, value);
+      const text = passiveText(r, valueById.get(r.string_id) ?? value);
+      setLocalized(descriptionsById, r.string_id, locale, text || r.string_id);
+    }
+  }
+
   const passives: Passive[] = [];
   let number = 0;
 
   for (const r of display.passives) {
     number++;
-    const value = r.value == null ? 0 : roundValue(num(r.value));
-    // Substitute the magnitude into the text before stripping other markup.
-    const rawName = (r.name ?? "").replace(/<VALUE>/gi, value ? String(value) : "?");
-    const description = cleanText(rawName).replace(/\s+/g, " ").trim() || r.string_id;
+    const value = valueById.get(r.string_id) ?? (r.value == null ? 0 : roundValue(num(r.value)));
+    const descriptions = { ...(descriptionsById.get(r.string_id) ?? {}) };
+    const description = pickLangText(descriptions, r.string_id);
 
     passives.push({
       id: r.string_id,
@@ -494,6 +762,7 @@ function buildPassives(display: Bundle): Passive[] {
       source: passiveSourceFromStringId(r.string_id),
       buildType: null,
       description,
+      descriptions,
       // Game value is the reference magnitude; user can still override in the UI.
       strongValue: value,
       weakValue: value,
@@ -523,10 +792,19 @@ function loosely(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-async function buildEquipment(display: Bundle, en: Bundle) {
+async function buildEquipment(display: Bundle, locales: Record<LocaleKey, Bundle>) {
   const images = await loadEquipmentImages();
   // Join icons via English names (Inazugle scrape is English).
-  const enByStringId = new Map(en.equipment.map((e) => [e.string_id, e]));
+  const enByStringId = new Map(locales.en.equipment.map((e) => [e.string_id, e]));
+
+  const namesById = new Map<string, LocalizedNames>();
+  const descriptionsById = new Map<string, LocalizedNames>();
+  for (const locale of LOCALES) {
+    for (const row of locales[locale].equipment) {
+      setLocalized(namesById, row.string_id, locale, cleanText(row.name));
+      setLocalized(descriptionsById, row.string_id, locale, cleanText(row.description));
+    }
+  }
 
   let matched = 0;
   const equipment: Equipment[] = [];
@@ -548,6 +826,11 @@ async function buildEquipment(display: Bundle, en: Bundle) {
       }
     }
 
+    const names = { ...(namesById.get(r.string_id) ?? {}) };
+    const descriptions = { ...(descriptionsById.get(r.string_id) ?? {}) };
+    const name = pickLangText(names, cleanText(r.name));
+    const description = pickLangText(descriptions, cleanText(r.description));
+
     const enName = enByStringId.get(r.string_id)?.name ?? r.name;
     const image = images.get(`${slot}:${loosely(cleanText(enName))}`);
     if (image) matched++;
@@ -555,8 +838,10 @@ async function buildEquipment(display: Bundle, en: Bundle) {
     equipment.push({
       id: r.string_id,
       slot,
-      name: cleanText(r.name),
-      description: cleanText(r.description),
+      name,
+      names,
+      description,
+      descriptions,
       shop: "",
       stats,
       total,
@@ -585,23 +870,21 @@ async function buildEquipment(display: Bundle, en: Bundle) {
  * switch de locale UI renomme vraiment les techniques (sinon tout reste en
  * LANG de build).
  */
-async function buildAbilities(display: Bundle, locales: Record<"fr" | "en" | "ja", Bundle>) {
+async function buildAbilities(display: Bundle, locales: Record<LocaleKey, Bundle>) {
   const abilities: Ability[] = [];
   const seen = new Set<string>();
 
-  /** id → locale → cleaned name */
-  const namesById = new Map<string, Partial<Record<"fr" | "en" | "ja", string>>>();
-  for (const locale of ["fr", "en", "ja"] as const) {
+  /** id → locale → cleaned name / description */
+  const namesById = new Map<string, LocalizedNames>();
+  const descriptionsById = new Map<string, LocalizedNames>();
+  for (const locale of LOCALES) {
     const bundle = locales[locale];
     const tables = [bundle.hissatsu, bundle.aura_hissatsu, bundle.auras as RawAura[]];
     for (const rows of tables) {
       for (const r of rows) {
         const id = String(r.id);
-        const name = cleanText(r.name);
-        if (!name) continue;
-        const entry = namesById.get(id) ?? {};
-        entry[locale] = name;
-        namesById.set(id, entry);
+        setLocalized(namesById, id, locale, cleanText(r.name));
+        setLocalized(descriptionsById, id, locale, cleanText(r.description));
       }
     }
   }
@@ -629,13 +912,17 @@ async function buildAbilities(display: Bundle, locales: Record<"fr" | "en" | "ja
 
       const move = r as RawHissatsu;
       const auraType = isAura ? mapAuraType((r as RawAura).type, where) : null;
-      const names = namesById.get(id) ?? {};
-      const name = names[LANG] || names.en || names.fr || names.ja || cleanText(r.name) || id;
+      const names = { ...(namesById.get(id) ?? {}) };
+      const descriptions = { ...(descriptionsById.get(id) ?? {}) };
+      const name = pickLangText(names, cleanText(r.name) || id);
+      const description = pickLangText(descriptions, cleanText(r.description));
 
       abilities.push({
         id,
         name,
         names,
+        description,
+        descriptions,
         kind,
         auraType,
         type: category ?? "Unknown",
@@ -701,31 +988,70 @@ function mapSkills(
 
 /* ── Synergies & tactics (data for later UI; shipped so it is not lost) ───── */
 
-async function buildSynergies(display: Bundle) {
-  return display.synergies.map((s) => ({
-    id: s.string_id,
-    name: cleanText(s.name),
-    description: cleanText(s.description),
-    members: s.members,
-    memberNames: (s.member_names ?? []).map(cleanText),
-  }));
+function tacticBaseId(stringId: string): string {
+  return stringId.split("_st")[0]!;
 }
 
-async function buildTactics(display: Bundle) {
+async function buildSynergies(display: Bundle, locales: Record<LocaleKey, Bundle>) {
+  const namesById = new Map<string, LocalizedNames>();
+  const descriptionsById = new Map<string, LocalizedNames>();
+  for (const locale of LOCALES) {
+    for (const s of locales[locale].synergies) {
+      setLocalized(namesById, s.string_id, locale, cleanText(s.name));
+      setLocalized(descriptionsById, s.string_id, locale, cleanText(s.description));
+    }
+  }
+
+  return display.synergies.map((s) => {
+    const names = { ...(namesById.get(s.string_id) ?? {}) };
+    const descriptions = { ...(descriptionsById.get(s.string_id) ?? {}) };
+    return {
+      id: s.string_id,
+      name: pickLangText(names, cleanText(s.name)),
+      names,
+      description: pickLangText(descriptions, cleanText(s.description)),
+      descriptions,
+      members: s.members,
+      memberNames: (s.member_names ?? []).map(cleanText),
+    };
+  });
+}
+
+async function buildTactics(display: Bundle, locales: Record<LocaleKey, Bundle>) {
   // Collapse `_st` situational reskins onto the base string id.
   const byBase = new Map<string, RawTactic>();
   for (const t of display.tactics) {
     if (t.string_id.startsWith("test_")) continue;
-    const base = t.string_id.split("_st")[0]!;
+    const base = tacticBaseId(t.string_id);
     if (!byBase.has(base)) byBase.set(base, { ...t, string_id: base });
   }
 
-  return [...byBase.values()].map((t) => ({
-    id: t.string_id,
-    name: cleanText(t.name),
-    description: cleanText(t.description),
-    tpCost: roundValue(num(t.tp_cost)),
-  }));
+  const namesById = new Map<string, LocalizedNames>();
+  const descriptionsById = new Map<string, LocalizedNames>();
+  for (const locale of LOCALES) {
+    for (const t of locales[locale].tactics) {
+      if (t.string_id.startsWith("test_")) continue;
+      const base = tacticBaseId(t.string_id);
+      // Prefer the non-reskin row for each locale when present.
+      const existing = namesById.get(base)?.[locale];
+      if (existing && t.string_id.includes("_st")) continue;
+      setLocalized(namesById, base, locale, cleanText(t.name));
+      setLocalized(descriptionsById, base, locale, cleanText(t.description));
+    }
+  }
+
+  return [...byBase.values()].map((t) => {
+    const names = { ...(namesById.get(t.string_id) ?? {}) };
+    const descriptions = { ...(descriptionsById.get(t.string_id) ?? {}) };
+    return {
+      id: t.string_id,
+      name: pickLangText(names, cleanText(t.name)),
+      names,
+      description: pickLangText(descriptions, cleanText(t.description)),
+      descriptions,
+      tpCost: roundValue(num(t.tp_cost)),
+    };
+  });
 }
 
 /* ── Icons ────────────────────────────────────────────────────────────────── */
@@ -804,12 +1130,21 @@ for (const [code, name] of Object.entries(display.legend.element)) {
 const abilities = await buildAbilities(display, { fr, en, ja });
 const knownAbilityIds = new Set(abilities.map((a) => a.id));
 
-const { players, games, imageBase, portraitsMatched, buckets, gameVersion, portraitIndexSize } =
-  await buildPlayers(display, en, knownAbilityIds);
-const passives = buildPassives(display);
-const { equipment, matched: equipmentIcons } = await buildEquipment(display, en);
-const synergies = await buildSynergies(display);
-const tactics = await buildTactics(display);
+const {
+  players,
+  games,
+  imageBase,
+  portraitsMatched,
+  droppedClones,
+  junk: junkPlayers,
+  buckets,
+  gameVersion,
+  portraitIndexSize,
+} = await buildPlayers(display, en, { fr, en, ja }, knownAbilityIds);
+const passives = buildPassives(display, { fr, en, ja });
+const { equipment, matched: equipmentIcons } = await buildEquipment(display, { fr, en, ja });
+const synergies = await buildSynergies(display, { fr, en, ja });
+const tactics = await buildTactics(display, { fr, en, ja });
 const iconCount = await copyIcons();
 
 const sizes = {
@@ -849,6 +1184,8 @@ console.log(
   `players     ${String(players.length).padStart(5)}  ${kb(sizes["players.json"])}   ` +
     `(${portraitsMatched}/${portraitIndexSize || "?"} portraits Inazugle` +
     (portraitIndexSize === 0 ? "; lance `bun run data:player-images`" : "") +
+    (droppedClones ? `; −${droppedClones} clones` : "") +
+    (junkPlayers ? `; −${junkPlayers} junk` : "") +
     `)`,
 );
 console.log(`  heroes    ${String(players.filter((p) => p.heroStats).length).padStart(5)}`);

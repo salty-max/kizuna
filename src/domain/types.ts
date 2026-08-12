@@ -9,6 +9,10 @@ export type Element = (typeof ELEMENTS)[number];
 export const ROLES = ["Player", "Coach", "Manager"] as const;
 export type Role = (typeof ROLES)[number];
 
+/** Inazugle gender cell — not present in the dataminer dump. */
+export const GENDERS = ["Male", "Female", "Neutral", "Unknown"] as const;
+export type Gender = (typeof GENDERS)[number];
+
 /**
  * Build archetypes. The upstream dataset spells these two different ways —
  * `Affinity` on a character reads "Brecha"/"RoughPlay", while `buildType` on a
@@ -137,7 +141,13 @@ export interface RarityStats {
 
 export interface Player {
   id: number;
+  /**
+   * Fallback display name in the build language (`meta.lang`). Prefer
+   * `names[locale]` / `playerDisplayName` so the UI language renames characters.
+   */
   name: string;
+  /** Localised name per app locale (fr/en/ja), joined at build. */
+  names: LocalizedNames;
   /** Game's "show original names" field (e.g. Endo Mamoru). */
   nameOriginal: string;
   /** Same as nameOriginal when it differs from name; otherwise empty. */
@@ -146,7 +156,15 @@ export interface Player {
   image: string;
   /** Series label from the game (`Inazuma Eleven`, `… Victory Road`, …). */
   game: string;
+  /**
+   * Fallback team name in the build language (`meta.lang`). Prefer
+   * `teamNames[locale]` (or `teamDisplayName`) so the UI language renames clubs.
+   */
   team: string;
+  /** Stable game team id — same across fr/en/ja; null when the dump has none. */
+  teamId: number | null;
+  /** Club name per app locale, joined at build from the three dataminer bundles. */
+  teamNames: LocalizedNames;
   position: Position;
   /** Secondary position when the game records one different from `position`. */
   altPosition: Position | null;
@@ -154,7 +172,11 @@ export interface Player {
   /** From the game's style code; overridable per slot. */
   buildType: BuildType | null;
   role: Role;
-  gender: string;
+  /**
+   * From Inazugle (dataminer has no gender). `Unknown` when the scrape had no
+   * match or the cell was empty.
+   */
+  gender: Gender;
   ageGroup: string;
   year: string;
   /** Common rarity, level 99 — the default build target. */
@@ -186,7 +208,10 @@ export interface Player {
 /** Loaded on demand — descriptions sit in lazy buckets so boot stays light. */
 export interface PlayerDetails {
   id: number;
+  /** Fallback description in the build language. */
   description: string;
+  /** Bio text per locale when the dump has it. */
+  descriptions: LocalizedNames;
   howToObtain: string;
   inazugleLink: string;
 }
@@ -205,8 +230,12 @@ export interface Equipment {
   /** Game string id (`eq_sh071101`), stable across languages. */
   id: string;
   slot: EquipmentSlot;
+  /** Fallback name in the build language. Prefer `names[locale]`. */
   name: string;
+  names: LocalizedNames;
+  /** Fallback description in the build language. Prefer `descriptions[locale]`. */
   description: string;
+  descriptions: LocalizedNames;
   shop: string;
   /** Flat additions to base stats; absent stats are simply 0. */
   stats: Partial<BaseStats>;
@@ -259,6 +288,9 @@ export interface Ability {
    */
   name: string;
   names: LocalizedNames;
+  /** Fallback description in the build language. Prefer `descriptions[locale]`. */
+  description: string;
+  descriptions: LocalizedNames;
   kind: AbilityKind;
   /**
    * Hissatsu category: Shoot / Dribble / Block / Catch, or `Aura` for spirit
@@ -399,7 +431,9 @@ export interface Passive {
   number: number;
   source: PassiveSource;
   buildType: BuildType | null;
+  /** Fallback text in the build language. Prefer `descriptions[locale]`. */
   description: string;
+  descriptions: LocalizedNames;
   /** Reference bounds only — the in-game value depends on the passive's level. */
   strongValue: number;
   weakValue: number;
@@ -409,8 +443,12 @@ export interface Passive {
 /** Team tactic (必殺タクティクス) — chosen on the squad, spent with TP in match. */
 export interface Tactic {
   id: string;
+  /** Fallback name in the build language. Prefer `names[locale]`. */
   name: string;
+  names: LocalizedNames;
+  /** Fallback description in the build language. Prefer `descriptions[locale]`. */
   description: string;
+  descriptions: LocalizedNames;
   tpCost: number;
 }
 
@@ -423,9 +461,14 @@ export interface Tactic {
  */
 export interface BondSynergy {
   id: string;
+  /** Fallback name in the build language. Prefer `names[locale]`. */
   name: string;
+  names: LocalizedNames;
+  /** Fallback description in the build language. Prefer `descriptions[locale]`. */
   description: string;
+  descriptions: LocalizedNames;
   members: number[];
+  /** Fallback member labels in the build language (prefer live player names). */
   memberNames: string[];
 }
 

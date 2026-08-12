@@ -27,7 +27,10 @@ async function getJson<T>(path: string): Promise<T> {
 
 /** Placeholder rows left in the dump (`必殺タクティクス名N`). */
 function isRealTactic(tactic: Tactic): boolean {
-  return !/必殺タクティクス名|test_/i.test(tactic.name);
+  const blob = [tactic.name, tactic.names?.fr, tactic.names?.en, tactic.names?.ja]
+    .filter(Boolean)
+    .join(" ");
+  return !/必殺タクティクス名|test_/i.test(blob) && !tactic.id.startsWith("test_");
 }
 
 let cached: Promise<Dataset> | null = null;
