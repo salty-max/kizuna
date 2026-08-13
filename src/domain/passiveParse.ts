@@ -1,7 +1,8 @@
 /**
  * Best-effort parser: English passive text → structured effects for the
- * synergy engine. Coverage is intentionally partial — charge-rank loops,
- * save rate, dash knockback, etc. stay empty rather than invent a fake model.
+ * synergy engine. Charge-rank loops are modelled as conditional (one rank of
+ * magnitude — the builder cannot know live charge). Save rate and flat base
+ * stats (Kick +7) stay empty — no engine model yet.
  *
  * Prefer EN over FR: grammar is more regular ("Team AT +4% for the first half").
  */
@@ -17,13 +18,16 @@ import {
 const STAT_RULES: { re: RegExp; stat: PassiveStat }[] = [
   { re: /direct\s*shot\s*at/i, stat: "directShotAT" },
   { re: /shot\s*at/i, stat: "shotAT" },
-  { re: /wall\s*pierce/i, stat: "wallPierce" },
+  { re: /castle\s*wall\s*pierce|wall\s*pierce/i, stat: "wallPierce" },
   { re: /wall\s*df|wall\s*def/i, stat: "wallDF" },
   { re: /focus\s*at\s*&\s*df|focus\s*at\s*and\s*df/i, stat: "focus" },
   { re: /scramble\s*at\s*&\s*df|scramble\s*at\s*and\s*df/i, stat: "scramble" },
   { re: /rough\s*attack\s*at\s*&\s*df|rough\s*attack\s*at\s*and\s*df/i, stat: "roughAttack" },
   { re: /rough\s*attack/i, stat: "roughAttack" },
-  { re: /special\s*tactics?\s*cooldown|tactic(?:s)?\s*cooldown/i, stat: "tacticCooldown" },
+  {
+    re: /special\s*(?:move|tactics?)\s*cooldown|tactic(?:s)?\s*cooldown|hissatsu\s*cooldown/i,
+    stat: "tacticCooldown",
+  },
   { re: /bond\s*power\s*loss|bond\s*loss/i, stat: "bondLoss" },
   { re: /bond\s*power|bond\s*gain/i, stat: "bondGain" },
   { re: /breach\s*tension/i, stat: "breachTensionRequirement" },
@@ -153,14 +157,24 @@ export function parsePassiveEffectsFromEn(text: string): PassiveEffect[] {
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (!cleaned) return [];
 
+  // Unmapped gauges — no PassiveStat yet.
+  if (/\bsave\s*rate\b/i.test(cleaned)) return [];
+  // Flat base stats ("Kick +7") are not percent power modifiers.
+  if (
+    /^(?:kick|control|technique|pressure|physical|agility|intelligence)\s*[+\-−－]?\s*\d+\s*$/i.test(
+      cleaned,
+    )
+  ) {
+    return [];
+  }
+
   const stat = parseStat(cleaned);
   if (!stat) return [];
 
-  // Skip patterns we know we model poorly (charge-rank loops, unmapped gauges).
-  if (/charge\s*rank|for\s*each\s*charge|build\s*charge/i.test(cleaned)) return [];
-  if (/\bsave\s*rate\b/i.test(cleaned)) return [];
-  if (/dash\s*knockback/i.test(cleaned) && !parseStat(cleaned.replace(/dash\s*knockback/i, ""))) {
-    // Bond power on dash knockback still has a stat; keep if bondGain matched.
+  const conditions = parseConditions(cleaned);
+  // Per-rank stacking: one rank of magnitude as conditional (live rank unknown).
+  if (/charge\s*rank|for\s*each\s*charge|build\s*charge/i.test(cleaned)) {
+    if (!conditions.includes("perBuildChargeRank")) conditions.push("perBuildChargeRank");
   }
 
   return [
@@ -169,7 +183,7 @@ export function parsePassiveEffectsFromEn(text: string): PassiveEffect[] {
       stat,
       mode: "percent",
       direction: parseDirection(cleaned),
-      conditions: parseConditions(cleaned),
+      conditions,
     },
   ];
 }

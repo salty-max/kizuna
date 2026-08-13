@@ -60,12 +60,29 @@ describe("parsePassiveEffectsFromEn", () => {
     expect(effects[0]?.conditions).toContain("onTeamPass");
   });
 
-  test("skips charge-rank loops", () => {
-    expect(
-      parsePassiveEffectsFromEn(
-        "For each Charge Rank up with Rough Play Team Build, Team Rough Attack AT & DF +2%",
-      ),
-    ).toEqual([]);
+  test("charge-rank loops become conditional per-rank effects", () => {
+    const effects = parsePassiveEffectsFromEn(
+      "For each Charge Rank up with Rough Play Team Build, Team Rough Attack AT & DF +2%",
+    );
+    expect(effects[0]?.stat).toBe("roughAttack");
+    expect(effects[0]?.scope).toBe("team");
+    expect(effects[0]?.conditions).toContain("perBuildChargeRank");
+    expect(effects[0]?.direction).toBe("increase");
+  });
+
+  test("castle wall pierce on charge rank", () => {
+    const effects = parsePassiveEffectsFromEn(
+      "For each Charge Rank with Breach Team Build, Team Castle Wall Pierce Rate +1%",
+    );
+    expect(effects[0]?.stat).toBe("wallPierce");
+    expect(effects[0]?.conditions).toContain("perBuildChargeRank");
+  });
+
+  test("special move cooldown", () => {
+    const effects = parsePassiveEffectsFromEn("Own Special Move Cooldown -0.8%");
+    expect(effects[0]?.stat).toBe("tacticCooldown");
+    expect(effects[0]?.scope).toBe("self");
+    expect(effects[0]?.direction).toBe("decrease");
   });
 
   test("subbed-in personal AT", () => {
@@ -77,5 +94,6 @@ describe("parsePassiveEffectsFromEn", () => {
   test("empty / unmapped", () => {
     expect(parsePassiveEffectsFromEn("")).toEqual([]);
     expect(parsePassiveEffectsFromEn("For each Charge Rank up, Team Save Rate +10%")).toEqual([]);
+    expect(parsePassiveEffectsFromEn("Kick +7")).toEqual([]);
   });
 });

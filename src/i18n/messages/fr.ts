@@ -91,7 +91,7 @@ export const fr = {
     tactics: "Tactiques",
     tacticsHint: "Tactiques d'équipe et coût en PT.",
     passives: "Passifs",
-    passivesHint: "Passifs joueur, coach et manager — texte, bornes, effets structurés (~82 %).",
+    passivesHint: "Passifs joueur, coach et manager — texte, bornes, effets structurés (~95 %).",
     passivesEffectsGap:
       "Certains passifs n'ont pas d'effet structuré (texte seul) — ils ne rentrent pas dans le calcul de puissance.",
     effects: "Effets structurés",
@@ -428,6 +428,7 @@ export const fr = {
     onOpponentPassDuringFocus: "sur passe adverse pendant un focus",
     onTeamPass: "sur une passe de l'équipe",
     outsideZoneArea: "hors de la surface",
+    perBuildChargeRank: "par rang de charge de build (×rangs en match)",
     sameElementAllyNearby: "allié du même élément à proximité",
     scoreNotLeading: "à égalité ou mené au score",
     teamBreachRateAtLeast15: "taux de brèche d'équipe ≥ 15 %",

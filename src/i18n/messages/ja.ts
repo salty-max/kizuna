@@ -94,7 +94,7 @@ export const ja = {
     tactics: "必殺タクティクス",
     tacticsHint: "チーム必殺タクティクスと TP コスト。",
     passives: "パッシブ",
-    passivesHint: "選手・監督・マネージャーのパッシブ — テキスト・数値範囲・構造化効果（約82%）。",
+    passivesHint: "選手・監督・マネージャーのパッシブ — テキスト・数値範囲・構造化効果（約95%）。",
     passivesEffectsGap:
       "構造化効果のないパッシブもあります（テキストのみ）— パワー計算には入りません。",
     effects: "構造化効果",
@@ -429,6 +429,7 @@ export const ja = {
     onOpponentPassDuringFocus: "フォーカス中の相手パス",
     onTeamPass: "味方のパス時",
     outsideZoneArea: "ペナルティエリア外",
+    perBuildChargeRank: "ビルドチャージランクごと（試合中×ランク）",
     sameElementAllyNearby: "同属性の味方付近",
     scoreNotLeading: "同点または負けている",
     teamBreachRateAtLeast15: "チーム必殺率 ≥ 15%",

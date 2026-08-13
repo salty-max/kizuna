@@ -412,6 +412,8 @@ export const PASSIVE_CONDITIONS = [
   "onOpponentPassDuringFocus",
   "onTeamPass",
   "outsideZoneArea",
+  /** Magnitude is *per* team-build charge rank (stacking gauge). Conditional only. */
+  "perBuildChargeRank",
   "sameElementAllyNearby",
   "scoreNotLeading",
   "teamBreachRateAtLeast15",

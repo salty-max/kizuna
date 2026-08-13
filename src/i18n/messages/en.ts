@@ -88,7 +88,7 @@ export const en = {
     tactics: "Tactics",
     tacticsHint: "Team tactics and TP cost.",
     passives: "Passives",
-    passivesHint: "Player, coach and manager passives — text, bounds, structured effects (~82%).",
+    passivesHint: "Player, coach and manager passives — text, bounds, structured effects (~95%).",
     passivesEffectsGap:
       "Some passives have no structured effect (text only) — they do not enter the power calc.",
     effects: "Structured effects",
@@ -424,6 +424,7 @@ export const en = {
     onOpponentPassDuringFocus: "on opponent pass during focus",
     onTeamPass: "on a team pass",
     outsideZoneArea: "outside the box",
+    perBuildChargeRank: "per team-build charge rank (×ranks in match)",
     sameElementAllyNearby: "same-element ally nearby",
     scoreNotLeading: "tied or trailing",
     teamBreachRateAtLeast15: "team breach rate ≥ 15%",
