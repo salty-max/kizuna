@@ -13,6 +13,7 @@ import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { parsePassiveEffectsFromEn } from "../src/domain/passiveParse";
 import {
   AURA_TYPES,
   type Ability,
@@ -30,7 +31,6 @@ import {
   type Player,
   type PlayerDetails,
   type Position,
-  GENDERS,
 } from "../src/domain/types";
 import { STAT_KEYS, totalOf, type BaseStats } from "../src/domain/stats";
 
@@ -172,6 +172,8 @@ interface RawCharacter {
   description_plain?: string;
   series?: string;
   series_plain?: string;
+  /** Dump strings: `male` / `female` / `other`. */
+  gender?: string;
   element: number;
   main_position: number;
   alt_position?: number;
@@ -180,6 +182,8 @@ interface RawCharacter {
   team_id?: number;
   emblem?: string;
   emblem_era?: string;
+  /** Character can appear as a spirit drop. */
+  spirit_drop?: boolean;
   stats_lv50: RawStats;
   stats_lv99: RawStats;
   /** `[niveau, idTechnique]` — six slots du tronc commun. */
@@ -275,56 +279,60 @@ function normalizeName(name: string): string {
   return name.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-interface InazuglePortrait {
-  image: string;
-  gender: Gender;
-}
-
 /**
- * Inazugle scrape (`bun run data:player-images`) — portraits + gender.
+ * Inazugle scrape (`bun run data:player-images`) — portraits only.
+ * Gender now comes from the dataminer dump; the scrape may still carry a
+ * legacy `gender` field that we ignore at join time.
  * Keyed by normalised English name.
  */
-async function loadInazuglePortraits(): Promise<Map<string, InazuglePortrait>> {
+async function loadInazuglePortraits(): Promise<Map<string, string>> {
   const file = Bun.file(new URL("player-images.json", RAW));
   if (!(await file.exists())) {
     problems.push("data/raw/player-images.json absent — lance `bun run data:player-images`");
     return new Map();
   }
 
-  const raw = (await file.json()) as { name: string; image: string; gender?: string }[];
-  const map = new Map<string, InazuglePortrait>();
+  const raw = (await file.json()) as { name: string; image: string }[];
+  const map = new Map<string, string>();
   for (const row of raw) {
     if (!row?.name || !row?.image) continue;
     const key = normalizeName(row.name);
-    if (map.has(key)) continue;
-    const gender =
-      row.gender && (GENDERS as readonly string[]).includes(row.gender)
-        ? (row.gender as Gender)
-        : "Unknown";
-    map.set(key, { image: row.image, gender });
+    if (!map.has(key)) map.set(key, row.image);
   }
   return map;
 }
 
 /**
- * Resolve portrait + gender by trying every localised name form we have —
- * EN first (Inazugle join key), then the rest.
+ * Resolve a portrait path (relative to `IMAGE_BASE`) by trying every localised
+ * name form — EN first (Inazugle join key), then the rest.
  */
-function portraitFor(
-  portraits: Map<string, InazuglePortrait>,
-  candidates: string[],
-): InazuglePortrait | null {
+function portraitFor(portraits: Map<string, string>, candidates: string[]): string {
   for (const raw of candidates) {
     const name = raw.replace(/\s+/g, " ").trim();
     if (!name) continue;
     const scraped = portraits.get(normalizeName(name));
     if (!scraped) continue;
-    const image = scraped.image.startsWith(IMAGE_BASE)
-      ? scraped.image.slice(IMAGE_BASE.length)
-      : scraped.image;
-    return { image, gender: scraped.gender };
+    return scraped.startsWith(IMAGE_BASE) ? scraped.slice(IMAGE_BASE.length) : scraped;
   }
-  return null;
+  return "";
+}
+
+/** Dump `male` / `female` / `other` → app Gender. */
+function mapGender(raw: string | undefined, where: string): Gender {
+  switch ((raw ?? "").toLowerCase()) {
+    case "male":
+      return "Male";
+    case "female":
+      return "Female";
+    case "other":
+      return "Neutral";
+    case "":
+    case undefined:
+      return "Unknown";
+    default:
+      problems.push(`${where}: unknown gender ${JSON.stringify(raw)}`);
+      return "Unknown";
+  }
 }
 
 /**
@@ -605,7 +613,7 @@ async function buildPlayers(
     const series = cleanText(base.series_plain ?? base.series ?? "");
 
     const enName = (enNameById.get(id) ?? names.en ?? base.name).replace(/\s+/g, " ").trim();
-    const portrait = portraitFor(portraits, [
+    const image = portraitFor(portraits, [
       enName,
       names.en ?? "",
       names.fr ?? "",
@@ -613,9 +621,9 @@ async function buildPlayers(
       name,
       nameOriginal,
     ]);
-    const image = portrait?.image ?? "";
-    const gender: Gender = portrait?.gender ?? "Unknown";
     if (image) portraitsMatched++;
+    const gender = mapGender(base.gender, `${where}.gender`);
+    const spiritDrop = base.spirit_drop === true;
 
     const teamId = typeof base.team_id === "number" ? base.team_id : null;
     const teamNames: LocalizedNames =
@@ -644,6 +652,7 @@ async function buildPlayers(
       // pick from the full roster.
       role: "Player",
       gender,
+      spiritDrop,
       ageGroup: "Unknown",
       year: "-",
       stats: statsLv99,
@@ -709,22 +718,18 @@ async function buildPlayers(
 /* ── Passives ─────────────────────────────────────────────────────────────── */
 
 /**
- * Dataminer passives carry magnitude (`value`) and text, but not the structured
- * scope/stat/condition model the synergy engine needs. Effects ship empty until
- * that model is extracted from the game. Character → passive is still open too.
+ * Prefix → catalogue (HANDOFF 2026-08-11):
+ * - `ps*` / `ss*` — player lottery presets (attribute pools, not per-character)
+ * - `hps*` — custom / Hero-farmed passives (the free lv-50 slot)
+ * - `mps*` / `bmps*` — manager; `cps*` / `bcps*` — coach
+ * - `swap*` — placeholder ids, dropped below
  */
-/**
- * Les préfixes viennent du jeu : `mps` = manager passive skill, `cps` = coach
- * passive skill (les variantes `b…` sont les versions Basara). C'est une lecture
- * des préfixes, pas une preuve tirée du contenu — les deux catalogues décrivent
- * des effets d'équipe très semblables et ne se départagent pas à la lecture.
- */
-function passiveSourceFromStringId(stringId: string): PassiveSource {
+function passiveSourceFromStringId(stringId: string): PassiveSource | null {
   const id = stringId.toLowerCase();
+  if (id.startsWith("swap")) return null;
   if (id.startsWith("mps") || id.startsWith("bmps")) return "manager";
   if (id.startsWith("cps") || id.startsWith("bcps")) return "coach";
-  // Remaining (ps*, hps*, ss*, swap*, …) — player catalogue. The 6th "custom"
-  // UI slot reuses the player list (see passiveSourceFor).
+  if (id.startsWith("hps")) return "custom";
   return "player";
 }
 
@@ -749,28 +754,57 @@ function buildPassives(display: Bundle, locales: Record<LocaleKey, Bundle>): Pas
 
   const passives: Passive[] = [];
   let number = 0;
+  let effectsParsed = 0;
+  let dropped = 0;
 
   for (const r of display.passives) {
+    const source = passiveSourceFromStringId(r.string_id);
+    if (!source) {
+      dropped++;
+      continue;
+    }
     number++;
     const value = valueById.get(r.string_id) ?? (r.value == null ? 0 : roundValue(num(r.value)));
     const descriptions = { ...(descriptionsById.get(r.string_id) ?? {}) };
     const description = pickLangText(descriptions, r.string_id);
+    // EN grammar is regular enough to recover scope/stat/conditions; FR is not.
+    const enText = descriptions.en || "";
+    const effects = enText ? parsePassiveEffectsFromEn(enText) : [];
+    if (effects.length > 0) effectsParsed++;
+
+    const tierRow = r.tiers?.[0];
+    const family = tierRow && Number.isFinite(tierRow.family) ? tierRow.family : null;
+    const tier = tierRow && Number.isFinite(tierRow.tier) ? tierRow.tier : null;
 
     passives.push({
       id: r.string_id,
       number,
-      source: passiveSourceFromStringId(r.string_id),
+      source,
       buildType: null,
       description,
       descriptions,
-      // Game value is the reference magnitude; user can still override in the UI.
+      family,
+      tier,
+      // Game value is the reference magnitude; UI can scale via family/tier.
       strongValue: value,
       weakValue: value,
-      effects: [],
+      effects,
     });
   }
 
   passives.sort((a, b) => a.source.localeCompare(b.source) || a.number - b.number);
+  const bySource = Object.fromEntries(
+    (["player", "custom", "coach", "manager"] as const).map((s) => [
+      s,
+      passives.filter((p) => p.source === s).length,
+    ]),
+  );
+  console.log(
+    `  passives   effects ${effectsParsed}/${passives.length} ` +
+      `(${((100 * effectsParsed) / Math.max(1, passives.length)).toFixed(0)}% EN) ` +
+      `· sources ${JSON.stringify(bySource)}` +
+      (dropped ? ` · dropped ${dropped} swap*` : ""),
+  );
   return passives;
 }
 
@@ -1065,7 +1099,16 @@ async function copyIcons() {
 
   // Ship everything, including unlabelled `passives/` (atlas cell ≠ game id —
   // usable as art, not as a join key). See data/raw/icons/README.md.
-  const folders = ["elements", "styles", "hissatsu", "aura", "positions", "tactics", "passives"];
+  const folders = [
+    "elements",
+    "styles",
+    "hissatsu",
+    "aura",
+    "positions",
+    "tactics",
+    "passives",
+    "gender",
+  ];
   let count = 0;
 
   for (const folder of folders) {
@@ -1192,7 +1235,7 @@ console.log(`  heroes    ${String(players.filter((p) => p.heroStats).length).pad
 console.log(`  basaras   ${String(players.filter((p) => p.basaraStats).length).padStart(5)}`);
 console.log(
   `passives    ${String(passives.length).padStart(5)}  ${kb(sizes["passives.json"])}   ` +
-    `(dataminer — effects vides, moteur en attente du modèle jeu)`,
+    `(effects from EN text parser)`,
 );
 console.log(
   `equipment   ${String(equipment.length).padStart(5)}  ${kb(sizes["equipment.json"])}   ` +

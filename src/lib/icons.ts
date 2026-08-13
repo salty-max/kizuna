@@ -6,7 +6,7 @@
  * Position badge language follows the active UI locale (fr / en / ja).
  */
 
-import type { BuildType, Element, Position, AuraType } from "@/domain/types";
+import type { AuraType, BuildType, Element, Gender, Position } from "@/domain/types";
 import type { Locale } from "@/i18n";
 
 export function iconUrl(path: string): string {
@@ -64,6 +64,13 @@ export const HISSATSU_ICON: Record<string, string> = {
   Dribble: "hissatsu/icon_hissatsu_dribble.png",
   Block: "hissatsu/icon_hissatsu_block.png",
   Catch: "hissatsu/icon_hissatsu_catch.png",
+};
+
+/* ── Gender (male / female only — Neutral has no atlas glyph) ─────────────── */
+
+export const GENDER_ICON: Partial<Record<Gender, string>> = {
+  Male: "gender/icon_gender_male.png",
+  Female: "gender/icon_gender_female.png",
 };
 
 /**

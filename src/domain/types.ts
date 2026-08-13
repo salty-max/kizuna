@@ -9,7 +9,10 @@ export type Element = (typeof ELEMENTS)[number];
 export const ROLES = ["Player", "Coach", "Manager"] as const;
 export type Role = (typeof ROLES)[number];
 
-/** Inazugle gender cell — not present in the dataminer dump. */
+/**
+ * Character gender from the dataminer (`male` / `female` / `other`).
+ * `Unknown` is only for rows that predate the field or failed to map.
+ */
 export const GENDERS = ["Male", "Female", "Neutral", "Unknown"] as const;
 export type Gender = (typeof GENDERS)[number];
 
@@ -172,11 +175,12 @@ export interface Player {
   /** From the game's style code; overridable per slot. */
   buildType: BuildType | null;
   role: Role;
-  /**
-   * From Inazugle (dataminer has no gender). `Unknown` when the scrape had no
-   * match or the cell was empty.
-   */
+  /** From the dump (`male` / `female` / `other` → Neutral). */
   gender: Gender;
+  /**
+   * Game flag: character can appear as a spirit drop. Independent of rarity.
+   */
+  spiritDrop: boolean;
   ageGroup: string;
   year: string;
   /** Common rarity, level 99 — the default build target. */
@@ -429,12 +433,28 @@ export interface PassiveEffect {
 export interface Passive {
   id: string;
   number: number;
+  /**
+   * Where this passive is offered in the builder:
+   * - `player` — lottery presets (style/growth pools), five slots per character
+   * - `custom` — farmed from Hero-tier content, one slot unlocked at lv 50
+   * - `coach` / `manager` — staff catalogues
+   *
+   * There is no per-character passive table in the game; presets are rolled
+   * from attribute pools (see dataminer HANDOFF).
+   */
   source: PassiveSource;
   buildType: BuildType | null;
   /** Fallback text in the build language. Prefer `descriptions[locale]`. */
   description: string;
   descriptions: LocalizedNames;
-  /** Reference bounds only — the in-game value depends on the passive's level. */
+  /**
+   * Magnitude family for rarity scaling. Sibling rows share a family and differ
+   * by `tier` (0…4 ≈ Common…Legendary). Null when the dump has no tier row.
+   */
+  family: number | null;
+  /** Tier within `family`; null when ungrouped. */
+  tier: number | null;
+  /** Reference bounds only — prefer {@link passiveValueForRarity} at display time. */
   strongValue: number;
   weakValue: number;
   effects: PassiveEffect[];
