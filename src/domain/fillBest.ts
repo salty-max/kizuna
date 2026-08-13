@@ -23,6 +23,7 @@ import {
   type Position,
 } from "./types";
 import type { StatKey } from "./stats";
+import { characterIdentity } from "./rules";
 
 /**
  * Greedy "fill empty" helpers for the builder.
@@ -78,22 +79,56 @@ function usedPlayerIds(team: Team): Set<number> {
   return used;
 }
 
+function usedCharacterIdentities(team: Team, dataset: Dataset): Set<string> {
+  const playersById = new Map(dataset.players.map((player) => [player.id, player]));
+  const formation = findFormation(team.formationId);
+  const playerSlotIds = new Set([...formation.slots.map((slot) => slot.id), ...BENCH_SLOT_IDS]);
+  const used = new Set<string>();
+  for (const [slotId, assignment] of Object.entries(team.slots)) {
+    if (!playerSlotIds.has(slotId)) continue;
+    if (assignment.playerId == null) continue;
+    const player = playersById.get(assignment.playerId);
+    if (player) used.add(characterIdentity(player));
+  }
+  return used;
+}
+
 function pickBestPlayer(
   pool: readonly Player[],
   used: Set<number>,
+  usedIdentities: Set<string>,
+  uniqueCharacters: boolean,
+  targetKind: SlotKind,
   expectedPosition: Position | null,
   /** When true and a position is set, only natural (or alt) position counts. */
   requirePositionMatch: boolean,
+  targetBuildType: BuildType | null,
+  requiredSynergyMembers: ReadonlySet<number>,
 ): Player | null {
   let best: Player | null = null;
   let bestScore = -Infinity;
 
   for (const player of pool) {
     if (used.has(player.id)) continue;
+    // Dump currently tags nearly everyone as Player. Prefer true Coach/Manager
+    // roles when present, but never hard-require them or staff stays empty.
+    if (
+      (targetKind === "pitch" || targetKind === "bench") &&
+      (player.role === "Coach" || player.role === "Manager")
+    ) {
+      continue;
+    }
+    if (uniqueCharacters && usedIdentities.has(characterIdentity(player))) continue;
     if (requirePositionMatch && expectedPosition && !matchesPosition(player, expectedPosition)) {
       continue;
     }
-    const score = playerSlotScore(player, expectedPosition);
+    let score = playerSlotScore(player, expectedPosition);
+    if (targetKind === "coach" && player.role === "Coach") score *= 50;
+    if (targetKind === "manager" && player.role === "Manager") score *= 50;
+    if (targetBuildType && player.buildType === targetBuildType) score *= 1.08;
+    // The user deliberately equipped this attachment: completing it has more
+    // tactical value than a small raw-stat edge.
+    if (requiredSynergyMembers.has(player.id)) score += 1_000_000;
     if (score > bestScore) {
       bestScore = score;
       best = player;
@@ -105,11 +140,14 @@ function pickBestPlayer(
 function assignPlayer(
   slots: Record<string, SlotAssignment>,
   used: Set<number>,
+  usedIdentities: Set<string>,
+  enforceUniqueIdentity: boolean,
   slotId: string,
   player: Player,
 ): void {
   const current = slots[slotId] ?? emptyAssignment();
   used.add(player.id);
+  if (enforceUniqueIdentity) usedIdentities.add(characterIdentity(player));
   slots[slotId] = filledAssignment(player.id, {
     buildType: player.buildType,
     // Keep any gear/passives already typed on an empty portrait (rare).
@@ -127,6 +165,61 @@ export interface FillBestOptions {
   includeStaff?: boolean;
 }
 
+export type OptimizationReason =
+  | "equippedSynergy"
+  | "teamBuild"
+  | "naturalPosition"
+  | "alternatePosition"
+  | "fallbackPosition"
+  | "rolePower"
+  | "totalStats"
+  | "staffRole";
+
+interface OptimizationDecision {
+  slotId: string;
+  slotKind: SlotKind;
+  expectedPosition: Position | null;
+  playerId: number;
+  reasons: OptimizationReason[];
+}
+
+export interface OptimizationReport {
+  decisions: OptimizationDecision[];
+  rarity: typeof DEFAULT_FILLED_RARITY;
+  preservesExisting: true;
+  uniqueCharacters: true;
+}
+
+export interface OptimizationResult {
+  team: Team;
+  report: OptimizationReport;
+}
+
+function optimizationReasons(
+  player: Player,
+  target: { kind: SlotKind; position: Position | null },
+  targetBuildType: BuildType | null,
+  requiredSynergyMembers: ReadonlySet<number>,
+): OptimizationReason[] {
+  const reasons: OptimizationReason[] = [];
+
+  if (requiredSynergyMembers.has(player.id)) reasons.push("equippedSynergy");
+  if (targetBuildType && player.buildType === targetBuildType) reasons.push("teamBuild");
+
+  if (target.position) {
+    if (player.position === target.position) reasons.push("naturalPosition");
+    else if (player.altPosition === target.position) reasons.push("alternatePosition");
+    else reasons.push("fallbackPosition");
+    reasons.push("rolePower");
+  } else if (target.kind === "bench") {
+    reasons.push("totalStats");
+  } else {
+    reasons.push("staffRole", "totalStats");
+  }
+
+  return reasons;
+}
+
 /**
  * Fill every empty squad slot with the best remaining character for that post.
  * Leaves filled slots, equipment and passives untouched.
@@ -134,32 +227,42 @@ export interface FillBestOptions {
  * Two passes: first only natural-position matches (so a thin pool does not put
  * the best FW on a DF slot before FW is filled), then anyone left over.
  */
-export function fillBestEmptySlots(
+export function optimizeEmptySlots(
   team: Team,
   dataset: Dataset,
   options: FillBestOptions = {},
-): Team {
+): OptimizationResult {
   const includePlayers = options.includePlayers ?? true;
   const includeStaff = options.includeStaff ?? true;
   const formation = findFormation(team.formationId);
   const used = usedPlayerIds(team);
+  const usedIdentities = usedCharacterIdentities(team, dataset);
   const slots: Record<string, SlotAssignment> = { ...team.slots };
   const pool = dataset.players;
+  const equippedSynergyIds = new Set(
+    [team.offensiveSynergyId, team.defensiveSynergyId].filter((id): id is string => id != null),
+  );
+  const requiredSynergyMembers = new Set(
+    dataset.synergies
+      .filter((synergy) => equippedSynergyIds.has(synergy.id))
+      .flatMap((synergy) => synergy.members),
+  );
+  const decisions: OptimizationDecision[] = [];
 
-  const targets: Array<{ id: string; position: Position | null }> = [];
+  const targets: Array<{ id: string; kind: SlotKind; position: Position | null }> = [];
 
   if (includePlayers) {
     for (const slot of formation.slots) {
-      targets.push({ id: slot.id, position: slot.position });
+      targets.push({ id: slot.id, kind: "pitch", position: slot.position });
     }
     for (const id of BENCH_SLOT_IDS) {
-      targets.push({ id, position: null });
+      targets.push({ id, kind: "bench", position: null });
     }
   }
   if (includeStaff) {
-    targets.push({ id: COACH_SLOT_ID, position: null });
+    targets.push({ id: COACH_SLOT_ID, kind: "coach", position: null });
     for (const id of MANAGER_SLOT_IDS) {
-      targets.push({ id, position: null });
+      targets.push({ id, kind: "manager", position: null });
     }
   }
 
@@ -170,16 +273,56 @@ export function fillBestEmptySlots(
       // Bench/staff have no expected position — only fill them on the free pass.
       if (requireMatch && !target.position) continue;
 
-      const player = pickBestPlayer(pool, used, target.position, requireMatch);
+      const player = pickBestPlayer(
+        pool,
+        used,
+        usedIdentities,
+        target.kind === "pitch" || target.kind === "bench",
+        target.kind,
+        target.position,
+        requireMatch,
+        team.teamBuildType,
+        requiredSynergyMembers,
+      );
       if (!player) continue;
-      assignPlayer(slots, used, target.id, player);
+      assignPlayer(
+        slots,
+        used,
+        usedIdentities,
+        target.kind === "pitch" || target.kind === "bench",
+        target.id,
+        player,
+      );
+      decisions.push({
+        slotId: target.id,
+        slotKind: target.kind,
+        expectedPosition: target.position,
+        playerId: player.id,
+        reasons: optimizationReasons(player, target, team.teamBuildType, requiredSynergyMembers),
+      });
     }
   }
 
-  return { ...team, slots };
+  return {
+    team: { ...team, slots },
+    report: {
+      decisions,
+      rarity: DEFAULT_FILLED_RARITY,
+      preservesExisting: true,
+      uniqueCharacters: true,
+    },
+  };
 }
 
-/** How many empty player slots this team still has (pitch/bench/staff). */
+export function fillBestEmptySlots(
+  team: Team,
+  dataset: Dataset,
+  options: FillBestOptions = {},
+): Team {
+  return optimizeEmptySlots(team, dataset, options).team;
+}
+
+/** How many empty character slots this team still has (pitch + bench + staff). */
 export function countEmptySlots(team: Team): number {
   const formation = findFormation(team.formationId);
   const ids = [

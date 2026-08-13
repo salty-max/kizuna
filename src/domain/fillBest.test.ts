@@ -9,6 +9,7 @@ import {
   fillBestEmptySlots,
   fillBestEquipment,
   fillBestPassives,
+  optimizeEmptySlots,
   passiveFillScore,
   playerSlotScore,
   positionPowerScore,
@@ -181,6 +182,133 @@ describe("fillBestEmptySlots", () => {
     const team = createTeam("4-4-2-diamond");
     const next = fillBestEmptySlots(team, dataset, { includeStaff: false });
     expect(next.slots.fw1?.rarity).toBe("legendary");
+  });
+
+  test("avoids duplicate characters across database variants", () => {
+    const original = player(10, "FW", { kick: 100 }, { nameOriginal: "Same Hero" });
+    const variant = player(11, "FW", { kick: 999 }, { nameOriginal: "Same Hero" });
+    const alternative = player(12, "FW", { kick: 90 }, { nameOriginal: "Other Hero" });
+    const team = createTeam();
+    team.slots.fw1!.playerId = original.id;
+
+    const filled = fillBestEmptySlots(team, tinyDataset([original, variant, alternative]), {
+      includeStaff: false,
+    });
+
+    expect(Object.values(filled.slots).some((slot) => slot.playerId === variant.id)).toBe(false);
+    expect(Object.values(filled.slots).some((slot) => slot.playerId === alternative.id)).toBe(true);
+  });
+
+  test("prioritises members of an equipped synergy", () => {
+    const required = player(20, "GK", { pressure: 20, physical: 20 });
+    const stronger = player(21, "GK", { pressure: 100, physical: 100 });
+    const data = tinyDataset([required, stronger]);
+    data.synergies = [
+      {
+        id: "sf-test",
+        kind: "offensive",
+        name: "Test",
+        names: { en: "Test" },
+        description: "",
+        descriptions: {},
+        members: [required.id],
+        memberNames: [required.name],
+      },
+    ];
+    const team = createTeam();
+    team.offensiveSynergyId = "sf-test";
+
+    const filled = fillBestEmptySlots(team, data, { includeStaff: false });
+    expect(filled.slots.gk!.playerId).toBe(required.id);
+  });
+
+  test("reports the constraints behind each selection", () => {
+    const required = player(40, "GK", { pressure: 20 }, { buildType: "justice" });
+    const data = tinyDataset([required]);
+    data.synergies = [
+      {
+        id: "sf-report",
+        kind: "offensive",
+        name: "Report",
+        names: { en: "Report" },
+        description: "",
+        descriptions: {},
+        members: [required.id],
+        memberNames: [required.name],
+      },
+    ];
+    const team = createTeam();
+    team.teamBuildType = "justice";
+    team.offensiveSynergyId = "sf-report";
+
+    const { report } = optimizeEmptySlots(team, data, { includeStaff: false });
+    const decision = report.decisions.find((item) => item.slotId === "gk");
+
+    expect(decision?.playerId).toBe(required.id);
+    expect(decision?.reasons).toEqual([
+      "equippedSynergy",
+      "teamBuild",
+      "naturalPosition",
+      "rolePower",
+    ]);
+    expect(report.rarity).toBe("legendary");
+    expect(report.preservesExisting).toBe(true);
+    expect(report.uniqueCharacters).toBe(true);
+  });
+
+  test("reports when a player is used outside their natural positions", () => {
+    const team = createTeam();
+    let occupiedId = 1000;
+    for (const [slotId, assignment] of Object.entries(team.slots)) {
+      if (slotId !== "gk") assignment.playerId = occupiedId++;
+    }
+    const emergencyKeeper = player(50, "FW", { pressure: 90, agility: 90 });
+
+    const { report } = optimizeEmptySlots(team, tinyDataset([emergencyKeeper]), {
+      includeStaff: false,
+    });
+
+    expect(report.decisions).toHaveLength(1);
+    expect(report.decisions[0]?.slotId).toBe("gk");
+    expect(report.decisions[0]?.reasons).toContain("fallbackPosition");
+  });
+
+  test("keeps tagged coaches/managers off the pitch when role is known", () => {
+    const fieldPlayer = player(30, "FW", { kick: 70 });
+    const coach = player(31, "MF", { technique: 999 }, { role: "Coach" });
+    const manager = player(32, "MF", { technique: 999 }, { role: "Manager" });
+    const team = createTeam();
+
+    const filled = fillBestEmptySlots(team, tinyDataset([fieldPlayer, coach, manager]));
+
+    const formationPlayerIds = Object.entries(filled.slots)
+      .filter(([slotId]) => slotId.startsWith("gk") || /^(df|mf|fw|bench)/.test(slotId))
+      .map(([, slot]) => slot.playerId);
+    expect(formationPlayerIds).toContain(fieldPlayer.id);
+    expect(formationPlayerIds).not.toContain(coach.id);
+    expect(formationPlayerIds).not.toContain(manager.id);
+    expect(filled.slots.coach!.playerId).toBe(coach.id);
+    expect([filled.slots.manager1!.playerId, filled.slots.manager2!.playerId]).toContain(
+      manager.id,
+    );
+  });
+
+  test("fills staff even when the dump tags everyone as Player", () => {
+    // Matches production data: build-data sets role Player for all catalogue rows.
+    const pool = Array.from({ length: 25 }, (_, i) =>
+      player(100 + i, i % 2 === 0 ? "FW" : "MF", { kick: 40 + i, technique: 30 + i }),
+    );
+    const filled = fillBestEmptySlots(createTeam(), tinyDataset(pool));
+    expect(filled.slots.coach?.playerId).not.toBeNull();
+    expect(filled.slots.manager1?.playerId).not.toBeNull();
+    expect(filled.slots.manager2?.playerId).not.toBeNull();
+    expect(filled.slots.manager3?.playerId).not.toBeNull();
+    expect(countEmptySlots(filled)).toBe(0);
+  });
+
+  test("counts pitch, bench and staff as optimisable", () => {
+    // 11 pitch + 5 bench + 1 coach + 3 managers
+    expect(countEmptySlots(createTeam())).toBe(20);
   });
 
   test("playerSlotScore prefers natural position", () => {
