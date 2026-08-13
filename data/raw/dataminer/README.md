@@ -28,7 +28,8 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "game_version": "6.00.23.00",
   "legend": { "element": { "1": "wind", "2": "forest", "3": "fire", "4": "mountain" } },
   "characters": [{
-    "id", "name", "name_original", "surname", "given_name", "description", "series", "gender",
+    "id", "name", "name_original", "nickname", "surname", "given_name",
+    "description", "series", "gender",
     "element", "main_position", "alt_position", "style",
     "stats_lv50": { "kick", "control", "technique", "pressure", "physical", "agility", "intelligence" },
     "stats_lv99": { … },
@@ -78,14 +79,20 @@ is rolled.
   and it applies to **players only** — the game offers no equivalent for techniques, so do not
   build one. In `en`/`fr` that is `Mark Evans` ↔ `Endo Mamoru`; in `ja` and Chinese the two are
   identical, because the native name already is the original.
+- **`nickname` is the short name the game prints on the pitch**, and it is not always the family
+  name. `chara_base` column 4 points at a name entry of its own: Mark Evans gets `Evans`, but
+  Byron Love gets **`Aphrody`** and Ray Mannings `Jiangshi` — `Macchabée` in French, so it is
+  properly localised, not a romanisation. 5417 of 5418 characters have one. Column 5 holds the
+  same string uppercased for the shirt, which is why it is not exported.
 - **`surname` and `given_name` are the game's own split**, localised like the full name.
   `chara_text` keys every name by `(id, sub-index)`: 0 is the full name, 11 the family name,
   12 the given name. Only 515 characters and 151 heroes/basaras carry the split — the main cast —
   so the field is absent on the rest rather than guessed by splitting on a space, which would be
   wrong for `G'ob` and every mononym. This is the field the Inazugle scrape called `Nickname`.
 - **Furigana.** Japanese text marks readings as `[漢字/かな]`. The markup is preserved in `name`,
-  and a `name_plain` (likewise `description_plain`, `series_plain`, `surname_plain`,
-  `given_name_plain`) is added **only when markup is present** — 4128 of 5418 characters. Consumers need a `name_plain ?? name` fallback.
+  and a `name_plain` (likewise `description_plain`, `series_plain`, `nickname_plain`,
+  `surname_plain`, `given_name_plain`) is added **only when markup is present** — 4128 of 5418
+  characters. Consumers need a `name_plain ?? name` fallback.
   To render ruby instead: `s.replace(/\[([^\/\]]+)\/([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>')`.
   Apply it to every language, not just `ja`: entry `-661571557` is an untranslated row that
   leaked into all nine locales, furigana included.
