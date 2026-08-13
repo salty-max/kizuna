@@ -13,6 +13,7 @@ import { computeSynergy } from "@/domain/synergy";
 import {
   createTeam,
   emptyAssignment,
+  filledAssignment,
   normalizeTeam,
   resolveTeam,
   type SlotAssignment,
@@ -177,6 +178,7 @@ export function BuilderPage() {
               <SlotEditor
                 slot={selectedSlot}
                 assignment={team.slots[selectedSlot.slotId] ?? emptyAssignment()}
+                team={team}
                 dataset={dataset}
                 synergy={synergy}
                 onChange={(next) => updateAssignment(selectedSlot.slotId, next)}
@@ -200,10 +202,21 @@ export function BuilderPage() {
           dataset={dataset}
           suggestedPosition={selectedSlot.expectedPosition}
           onPick={(player) => {
-            updateAssignment(selectedSlot.slotId, {
-              ...(team.slots[selectedSlot.slotId] ?? emptyAssignment()),
-              playerId: player.id,
-            });
+            const previous = team.slots[selectedSlot.slotId] ?? emptyAssignment();
+            // Fresh pick → Legendary competitive floor; keep gear/passives if
+            // the user is swapping portraits on an already-built slot.
+            updateAssignment(
+              selectedSlot.slotId,
+              filledAssignment(player.id, {
+                equipment: previous.equipment,
+                passives: previous.passives,
+                altBranch: previous.altBranch,
+                buildType: previous.buildType ?? player.buildType,
+                // Keep rarity only when re-picking on a slot that already had
+                // someone; brand-new slots get Legendary via filledAssignment.
+                rarity: previous.playerId != null ? previous.rarity : undefined,
+              }),
+            );
             setPickerOpen(false);
           }}
           onClose={() => setPickerOpen(false)}

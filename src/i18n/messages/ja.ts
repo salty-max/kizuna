@@ -36,6 +36,10 @@ export const ja = {
     tabSlot: "スロット",
     noSavedTeams: "保存済みのチームはありません。",
     deleteTeam: "{name} を削除",
+    rarityBudget: "レアリティ制限",
+    rarityBudgetHint: "Hero：スタメン最大2。Basara：編成全体で最大1（ベンチ含む）。",
+    heroBudget: "Hero {n}/{max}",
+    basaraBudget: "Basara {n}/{max}",
     footer:
       "ファンプロジェクトであり、レベルファイブとは無関係です。データはゲーム（dataminer）、肖像はイナズグル由来。",
     footerDataOf: "データ日 {date}。",
@@ -140,7 +144,9 @@ export const ja = {
       value: "値",
       members: "メンバー",
       gender: "性別",
+      spiritDrop: "スピリットドロップ",
     },
+    spiritDropYes: "あり",
   },
   team: {
     defaultName: "新しいチーム",
@@ -178,6 +184,9 @@ export const ja = {
     clear: "スロットを空に",
     assign: "キャラクターを配置",
     rarity: "レアリティ",
+    rarityCapsHint: "Hero：スタメン最大2。Basara：編成全体で最大1。配置時の既定は Legendary。",
+    rarityCapHero: "上限 スタメン{max}",
+    rarityCapBasara: "上限 編成{max}",
     archetype: "アーキタイプ",
     archetypeFromGame: "ゲーム：{name}",
     archetypeUnknown: "ゲーム：不明",
@@ -231,7 +240,8 @@ export const ja = {
       Unknown: "—",
     },
     passives: "パッシブ",
-    passivesHint: "プリセット5＋カスタム1。値はゲーム内レベル依存。",
+    passivesHint:
+      "プリセット5（スタイル/成長の抽選枠・キャラ固定ではない）＋カスタム1（Lv50、ヒーロー周回）。",
     passivesEffectsGap:
       "効果はまだダンプから構造化されていません（テキストのみ）— 表示はしますがパワー計算には入りません。",
     preset: "プリセット {n}",
@@ -278,7 +288,7 @@ export const ja = {
   genders: {
     Male: "男性",
     Female: "女性",
-    Neutral: "中性",
+    Neutral: "その他",
     Unknown: "不明",
   },
   rarities: {

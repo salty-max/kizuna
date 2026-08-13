@@ -2,7 +2,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Search } from "lucide-react";
 
-import { FilterChip, Panel, PanelHint, PanelMeta } from "@/components/ui";
+import { FilterChip, Panel, PanelMeta } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import { imageUrl } from "@/data/load";
 import { EQUIPMENT_SLOTS, type Equipment, type EquipmentSlot } from "@/domain/types";
@@ -64,8 +64,6 @@ export function WikiEquipmentPage() {
         bodyClassName="flex min-h-0 flex-1 flex-col gap-3"
         className="flex min-h-0 flex-1 flex-col"
       >
-        <PanelHint>{t("wiki.equipmentHint")}</PanelHint>
-
         <div className="field relative flex items-center gap-2">
           <Search className="size-3.5 shrink-0 text-ink-500" aria-hidden />
           <input

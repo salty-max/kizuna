@@ -45,7 +45,6 @@ export function Pitch({ resolved, synergy, imageBase, selectedSlotId, onSelectSl
 
       <SlotRow
         title={t("pitch.staff")}
-        hint={t("pitch.staffHint")}
         slots={resolved.slots.filter((s) => s.kind === "coach" || s.kind === "manager")}
         imageBase={imageBase}
         selectedSlotId={selectedSlotId}

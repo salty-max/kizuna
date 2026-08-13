@@ -2,7 +2,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Search } from "lucide-react";
 
-import { FilterChip, Panel, PanelHint, PanelMeta } from "@/components/ui";
+import { FilterChip, Panel, PanelMeta } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import { PASSIVE_SOURCES, type Passive, type PassiveSource } from "@/domain/types";
 import { localizedSearchBlob, passiveDisplayDescription, useI18n } from "@/i18n";
@@ -64,8 +64,6 @@ export function WikiPassivesPage() {
         bodyClassName="flex min-h-0 flex-1 flex-col gap-3"
         className="flex min-h-0 flex-1 flex-col"
       >
-        <PanelHint>{t("wiki.passivesHint")}</PanelHint>
-
         <div className="field relative flex items-center gap-2">
           <Search className="size-3.5 shrink-0 text-ink-500" aria-hidden />
           <input

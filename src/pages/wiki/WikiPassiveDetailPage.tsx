@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router";
 
-import { Callout, DataList, DataRow, Panel, PanelHint } from "@/components/ui";
+import { Callout, DataList, DataRow, Panel } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import type { Passive } from "@/domain/types";
 import { passiveDisplayDescription, useI18n } from "@/i18n";
@@ -54,9 +54,6 @@ export function WikiPassiveDetailPage() {
         <p className="text-sm whitespace-pre-line text-ink-100">
           {passiveDisplayDescription(passive, locale)}
         </p>
-
-        <PanelHint>{t("wiki.passivesEffectsGap")}</PanelHint>
-
         <DataList>
           <DataRow
             label={t("wiki.field.id")}

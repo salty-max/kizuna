@@ -30,7 +30,7 @@ import {
   seriesShortLabel,
 } from "@/i18n/labels";
 import { ELEMENT_STYLES, cn, formatNumber } from "@/lib/ui";
-import { ElementBadge, PositionBadge, StyleBadge } from "./GameIcon";
+import { ElementBadge, GenderBadge, PositionBadge, StyleBadge } from "./GameIcon";
 import { FilterChip, IconButton, Select, TextInput } from "./ui";
 import { PlayerAvatar } from "./PlayerAvatar";
 
@@ -202,7 +202,16 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
               value={gender ?? ""}
               options={[
                 { value: "", label: t("picker.allGenders") },
-                ...GENDERS.map((g) => ({ value: g, label: genderLabel(t, g) })),
+                ...GENDERS.filter((g) => g !== "Unknown").map((g) => ({
+                  value: g,
+                  label: genderLabel(t, g),
+                  render: (
+                    <span className="flex items-center gap-1.5">
+                      <GenderBadge gender={g} size={14} />
+                      <span>{genderLabel(t, g)}</span>
+                    </span>
+                  ),
+                })),
               ]}
               onChange={(next) => setGender((next as Gender) || null)}
               aria-label={t("picker.allGenders")}

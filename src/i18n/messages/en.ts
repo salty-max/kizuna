@@ -35,6 +35,10 @@ export const en = {
     tabSlot: "Slot",
     noSavedTeams: "No saved teams.",
     deleteTeam: "Delete {name}",
+    rarityBudget: "Rarity limits",
+    rarityBudgetHint: "Hero: max 2 starters. Basara: max 1 in the whole squad (bench included).",
+    heroBudget: "Hero {n}/{max}",
+    basaraBudget: "Basara {n}/{max}",
     footer:
       "Fan project, unaffiliated with Level-5. Game data from the dataminer; portraits via Inazugle.",
     footerDataOf: "Data of {date}.",
@@ -139,7 +143,9 @@ export const en = {
       value: "Value",
       members: "Members",
       gender: "Gender",
+      spiritDrop: "Spirit drop",
     },
+    spiritDropYes: "Yes",
   },
   team: {
     defaultName: "New team",
@@ -177,6 +183,9 @@ export const en = {
     clear: "Clear slot",
     assign: "Assign a character",
     rarity: "Rarity",
+    rarityCapsHint: "Hero: max 2 starters. Basara: max 1 in the squad. Default on pick: Legendary.",
+    rarityCapHero: "cap {max} starters",
+    rarityCapBasara: "cap {max} in squad",
     archetype: "Archetype",
     archetypeFromGame: "Game: {name}",
     archetypeUnknown: "Game: unknown",
@@ -230,7 +239,8 @@ export const en = {
       Unknown: "—",
     },
     passives: "Passives",
-    passivesHint: "Five presets + one custom. Value depends on in-game level.",
+    passivesHint:
+      "5 lottery presets (style/growth pools, not fixed per character) + 1 farmed custom (lv 50).",
     passivesEffectsGap:
       "Effects are not parsed from the dump yet (text only) — they display but do not feed the power calculation.",
     preset: "Preset {n}",
@@ -278,7 +288,7 @@ export const en = {
   genders: {
     Male: "Male",
     Female: "Female",
-    Neutral: "Neutral",
+    Neutral: "Other",
     Unknown: "Unknown",
   },
   rarities: {

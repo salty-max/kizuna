@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 
-import { AbilityIcon, ElementBadge, PositionBadge, StyleBadge } from "@/components/GameIcon";
+import {
+  AbilityIcon,
+  ElementBadge,
+  GenderBadge,
+  PositionBadge,
+  StyleBadge,
+} from "@/components/GameIcon";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatRadar } from "@/components/StatRadar";
-import { Callout, DataList, DataRow, Panel, PanelHint, Tab } from "@/components/ui";
+import { Callout, DataList, DataRow, Panel, Tab } from "@/components/ui";
 import { loadPlayerDetails } from "@/data/load";
 import { useDataset } from "@/data/useDataset";
 import { POWER_KEYS, STAT_KEYS, computePower, type BaseStats } from "@/domain/stats";
@@ -20,7 +26,6 @@ import {
   abilityTypeLabel,
   buildTypeLabel,
   elementLabel,
-  genderLabel,
   powerLabel,
   rarityDisplayLabel,
   statLabel,
@@ -151,13 +156,6 @@ export function WikiPlayerDetailPage() {
 
         <div className="grid gap-3 lg:grid-cols-2">
           <Panel title={t("editor.baseStats")} bodyClassName="flex flex-col gap-3">
-            <PanelHint>
-              {activeForm === "common"
-                ? t("editor.baseStatsCommon")
-                : activeForm === "hero"
-                  ? t("editor.baseStatsHero")
-                  : t("editor.baseStatsBasara")}
-            </PanelHint>
             <div className="flex justify-center">
               <StatRadar stats={stats} size={200} />
             </div>
@@ -180,7 +178,6 @@ export function WikiPlayerDetailPage() {
           </Panel>
 
           <Panel title={t("editor.power")} bodyClassName="flex flex-col gap-3">
-            <PanelHint>{t("editor.powerHint")}</PanelHint>
             <DataList>
               {POWER_KEYS.map((key) => (
                 <DataRow
@@ -197,7 +194,13 @@ export function WikiPlayerDetailPage() {
                 value={<code className="text-xs">{player.id}</code>}
               />
               <DataRow label={t("wiki.field.element")} value={elementLabel(t, player.element)} />
-              <DataRow label={t("wiki.field.gender")} value={genderLabel(t, player.gender)} />
+              <DataRow
+                label={t("wiki.field.gender")}
+                value={<GenderBadge gender={player.gender} variant="full" size={16} />}
+              />
+              {player.spiritDrop && (
+                <DataRow label={t("wiki.field.spiritDrop")} value={t("wiki.spiritDropYes")} />
+              )}
               {player.buildType && (
                 <DataRow
                   label={t("editor.archetype")}
@@ -209,11 +212,6 @@ export function WikiPlayerDetailPage() {
         </div>
 
         <Panel title={t("editor.skills")} bodyClassName="flex flex-col gap-2">
-          <PanelHint>
-            {activeForm === "common" && player.skillsAlt.length > 0
-              ? t("wiki.skillsBranchHint")
-              : t("editor.skillsHint")}
-          </PanelHint>
           <SkillList skills={skills.main} abilitiesById={abilitiesById} locale={locale} />
           {skills.alt.length > 0 && (
             <>

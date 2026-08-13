@@ -3,7 +3,7 @@ import { Download, FolderOpen, Save, Share2 } from "lucide-react";
 
 import { Button, CountBadge, Select, TextInput } from "@/components/ui";
 import { FORMATIONS } from "@/domain/formations";
-import { applyFormation, type Team } from "@/domain/team";
+import { applyFormation, rarityBudget, type Team } from "@/domain/team";
 import { useI18n } from "@/i18n";
 import { formationLabel } from "@/i18n/labels";
 import type { SavedTeam } from "@/lib/storage";
@@ -40,6 +40,7 @@ export function TeamToolbar({
   className,
 }: Props) {
   const { t } = useI18n();
+  const budget = rarityBudget(team);
 
   return (
     <div className={cn("panel flex shrink-0 flex-wrap items-center gap-2 p-2.5", className)}>
@@ -61,6 +62,33 @@ export function TeamToolbar({
         aria-label={t("app.formation")}
         className="w-48 sm:w-52"
       />
+
+      <div
+        className="flex flex-wrap items-center gap-1.5"
+        aria-label={t("app.rarityBudget")}
+        title={t("app.rarityBudgetHint")}
+      >
+        <span
+          className={cn(
+            "border-2 px-1.5 py-0.5 font-display text-[11px] font-bold tracking-wide uppercase italic tnum",
+            budget.heroOver
+              ? "border-[var(--color-bad)] text-[var(--color-bad)]"
+              : "border-ink-700 text-ink-300",
+          )}
+        >
+          {t("app.heroBudget", { n: budget.heroes, max: budget.maxHeroes })}
+        </span>
+        <span
+          className={cn(
+            "border-2 px-1.5 py-0.5 font-display text-[11px] font-bold tracking-wide uppercase italic tnum",
+            budget.basaraOver
+              ? "border-[var(--color-bad)] text-[var(--color-bad)]"
+              : "border-ink-700 text-ink-300",
+          )}
+        >
+          {t("app.basaraBudget", { n: budget.basaras, max: budget.maxBasaras })}
+        </span>
+      </div>
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <div className="relative">

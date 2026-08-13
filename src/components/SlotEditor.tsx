@@ -6,13 +6,18 @@ import { POWER_KEYS, STAT_KEYS, type PowerKey } from "@/domain/stats";
 import type { Modifier, SynergyResult } from "@/domain/synergy";
 import {
   MAX_SLOT_PASSIVES,
+  isRarityAllowed,
   passiveSourceFor,
+  passiveValueForRarity,
   type ResolvedSlot,
   type SlotAssignment,
+  type Team,
 } from "@/domain/team";
 import {
   BUILD_TYPES,
   EQUIPMENT_SLOTS,
+  MAX_BASARA_IN_SQUAD,
+  MAX_HERO_STARTERS,
   RARITIES,
   RARITY_SCALES,
   type BuildType,
@@ -53,7 +58,6 @@ import {
   LinkButton,
   NumberInput,
   Panel,
-  PanelHint,
   Select,
   Tab,
 } from "./ui";
@@ -62,13 +66,22 @@ import { StatRadar } from "./StatRadar";
 interface Props {
   slot: ResolvedSlot;
   assignment: SlotAssignment;
+  team: Team;
   dataset: Dataset;
   synergy: SynergyResult;
   onChange: (next: SlotAssignment) => void;
   onOpenPicker: () => void;
 }
 
-export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpenPicker }: Props) {
+export function SlotEditor({
+  slot,
+  assignment,
+  team,
+  dataset,
+  synergy,
+  onChange,
+  onOpenPicker,
+}: Props) {
   const { t, locale, showOriginalNames } = useI18n();
   const staffOnly = slot.kind === "coach" || slot.kind === "manager";
   const displayName = playerDisplayName(slot.player, showOriginalNames, locale);
@@ -80,7 +93,27 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
       if (group) group.push(passive);
       else groups.set(passive.source, [passive]);
     }
-    for (const group of groups.values()) group.sort((a, b) => a.number - b.number);
+    // Collapse tier spam: one row per family (top tier); value re-scales on pick.
+    for (const [source, group] of groups) {
+      const byFamily = new Map<number, Passive>();
+      const ungrouped: Passive[] = [];
+      for (const passive of group) {
+        if (passive.family == null) {
+          ungrouped.push(passive);
+          continue;
+        }
+        const prev = byFamily.get(passive.family);
+        if (!prev || (passive.tier ?? 0) > (prev.tier ?? 0)) {
+          byFamily.set(passive.family, passive);
+        }
+      }
+      groups.set(
+        source,
+        [...byFamily.values(), ...ungrouped].sort(
+          (a, b) => a.number - b.number || a.id.localeCompare(b.id),
+        ),
+      );
+    }
     return groups;
   }, [dataset.passives]);
 
@@ -162,36 +195,74 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
 
               {!staffOnly && (
                 <div className="mt-2 flex flex-col gap-1">
-                  <label className="flex items-center gap-2">
+                  <label className="flex min-w-0 items-center gap-2">
                     <span className="w-14 shrink-0 text-xs text-ink-500">{t("editor.rarity")}</span>
                     <Select
                       value={assignment.rarity}
-                      options={RARITIES.map((rarity) => ({
-                        value: rarity,
-                        label: `${rarityDisplayLabel(t, rarity, slot.buildType)} ×${
+                      options={RARITIES.map((rarity) => {
+                        const allowed = isRarityAllowed(team, slot.slotId, rarity);
+                        const capHint =
+                          rarity === "hero" && !allowed
+                            ? t("editor.rarityCapHero", { max: MAX_HERO_STARTERS })
+                            : rarity === "basara" && !allowed
+                              ? t("editor.rarityCapBasara", { max: MAX_BASARA_IN_SQUAD })
+                              : "";
+                        const label = `${rarityDisplayLabel(t, rarity, slot.buildType)} ×${
                           RARITY_SCALES[rarity].multiplier
                         }${
                           RARITY_SCALES[rarity].flatBonus > 0
                             ? t("editor.flatPerStat", { n: RARITY_SCALES[rarity].flatBonus })
                             : ""
-                        }`,
-                        render: (
-                          <span className="flex items-center gap-1.5">
+                        }`;
+                        return {
+                          value: rarity,
+                          label: capHint ? `${label} — ${capHint}` : label,
+                          disabled: !allowed,
+                          render: (
                             <span
-                              aria-hidden="true"
                               className={cn(
-                                "inline-block h-2.5 w-4 shrink-0",
-                                rarityStyle(rarity, slot.buildType).badge,
+                                "flex min-w-0 items-center gap-1.5",
+                                !allowed && "opacity-40",
                               )}
-                            />
-                            {rarityDisplayLabel(t, rarity, slot.buildType)} ×
-                            {RARITY_SCALES[rarity].multiplier}
-                          </span>
-                        ),
-                      }))}
-                      onChange={(next) => onChange({ ...assignment, rarity: next as Rarity })}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "inline-block h-2.5 w-4 shrink-0",
+                                  rarityStyle(rarity, slot.buildType).badge,
+                                )}
+                              />
+                              <span className="min-w-0 truncate">
+                                {rarityDisplayLabel(t, rarity, slot.buildType)} ×
+                                {RARITY_SCALES[rarity].multiplier}
+                                {capHint ? (
+                                  <span className="text-ink-500"> · {capHint}</span>
+                                ) : null}
+                              </span>
+                            </span>
+                          ),
+                        };
+                      })}
+                      onChange={(next) => {
+                        const rarity = next as Rarity;
+                        if (!isRarityAllowed(team, slot.slotId, rarity)) return;
+                        // Re-scale preset/custom magnitudes to the new rarity tier.
+                        const passives = assignment.passives.map((row) => {
+                          if (!row.passiveId) return row;
+                          const passive = dataset.passives.find((p) => p.id === row.passiveId);
+                          if (!passive) return row;
+                          return {
+                            ...row,
+                            value: passiveValueForRarity(passive, rarity, dataset.passives),
+                          };
+                        });
+                        onChange({ ...assignment, rarity, passives });
+                      }}
                       aria-label={t("editor.rarity")}
-                      className={cn("flex-1", rarityStyle(assignment.rarity, slot.buildType).badge)}
+                      className={cn(
+                        "min-w-0 flex-1",
+                        rarityStyle(assignment.rarity, slot.buildType).badge,
+                      )}
                     />
                   </label>
 
@@ -229,17 +300,8 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                     />
                   </label>
 
-                  <p className="text-[11px] text-ink-500">{t("editor.archetypeHint")}</p>
-
                   {assignment.rarity === "hero" && !slot.buildType && (
                     <Callout tone="warn">{t("editor.heroNeedsArchetype")}</Callout>
-                  )}
-
-                  {assignment.rarity === "hero" && slot.player.heroStats && (
-                    <p className="text-[11px] text-ink-500">{t("editor.realHeroTable")}</p>
-                  )}
-                  {assignment.rarity === "basara" && slot.player.basaraStats && (
-                    <p className="text-[11px] text-ink-500">{t("editor.realBasaraTable")}</p>
                   )}
                   {assignment.rarity === "hero" &&
                     !slot.player.heroStats &&
@@ -321,23 +383,6 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
       {/* ── Stats ────────────────────────────────────────────────────────── */}
       {slot.player && !staffOnly && (
         <Panel as="h3" title={t("editor.baseStats")}>
-          <PanelHint>
-            {slot.rarity === "common"
-              ? t("editor.baseStatsCommon")
-              : slot.rarity === "hero" && slot.player.heroStats
-                ? t("editor.baseStatsHero")
-                : slot.rarity === "basara" && slot.player.basaraStats
-                  ? t("editor.baseStatsBasara")
-                  : t("editor.baseStatsScaled", {
-                      mult: RARITY_SCALES[slot.rarity].multiplier,
-                      flat:
-                        RARITY_SCALES[slot.rarity].flatBonus > 0
-                          ? t("editor.flatBonus", { n: RARITY_SCALES[slot.rarity].flatBonus })
-                          : "",
-                      rarity: rarityDisplayLabel(t, slot.rarity, slot.buildType),
-                    })}
-          </PanelHint>
-
           <div className="mb-3 flex justify-center border-b border-ink-800 pb-3">
             <StatRadar
               stats={slot.stats}
@@ -351,14 +396,6 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
               size={200}
             />
           </div>
-          {STAT_KEYS.some((key) => slot.stats[key] !== slot.scaledStats[key]) && (
-            <p className="mb-2 text-center text-[10px] text-ink-500">
-              <span className="mr-2 inline-block size-2 rounded-full bg-bolt-400 align-middle" />
-              {t("editor.radarFinal")}
-              <span className="mx-2 inline-block w-3 border-t border-dashed border-ink-500 align-middle" />
-              {t("editor.radarBase")}
-            </p>
-          )}
 
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             {STAT_KEYS.map((key) => {
@@ -396,8 +433,6 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
       {/* ── Power ────────────────────────────────────────────────────────── */}
       {slot.player && !staffOnly && modifiers && effective && potential && (
         <Panel as="h3" title={t("editor.power")}>
-          <PanelHint>{t("editor.powerHint")}</PanelHint>
-
           <table className="w-full text-sm">
             <tbody>
               {POWER_KEYS.map((key) => {
@@ -501,8 +536,6 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
       {/* ── Skills ───────────────────────────────────────────────────────── */}
       {slot.player && !staffOnly && slot.skills.length > 0 && (
         <Panel as="h3" title={t("editor.skills")}>
-          <PanelHint>{t("editor.skillsHint")}</PanelHint>
-
           {hasAltBranch && (
             <div role="tablist" className="mb-2 flex gap-1">
               <Tab
@@ -559,18 +592,11 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
 
       {/* ── Passives ─────────────────────────────────────────────────────── */}
       <Panel as="h3" title={t("editor.passives")}>
-        <PanelHint>{t("editor.passivesHint")}</PanelHint>
-        {/* Dump ships text + magnitude only — no scope/stat tree yet. */}
-        <Callout tone="info" className="mb-2">
-          {t("editor.passivesEffectsGap")}
-        </Callout>
-
         <div className="flex flex-col gap-2">
           {Array.from({ length: MAX_SLOT_PASSIVES }, (_, index) => {
             const source = passiveSourceFor(slot.kind, index);
             const options = passivesBySource.get(source) ?? [];
             const current = assignment.passives[index] ?? { passiveId: null, value: 0 };
-            const selected = options.find((p) => p.id === current.passiveId);
 
             return (
               <div key={index} className="flex flex-col gap-1">
@@ -602,11 +628,13 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                     onChange={(passiveId) => {
                       const next = options.find((p) => p.id === passiveId);
                       const passives = [...assignment.passives];
+                      const value =
+                        passiveId && next
+                          ? passiveValueForRarity(next, assignment.rarity, dataset.passives)
+                          : 0;
                       passives[index] = {
                         passiveId: passiveId || null,
-                        // Seed with the strong value so a freshly picked passive
-                        // does something; it stays fully editable.
-                        value: passiveId ? (next?.strongValue ?? 0) : 0,
+                        value,
                       };
                       onChange({ ...assignment, passives });
                     }}
@@ -638,28 +666,6 @@ export function SlotEditor({ slot, assignment, dataset, synergy, onChange, onOpe
                   />
                   <span className="shrink-0 text-xs text-ink-500">%</span>
                 </div>
-
-                {selected && (
-                  <p className="pl-22 text-[11px] text-ink-500">
-                    {t("editor.bounds", {
-                      weak: selected.weakValue,
-                      strong: selected.strongValue,
-                      build: selected.buildType
-                        ? t("editor.buildSuffix", { name: buildTypeLabel(t, selected.buildType) })
-                        : "",
-                      conditions: "",
-                    })}
-                    {selected.effects.some((e) => e.conditions.length > 0) && (
-                      <span className="text-amber-400/80">
-                        {" · "}
-                        {selected.effects
-                          .flatMap((e) => e.conditions)
-                          .map((c) => conditionLabel(t, c))
-                          .join(", ")}
-                      </span>
-                    )}
-                  </p>
-                )}
               </div>
             );
           })}

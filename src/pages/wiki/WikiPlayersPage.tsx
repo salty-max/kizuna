@@ -2,9 +2,9 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Search } from "lucide-react";
 
-import { ElementBadge, PositionBadge, StyleBadge } from "@/components/GameIcon";
+import { ElementBadge, GenderBadge, PositionBadge, StyleBadge } from "@/components/GameIcon";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { FilterChip, Panel, PanelHint, PanelMeta, Select } from "@/components/ui";
+import { FilterChip, Panel, PanelMeta, Select } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import {
   BUILD_TYPES,
@@ -108,8 +108,6 @@ export function WikiPlayersPage() {
         bodyClassName="flex min-h-0 flex-1 flex-col gap-3"
         className="flex min-h-0 flex-1 flex-col"
       >
-        <PanelHint>{t("wiki.playersHint")}</PanelHint>
-
         <div className="flex flex-wrap items-center gap-2">
           <div className="field relative flex min-w-[12rem] flex-1 items-center gap-2">
             <Search className="size-3.5 shrink-0 text-ink-500" aria-hidden />
@@ -141,16 +139,23 @@ export function WikiPlayersPage() {
             aria-label={t("picker.allTeams")}
             options={[{ value: "", label: t("picker.allTeams") }, ...teams]}
           />
-          <Select
-            value={gender}
-            onChange={(v) => setGender(v as Gender | "")}
-            className="w-40"
-            aria-label={t("wiki.filterGender")}
-            options={[
-              { value: "", label: t("wiki.allGenders") },
-              ...GENDERS.map((g) => ({ value: g, label: genderLabel(t, g) })),
-            ]}
-          />
+        </div>
+
+        <div className="flex flex-wrap gap-1" role="group" aria-label={t("wiki.filterGender")}>
+          <FilterChip active={gender === ""} onClick={() => setGender("")}>
+            {t("wiki.allGenders")}
+          </FilterChip>
+          {GENDERS.filter((g) => g !== "Unknown").map((g) => (
+            <FilterChip
+              key={g}
+              active={gender === g}
+              onClick={() => setGender(g)}
+              title={genderLabel(t, g)}
+            >
+              <GenderBadge gender={g} size={14} />
+              <span className="ml-1">{genderLabel(t, g)}</span>
+            </FilterChip>
+          ))}
         </div>
 
         <div className="flex flex-wrap gap-1" role="group" aria-label={t("wiki.filterPosition")}>

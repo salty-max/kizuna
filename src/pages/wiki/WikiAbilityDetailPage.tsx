@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router";
 
 import { AbilityIcon, ElementBadge } from "@/components/GameIcon";
-import { Callout, DataList, DataRow, Panel, PanelHint } from "@/components/ui";
+import { Callout, DataList, DataRow, Panel } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import { abilityDisplayDescription, abilityDisplayName, useI18n } from "@/i18n";
 import { abilityTypeLabel, elementLabel } from "@/i18n/labels";
@@ -60,9 +60,7 @@ export function WikiAbilityDetailPage() {
           <span className="text-ink-400">{abilityTypeLabel(t, ability.type)}</span>
           {ability.element && <ElementBadge element={ability.element} variant="full" size={16} />}
         </div>
-
         {description && <p className="text-sm whitespace-pre-line text-ink-200">{description}</p>}
-
         <DataList>
           <DataRow
             label={t("wiki.field.id")}
@@ -88,7 +86,6 @@ export function WikiAbilityDetailPage() {
           {ability.shop && <DataRow label={t("wiki.field.shop")} value={ability.shop} />}
           {ability.extra && <DataRow label={t("wiki.field.extra")} value={ability.extra} />}
         </DataList>
-
         {(ability.names.fr || ability.names.en || ability.names.ja) && (
           <div>
             <p className="label-display mb-1 text-ink-500">{t("wiki.field.names")}</p>
@@ -98,9 +95,7 @@ export function WikiAbilityDetailPage() {
               {ability.names.ja && <DataRow label="JA" value={ability.names.ja} />}
             </DataList>
           </div>
-        )}
-
-        <PanelHint>{t("wiki.abilityDetailHint")}</PanelHint>
+        )}{" "}
       </Panel>
     </div>
   );

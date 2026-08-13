@@ -33,7 +33,7 @@ import {
 import { ELEMENT_STYLES, cn, formatNumber, formatPercent, rarityStyle } from "@/lib/ui";
 import { useMemo } from "react";
 import { ElementBadge, PositionBadge, StyleBadge, TacticIcon } from "./GameIcon";
-import { Callout, Chip, DataList, DataRow, Panel, PanelHint, PanelMeta, Select } from "./ui";
+import { Callout, Chip, DataList, DataRow, Panel, PanelMeta, Select } from "./ui";
 
 interface Props {
   resolved: ResolvedTeam;
@@ -71,8 +71,6 @@ export function SynergyPanel({ resolved, synergy, dataset, tacticIds, onTacticsC
         }
         bodyClassName="flex flex-col gap-2"
       >
-        <PanelHint>{t("synergy.bondsHint")}</PanelHint>
-
         {activeBonds.length === 0 && partialBonds.length === 0 ? (
           <p className="text-xs text-ink-500">{t("synergy.bondsNone")}</p>
         ) : (
@@ -202,11 +200,6 @@ export function SynergyPanel({ resolved, synergy, dataset, tacticIds, onTacticsC
       </Panel>
 
       <Panel title={t("synergy.totalPower")}>
-        <PanelHint>{t("synergy.totalPowerHint")}</PanelHint>
-        <Callout tone="info" className="mb-2">
-          {t("synergy.passivesEffectsGap")}
-        </Callout>
-
         <DataList>
           {POWER_KEYS.map((key) => {
             const effective = synergy.totals.effective[key];
@@ -395,8 +388,6 @@ function GaugesSection({
 
   return (
     <Panel title={t("synergy.gauges")}>
-      <PanelHint>{t("synergy.gaugesHint")}</PanelHint>
-
       <ul className="flex flex-col gap-2">
         {active.map(({ stat, modifier }) => {
           const lowerIsBetter = LOWER_IS_BETTER.has(stat);

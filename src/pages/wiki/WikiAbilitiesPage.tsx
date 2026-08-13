@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Search } from "lucide-react";
 
 import { AbilityIcon, ElementBadge, HissatsuIcon } from "@/components/GameIcon";
-import { FilterChip, Panel, PanelHint, PanelMeta, Select } from "@/components/ui";
+import { FilterChip, Panel, PanelMeta, Select } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import type { Ability, AbilityKind, AuraType, Element } from "@/domain/types";
 import { AURA_TYPES, ELEMENTS } from "@/domain/types";
@@ -82,8 +82,6 @@ export function WikiAbilitiesPage() {
         bodyClassName="flex min-h-0 flex-1 flex-col gap-3"
         className="flex min-h-0 flex-1 flex-col"
       >
-        <PanelHint>{t("wiki.abilitiesHint")}</PanelHint>
-
         <div className="flex flex-wrap items-center gap-2">
           <div className="field relative flex min-w-[12rem] flex-1 items-center gap-2">
             <Search className="size-3.5 shrink-0 text-ink-500" aria-hidden />

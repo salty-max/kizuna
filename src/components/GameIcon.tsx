@@ -1,9 +1,10 @@
-import type { Ability, BuildType, Element, Position } from "@/domain/types";
+import type { Ability, BuildType, Element, Gender, Position } from "@/domain/types";
 import { useI18n } from "@/i18n";
-import { auraTypeLabel, buildTypeLabel, elementLabel } from "@/i18n/labels";
+import { auraTypeLabel, buildTypeLabel, elementLabel, genderLabel } from "@/i18n/labels";
 import {
   AURA_ICON,
   ELEMENT_ICON,
+  GENDER_ICON,
   HISSATSU_ICON,
   STAFF_ICON,
   STYLE_ICON,
@@ -100,6 +101,50 @@ export function ElementBadge({ element, variant = "full", size = 18, className }
     >
       <Glyph src={src} alt="" size={size * 0.9} title={label} />
       {label}
+    </span>
+  );
+}
+
+/* ── Gender ───────────────────────────────────────────────────────────────── */
+
+interface GenderProps extends IconProps {
+  gender: Gender;
+  /** `icon` alone (male/female); `full` adds the localised label. */
+  variant?: "icon" | "full";
+}
+
+export function GenderBadge({ gender, variant = "icon", size = 16, className }: GenderProps) {
+  const { t } = useI18n();
+  const label = genderLabel(t, gender);
+  const path = GENDER_ICON[gender];
+
+  if (!path) {
+    if (variant === "icon") {
+      return (
+        <span
+          title={label}
+          aria-label={label}
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center border border-ink-700 bg-ink-950",
+            "font-display text-[9px] font-bold text-ink-400 uppercase",
+            className,
+          )}
+          style={{ width: size, height: size }}
+        >
+          ?
+        </span>
+      );
+    }
+    return <span className={cn("text-xs text-ink-400", className)}>{label}</span>;
+  }
+
+  const glyph = <Glyph src={iconUrl(path)} alt={label} size={size} className={className} />;
+  if (variant === "icon") return glyph;
+
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1", className)}>
+      {glyph}
+      <span className="text-xs text-ink-300">{label}</span>
     </span>
   );
 }

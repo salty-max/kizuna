@@ -37,6 +37,10 @@ export const fr = {
     tabSlot: "Slot",
     noSavedTeams: "Aucune équipe enregistrée.",
     deleteTeam: "Supprimer {name}",
+    rarityBudget: "Limites de rareté",
+    rarityBudgetHint: "Hero : max 2 titulaires. Basara : max 1 dans l'effectif (banc inclus).",
+    heroBudget: "Hero {n}/{max}",
+    basaraBudget: "Basara {n}/{max}",
     footer:
       "Projet de fan, sans lien avec Level-5. Données issues du jeu (dataminer) ; portraits via Inazugle.",
     footerDataOf: "Données du {date}.",
@@ -143,7 +147,9 @@ export const fr = {
       value: "Valeur",
       members: "Membres",
       gender: "Sexe",
+      spiritDrop: "Drop d'esprit",
     },
+    spiritDropYes: "Oui",
   },
   team: {
     defaultName: "Nouvelle équipe",
@@ -181,6 +187,10 @@ export const fr = {
     clear: "Vider le slot",
     assign: "Assigner un personnage",
     rarity: "Rareté",
+    rarityCapsHint:
+      "Hero : 2 max en titulaire. Basara : 1 max dans l'effectif. Défaut à la pose : Legendary.",
+    rarityCapHero: "plafond {max} titulaires",
+    rarityCapBasara: "plafond {max} effectif",
     archetype: "Archétype",
     archetypeFromGame: "Jeu : {name}",
     archetypeUnknown: "Jeu : inconnu",
@@ -234,7 +244,8 @@ export const fr = {
       Unknown: "—",
     },
     passives: "Passifs",
-    passivesHint: "Cinq presets + un custom. La valeur dépend du niveau en jeu.",
+    passivesHint:
+      "5 presets (loterie style/growth, pas fixés par perso) + 1 custom farmé (niv. 50).",
     passivesEffectsGap:
       "Les effets ne sont pas encore parsés depuis le dump (texte seul) — ils s'affichent mais n'entrent pas dans le calcul de puissance.",
     preset: "Preset {n}",
@@ -282,7 +293,7 @@ export const fr = {
   genders: {
     Male: "Masculin",
     Female: "Féminin",
-    Neutral: "Neutre",
+    Neutral: "Autre",
     Unknown: "Inconnu",
   },
   rarities: {
