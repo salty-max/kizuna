@@ -2,8 +2,9 @@ import { Link, useParams } from "react-router";
 
 import { Callout, DataList, DataRow, Panel } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
-import type { Passive } from "@/domain/types";
+import type { Passive, PassiveEffect } from "@/domain/types";
 import { passiveDisplayDescription, useI18n } from "@/i18n";
+import { conditionLabel, directionLabel, passiveStatLabel, scopeLabel } from "@/i18n/labels";
 import { formatNumber } from "@/lib/ui";
 
 export function WikiPassiveDetailPage() {
@@ -26,6 +27,8 @@ export function WikiPassiveDetailPage() {
     );
   }
 
+  const hasEffects = passive.effects.length > 0;
+
   return (
     <div className="scroll-slim min-h-0 flex-1 overflow-y-auto">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
@@ -46,6 +49,15 @@ export function WikiPassiveDetailPage() {
             <span className="font-display text-ink-500 tnum">#{passive.number}</span>
             <span className="rounded border border-ink-700 px-1.5 py-0.5 text-xs font-normal tracking-normal text-ink-400 uppercase not-italic">
               {t(`wiki.passiveSource.${passive.source}`)}
+            </span>
+            <span
+              className={
+                hasEffects
+                  ? "rounded border border-bolt-500/40 px-1.5 py-0.5 text-xs font-normal tracking-normal text-bolt-300 uppercase not-italic"
+                  : "rounded border border-ink-700 px-1.5 py-0.5 text-xs font-normal tracking-normal text-ink-500 uppercase not-italic"
+              }
+            >
+              {hasEffects ? t("wiki.effectsParsed") : t("wiki.effectsUnparsed")}
             </span>
           </span>
         }
@@ -69,9 +81,41 @@ export function WikiPassiveDetailPage() {
           />
           <DataRow label={t("wiki.field.value")} value={formatValueRange(passive, locale)} />
         </DataList>
+
+        <div>
+          <h3 className="mb-2 font-display text-xs font-bold tracking-wide text-ink-400 uppercase italic">
+            {t("wiki.effects")}
+          </h3>
+          {hasEffects ? (
+            <ul className="flex flex-col gap-1.5">
+              {passive.effects.map((effect, index) => (
+                <li
+                  key={index}
+                  className="border-2 border-ink-800 bg-ink-900/40 px-2.5 py-2 text-sm text-ink-100"
+                >
+                  <EffectLine effect={effect} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Callout tone="info">{t("wiki.effectsNone")}</Callout>
+          )}
+        </div>
       </Panel>
     </div>
   );
+}
+
+function EffectLine({ effect }: { effect: PassiveEffect }) {
+  const { t } = useI18n();
+  const parts = [
+    scopeLabel(t, effect.scope),
+    `${directionLabel(t, effect.direction)} ${passiveStatLabel(t, effect.stat)}`,
+  ];
+  if (effect.conditions.length > 0) {
+    parts.push(effect.conditions.map((c) => conditionLabel(t, c)).join(" · "));
+  }
+  return <span>{parts.join(" · ")}</span>;
 }
 
 function formatValueRange(passive: Passive, locale: "fr" | "en" | "ja"): string {

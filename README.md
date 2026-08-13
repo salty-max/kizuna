@@ -316,10 +316,11 @@ the maths.
 Still open after the dataminer pass (see [`data/raw/dataminer/HANDOFF.md`](data/raw/dataminer/HANDOFF.md)):
 
 - **Character → passive.** No file yet says which passives a given character can
-  carry. Hand entry stays (six slots: five presets + one custom).
-- **Structured passive effects.** The game dump has magnitude (`value`) and
-  text, but not scope/stat/condition — the synergy engine has nothing to apply
-  until that model is extracted from the game files.
+  carry. Hand entry stays (six slots: five presets + one custom lottery/custom
+  pools — not per-character tables).
+- **Structured passive effects.** Best-effort parse from English passive text
+  covers ~82% of the catalogue (`effects` on each passive). Unparsed rows stay
+  text-only and do not enter the power calc; the wiki filters them.
 - **Level 1–98 curve, Abilearn, beans.** Only lv50 and lv99 tables are extracted.
   The builder targets lv99.
 

@@ -91,9 +91,15 @@ export const fr = {
     tactics: "Tactiques",
     tacticsHint: "Tactiques d'équipe et coût en PT.",
     passives: "Passifs",
-    passivesHint: "Passifs joueur, coach et manager — texte et bornes de valeur du jeu.",
+    passivesHint: "Passifs joueur, coach et manager — texte, bornes, effets structurés (~82 %).",
     passivesEffectsGap:
-      "Les effets ne sont pas encore structurés depuis le dump (texte seul pour l'instant).",
+      "Certains passifs n'ont pas d'effet structuré (texte seul) — ils ne rentrent pas dans le calcul de puissance.",
+    effects: "Effets structurés",
+    effectsNone: "Aucun effet structuré extrait pour ce passif.",
+    effectsParsed: "Structuré",
+    effectsUnparsed: "Texte seul",
+    filterEffects: "Effets",
+    allEffects: "Tous",
     bonds: "Liens",
     bondsHint: "Synergies de personnages actives quand tout le roster est dans l'effectif.",
     bondsNoDescription: "Pas de description dans le dump du jeu.",
@@ -261,7 +267,7 @@ export const fr = {
     fillPassivesHint:
       "Meilleurs presets/custom pour le poste et la rareté. Ne remplace pas tes choix.",
     passivesEffectsGap:
-      "Les effets ne sont pas encore parsés depuis le dump (texte seul) — ils s'affichent mais n'entrent pas dans le calcul de puissance.",
+      "Ce passif n'a pas d'effet structuré — il s'affiche mais n'entre pas dans le calcul de puissance.",
     preset: "Preset {n}",
     custom: "Custom",
     percentValue: "Valeur en pourcentage",
@@ -274,7 +280,7 @@ export const fr = {
   synergy: {
     composition: "Composition",
     passivesEffectsGap:
-      "Passifs enregistrés sur l'équipe, mais aucun effet structuré n'est encore extrait du jeu — la puissance affichée ignore les pourcentages de passifs.",
+      "Un ou plusieurs passifs de l'équipe n'ont pas d'effet structuré — leurs % sont ignorés dans la puissance affichée.",
     starters: "{filled}/{capacity} titulaires",
     rarities: "Raretés",
     elements: "Éléments",
@@ -386,6 +392,23 @@ export const fr = {
     tacticCooldown: "Recharge des tactiques",
     commonDropRate: "Drop commun",
     rareDropRate: "Drop rare",
+  },
+  scopes: {
+    self: "Porteur",
+    team: "Équipe",
+    alliesSameElement: "Alliés même élément",
+    alliesDifferentElement: "Alliés autre élément",
+    alliesSamePosition: "Alliés même poste",
+    alliesDifferentPosition: "Alliés autre poste",
+    alliedGK: "GB alliés",
+    alliedDF: "DF alliés",
+    alliedMF: "MIL alliés",
+    nearbyAllies: "Alliés proches",
+    subbedOnPlayer: "Joueur entrant",
+  },
+  directions: {
+    increase: "↑",
+    decrease: "↓",
   },
   conditions: {
     afterBallRecoveryNoDirectCatch: "après récupération (hors arrêt direct)",

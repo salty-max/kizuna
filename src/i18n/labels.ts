@@ -15,6 +15,7 @@ import {
   type Gender,
   type HeroVariant,
   type PassiveCondition,
+  type PassiveScope,
   type PassiveStat,
   type Rarity,
 } from "@/domain/types";
@@ -111,6 +112,14 @@ export function powerFormula(t: Translator["t"], key: PowerKey): string {
 
 export function passiveStatLabel(t: Translator["t"], stat: PassiveStat): string {
   return t(`passiveStats.${stat}` as MessageKey);
+}
+
+export function scopeLabel(t: Translator["t"], scope: PassiveScope): string {
+  return t(`scopes.${scope}` as MessageKey);
+}
+
+export function directionLabel(t: Translator["t"], direction: "increase" | "decrease"): string {
+  return t(`directions.${direction}` as MessageKey);
 }
 
 export function conditionLabel(t: Translator["t"], condition: PassiveCondition): string {

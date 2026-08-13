@@ -94,8 +94,15 @@ export const ja = {
     tactics: "必殺タクティクス",
     tacticsHint: "チーム必殺タクティクスと TP コスト。",
     passives: "パッシブ",
-    passivesHint: "選手・監督・マネージャーのパッシブ — テキストと数値範囲。",
-    passivesEffectsGap: "効果の構造化は未対応（現状はテキストのみ）。",
+    passivesHint: "選手・監督・マネージャーのパッシブ — テキスト・数値範囲・構造化効果（約82%）。",
+    passivesEffectsGap:
+      "構造化効果のないパッシブもあります（テキストのみ）— パワー計算には入りません。",
+    effects: "構造化効果",
+    effectsNone: "このパッシブに抽出された構造化効果はありません。",
+    effectsParsed: "構造化済み",
+    effectsUnparsed: "テキストのみ",
+    filterEffects: "効果",
+    allEffects: "すべて",
     bonds: "絆",
     bondsHint: "メンバー全員が編成にいると発動するキャラシナジー。",
     bondsNoDescription: "ゲームデータに説明なし。",
@@ -261,7 +268,7 @@ export const ja = {
     fillPassivesHint:
       "ポジションとレアリティ向けの最良プリセット／カスタム。既存の選択は置き換えない。",
     passivesEffectsGap:
-      "効果はまだ解析データから構造化されていません（テキストのみ）— 表示はしますがパワー計算には入りません。",
+      "このパッシブに構造化効果はありません — 表示はしますがパワー計算には入りません。",
     preset: "プリセット {n}",
     custom: "カスタム",
     percentValue: "パーセント値",
@@ -274,7 +281,7 @@ export const ja = {
   synergy: {
     composition: "構成",
     passivesEffectsGap:
-      "パッシブは編成に保存されますが、ゲームから構造化された効果はまだ抽出されていません — 表示パワーはパッシブ％を無視します。",
+      "編成内の一部パッシブに構造化効果がありません — その％は表示パワーに入りません。",
     starters: "スタメン {filled}/{capacity}",
     rarities: "レアリティ",
     elements: "属性",
@@ -386,6 +393,23 @@ export const ja = {
     tacticCooldown: "戦術クールダウン",
     commonDropRate: "通常ドロップ率",
     rareDropRate: "レアドロップ率",
+  },
+  scopes: {
+    self: "自身",
+    team: "チーム",
+    alliesSameElement: "同属性の味方",
+    alliesDifferentElement: "別属性の味方",
+    alliesSamePosition: "同ポジションの味方",
+    alliesDifferentPosition: "別ポジションの味方",
+    alliedGK: "味方GK",
+    alliedDF: "味方DF",
+    alliedMF: "味方MF",
+    nearbyAllies: "近くの味方",
+    subbedOnPlayer: "交代投入選手",
+  },
+  directions: {
+    increase: "↑",
+    decrease: "↓",
   },
   conditions: {
     afterBallRecoveryNoDirectCatch: "ボール奪取後（直接キャッチ以外）",

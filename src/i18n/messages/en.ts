@@ -88,8 +88,15 @@ export const en = {
     tactics: "Tactics",
     tacticsHint: "Team tactics and TP cost.",
     passives: "Passives",
-    passivesHint: "Player, coach and manager passives — text and value bounds from the game.",
-    passivesEffectsGap: "Effects are not structured from the dump yet (text only for now).",
+    passivesHint: "Player, coach and manager passives — text, bounds, structured effects (~82%).",
+    passivesEffectsGap:
+      "Some passives have no structured effect (text only) — they do not enter the power calc.",
+    effects: "Structured effects",
+    effectsNone: "No structured effect extracted for this passive.",
+    effectsParsed: "Structured",
+    effectsUnparsed: "Text only",
+    filterEffects: "Effects",
+    allEffects: "All",
     bonds: "Bonds",
     bondsHint: "Character synergies that activate when the full roster is in the squad.",
     bondsNoDescription: "No description in the game dump.",
@@ -256,7 +263,7 @@ export const en = {
     fillPassivesHint:
       "Best presets/custom for the position and rarity. Does not replace your picks.",
     passivesEffectsGap:
-      "Effects are not parsed from the dump yet (text only) — they display but do not feed the power calculation.",
+      "This passive has no structured effect — it displays but does not enter the power calc.",
     preset: "Preset {n}",
     custom: "Custom",
     percentValue: "Percentage value",
@@ -269,7 +276,7 @@ export const en = {
   synergy: {
     composition: "Composition",
     passivesEffectsGap:
-      "Passives are saved on the squad, but no structured effects are extracted from the game yet — displayed power ignores passive percentages.",
+      "One or more squad passives have no structured effect — their % are ignored in displayed power.",
     starters: "{filled}/{capacity} starters",
     rarities: "Rarities",
     elements: "Elements",
@@ -381,6 +388,23 @@ export const en = {
     tacticCooldown: "Tactic cooldown",
     commonDropRate: "Common drop rate",
     rareDropRate: "Rare drop rate",
+  },
+  scopes: {
+    self: "Carrier",
+    team: "Team",
+    alliesSameElement: "Allies same element",
+    alliesDifferentElement: "Allies other element",
+    alliesSamePosition: "Allies same position",
+    alliesDifferentPosition: "Allies other position",
+    alliedGK: "Allied GK",
+    alliedDF: "Allied DF",
+    alliedMF: "Allied MF",
+    nearbyAllies: "Nearby allies",
+    subbedOnPlayer: "Subbed-on player",
+  },
+  directions: {
+    increase: "↑",
+    decrease: "↓",
   },
   conditions: {
     afterBallRecoveryNoDirectCatch: "after ball recovery (not direct catch)",

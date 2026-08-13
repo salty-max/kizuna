@@ -21,6 +21,8 @@ export function WikiPassivesPage() {
   const dataset = useDataset();
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<PassiveSource | "">("");
+  /** "" = all, "parsed" = has effects, "unparsed" = text only. */
+  const [effectsFilter, setEffectsFilter] = useState<"" | "parsed" | "unparsed">("");
   const deferredQuery = useDeferredValue(query);
 
   const availableSources = useMemo(() => {
@@ -33,6 +35,9 @@ export function WikiPassivesPage() {
     return dataset.passives
       .filter((passive) => {
         if (source && passive.source !== source) return false;
+        const hasEffects = passive.effects.length > 0;
+        if (effectsFilter === "parsed" && !hasEffects) return false;
+        if (effectsFilter === "unparsed" && hasEffects) return false;
         if (!needle) return true;
         return (
           fold(localizedSearchBlob(passive.descriptions, passive.description)).includes(needle) ||
@@ -44,7 +49,7 @@ export function WikiPassivesPage() {
         (a, b) =>
           a.number - b.number || a.source.localeCompare(b.source) || a.id.localeCompare(b.id),
       );
-  }, [dataset.passives, deferredQuery, source]);
+  }, [dataset.passives, deferredQuery, source, effectsFilter]);
 
   return (
     <div className="scroll-slim flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
@@ -86,6 +91,24 @@ export function WikiPassivesPage() {
           ))}
         </div>
 
+        <div className="flex flex-wrap gap-1" role="group" aria-label={t("wiki.filterEffects")}>
+          <FilterChip active={effectsFilter === ""} onClick={() => setEffectsFilter("")}>
+            {t("wiki.allEffects")}
+          </FilterChip>
+          <FilterChip
+            active={effectsFilter === "parsed"}
+            onClick={() => setEffectsFilter("parsed")}
+          >
+            {t("wiki.effectsParsed")}
+          </FilterChip>
+          <FilterChip
+            active={effectsFilter === "unparsed"}
+            onClick={() => setEffectsFilter("unparsed")}
+          >
+            {t("wiki.effectsUnparsed")}
+          </FilterChip>
+        </div>
+
         <ul className="scroll-slim min-h-0 flex-1 divide-y divide-ink-850 overflow-y-auto border-2 border-ink-800">
           {results.length === 0 ? (
             <li className="px-3 py-6 text-center text-xs text-ink-500">{t("wiki.empty")}</li>
@@ -114,6 +137,7 @@ function formatBound(value: number, locale: "fr" | "en" | "ja"): string {
 function PassiveRow({ passive }: { passive: Passive }) {
   const { t, locale } = useI18n();
   const description = passiveDisplayDescription(passive, locale);
+  const hasEffects = passive.effects.length > 0;
 
   return (
     <li>
@@ -132,6 +156,14 @@ function PassiveRow({ passive }: { passive: Passive }) {
           <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-500">
             <span className="rounded border border-ink-700 px-1.5 py-0.5 uppercase">
               {t(`wiki.passiveSource.${passive.source}`)}
+            </span>
+            <span
+              className={cn(
+                "rounded border px-1.5 py-0.5 uppercase",
+                hasEffects ? "border-bolt-500/40 text-bolt-300" : "border-ink-700 text-ink-500",
+              )}
+            >
+              {hasEffects ? t("wiki.effectsParsed") : t("wiki.effectsUnparsed")}
             </span>
             <span className="font-display tnum">{formatPassiveValue(passive, locale)}</span>
           </span>
