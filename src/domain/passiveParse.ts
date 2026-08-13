@@ -1,8 +1,8 @@
 /**
  * Best-effort parser: English passive text → structured effects for the
  * synergy engine. Charge-rank loops are modelled as conditional (one rank of
- * magnitude — the builder cannot know live charge). Save rate and flat base
- * stats (Kick +7) stay empty — no engine model yet.
+ * magnitude — the builder cannot know live charge). Flat base stats (Kick +7)
+ * stay empty — no percent-power model for them yet.
  *
  * Prefer EN over FR: grammar is more regular ("Team AT +4% for the first half").
  */
@@ -28,6 +28,7 @@ const STAT_RULES: { re: RegExp; stat: PassiveStat }[] = [
     re: /special\s*(?:move|tactics?)\s*cooldown|tactic(?:s)?\s*cooldown|hissatsu\s*cooldown/i,
     stat: "tacticCooldown",
   },
+  { re: /\bsave\s*rate\b/i, stat: "saveRate" },
   { re: /bond\s*power\s*loss|bond\s*loss/i, stat: "bondLoss" },
   { re: /bond\s*power|bond\s*gain/i, stat: "bondGain" },
   { re: /breach\s*tension/i, stat: "breachTensionRequirement" },
@@ -157,8 +158,6 @@ export function parsePassiveEffectsFromEn(text: string): PassiveEffect[] {
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (!cleaned) return [];
 
-  // Unmapped gauges — no PassiveStat yet.
-  if (/\bsave\s*rate\b/i.test(cleaned)) return [];
   // Flat base stats ("Kick +7") are not percent power modifiers.
   if (
     /^(?:kick|control|technique|pressure|physical|agility|intelligence)\s*[+\-−－]?\s*\d+\s*$/i.test(

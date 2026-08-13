@@ -650,6 +650,11 @@ export function SlotEditor({
             const source = passiveSourceFor(slot.kind, index);
             const options = passivesBySource.get(source) ?? [];
             const current = assignment.passives[index] ?? { passiveId: null, value: 0 };
+            const selected = current.passiveId
+              ? (options.find((p) => p.id === current.passiveId) ??
+                dataset.passives.find((p) => p.id === current.passiveId))
+              : undefined;
+            const unparsed = selected != null && selected.effects.length === 0;
 
             return (
               <div key={index} className="flex flex-col gap-1">
@@ -666,6 +671,7 @@ export function SlotEditor({
                       { value: "", label: "—" },
                       ...options.map((passive) => {
                         const text = passiveDisplayDescription(passive, locale);
+                        const parsed = passive.effects.length > 0;
                         return {
                           value: passive.id,
                           label: `#${passive.number} · ${text}`,
@@ -673,6 +679,11 @@ export function SlotEditor({
                             <span className="flex min-w-0 items-baseline gap-1.5">
                               <span className="shrink-0 text-ink-500 tnum">#{passive.number}</span>
                               <span className="min-w-0 truncate">{text}</span>
+                              {!parsed && (
+                                <span className="shrink-0 text-[10px] tracking-wide text-ink-500 uppercase">
+                                  {t("wiki.effectsUnparsed")}
+                                </span>
+                              )}
                             </span>
                           ),
                         };
@@ -719,6 +730,11 @@ export function SlotEditor({
                   />
                   <span className="shrink-0 text-xs text-ink-500">%</span>
                 </div>
+                {unparsed && (
+                  <p className="pl-[5.5rem] text-[11px] text-ink-500">
+                    {t("editor.passivesEffectsGap")}
+                  </p>
+                )}
               </div>
             );
           })}

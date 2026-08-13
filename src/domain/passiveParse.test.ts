@@ -91,9 +91,17 @@ describe("parsePassiveEffectsFromEn", () => {
     expect(effects[0]?.stat).toBe("AT");
   });
 
+  test("save rate is a team gauge (including charge-rank)", () => {
+    const effects = parsePassiveEffectsFromEn(
+      "For each Charge Rank up with Breach Team Build, Team Save Rate +4%",
+    );
+    expect(effects[0]?.stat).toBe("saveRate");
+    expect(effects[0]?.scope).toBe("team");
+    expect(effects[0]?.conditions).toContain("perBuildChargeRank");
+  });
+
   test("empty / unmapped", () => {
     expect(parsePassiveEffectsFromEn("")).toEqual([]);
-    expect(parsePassiveEffectsFromEn("For each Charge Rank up, Team Save Rate +10%")).toEqual([]);
     expect(parsePassiveEffectsFromEn("Kick +7")).toEqual([]);
   });
 });

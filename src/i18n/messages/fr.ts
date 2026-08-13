@@ -95,7 +95,7 @@ export const fr = {
     tactics: "Tactiques",
     tacticsHint: "Tactiques d'équipe et coût en PT.",
     passives: "Passifs",
-    passivesHint: "Passifs joueur, coach et manager — texte, bornes, effets structurés (~95 %).",
+    passivesHint: "Passifs joueur, coach et manager — texte, bornes, effets structurés (~96 %).",
     passivesEffectsGap:
       "Certains passifs n'ont pas d'effet structuré (texte seul) — ils ne rentrent pas dans le calcul de puissance.",
     effects: "Effets structurés",
@@ -397,6 +397,7 @@ export const fr = {
     roughAttack: "Attaque agressive",
     foulRate: "Taux de faute",
     tacticCooldown: "Recharge des tactiques",
+    saveRate: "Taux d'arrêt",
     commonDropRate: "Drop commun",
     rareDropRate: "Drop rare",
   },

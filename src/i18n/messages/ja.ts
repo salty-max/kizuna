@@ -97,7 +97,7 @@ export const ja = {
     tactics: "必殺タクティクス",
     tacticsHint: "チーム必殺タクティクスと TP コスト。",
     passives: "パッシブ",
-    passivesHint: "選手・監督・マネージャーのパッシブ — テキスト・数値範囲・構造化効果（約95%）。",
+    passivesHint: "選手・監督・マネージャーのパッシブ — テキスト・数値範囲・構造化効果（約96%）。",
     passivesEffectsGap:
       "構造化効果のないパッシブもあります（テキストのみ）— パワー計算には入りません。",
     effects: "構造化効果",
@@ -396,6 +396,7 @@ export const ja = {
     roughAttack: "ラフアタック",
     foulRate: "ファウル率",
     tacticCooldown: "戦術クールダウン",
+    saveRate: "セーブ率",
     commonDropRate: "通常ドロップ率",
     rareDropRate: "レアドロップ率",
   },

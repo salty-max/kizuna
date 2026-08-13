@@ -92,7 +92,7 @@ export const en = {
     tactics: "Tactics",
     tacticsHint: "Team tactics and TP cost.",
     passives: "Passives",
-    passivesHint: "Player, coach and manager passives — text, bounds, structured effects (~95%).",
+    passivesHint: "Player, coach and manager passives — text, bounds, structured effects (~96%).",
     passivesEffectsGap:
       "Some passives have no structured effect (text only) — they do not enter the power calc.",
     effects: "Structured effects",
@@ -392,6 +392,7 @@ export const en = {
     roughAttack: "Rough attack",
     foulRate: "Foul rate",
     tacticCooldown: "Tactic cooldown",
+    saveRate: "Save rate",
     commonDropRate: "Common drop rate",
     rareDropRate: "Rare drop rate",
   },

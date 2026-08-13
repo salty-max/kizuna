@@ -374,6 +374,7 @@ export const PASSIVE_STATS = [
   "roughAttack",
   "foulRate",
   "tacticCooldown",
+  "saveRate",
   "commonDropRate",
   "rareDropRate",
 ] as const;
