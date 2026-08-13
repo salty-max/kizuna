@@ -56,6 +56,9 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
   const [game, setGame] = useState<string | null>(null);
   const [team, setTeam] = useState<string | null>(null);
   const [gender, setGender] = useState<Gender | null>(null);
+  const [spiritOnly, setSpiritOnly] = useState(false);
+  const [heroForm, setHeroForm] = useState(false);
+  const [basaraForm, setBasaraForm] = useState(false);
   const [sort, setSort] = useState<SortKey>("total");
 
   // 4840 rows re-filtered on every keystroke would stutter; let React keep the
@@ -99,6 +102,9 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
       if (game && player.game !== game) return false;
       if (team && !matchesTeamFilter(player, team)) return false;
       if (gender && player.gender !== gender) return false;
+      if (spiritOnly && !player.spiritDrop) return false;
+      if (heroForm && !player.heroStats) return false;
+      if (basaraForm && !player.basaraStats) return false;
       if (needle === "") return true;
       const fold = (s: string) =>
         s
@@ -122,7 +128,20 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
       matches.sort((a, b) => computePower(b.stats)[sort] - computePower(a.stats)[sort]);
     }
     return matches;
-  }, [dataset.players, deferredQuery, position, element, buildType, game, team, gender, sort]);
+  }, [
+    dataset.players,
+    deferredQuery,
+    position,
+    element,
+    buildType,
+    game,
+    team,
+    gender,
+    spiritOnly,
+    heroForm,
+    basaraForm,
+    sort,
+  ]);
 
   const { scrollRef, range, onScroll } = useVirtualRows(results.length);
 
@@ -176,6 +195,30 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
             label={(value) => buildTypeLabel(t, value)}
             icon={(value) => <StyleBadge buildType={value} variant="icon" size={14} />}
           />
+          <Divider />
+          <span className="flex flex-wrap gap-1" role="group" aria-label={t("wiki.filterForms")}>
+            <FilterChip
+              active={spiritOnly}
+              onClick={() => setSpiritOnly((v) => !v)}
+              aria-label={t("picker.spiritDrop")}
+            >
+              {t("picker.spiritDrop")}
+            </FilterChip>
+            <FilterChip
+              active={heroForm}
+              onClick={() => setHeroForm((v) => !v)}
+              aria-label={t("picker.hasHero")}
+            >
+              {t("picker.hasHero")}
+            </FilterChip>
+            <FilterChip
+              active={basaraForm}
+              onClick={() => setBasaraForm((v) => !v)}
+              aria-label={t("picker.hasBasara")}
+            >
+              {t("picker.hasBasara")}
+            </FilterChip>
+          </span>
 
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Select

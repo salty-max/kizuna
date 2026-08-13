@@ -49,6 +49,9 @@ export function WikiPlayersPage() {
   const [game, setGame] = useState("");
   const [team, setTeam] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
+  const [spiritOnly, setSpiritOnly] = useState(false);
+  const [heroForm, setHeroForm] = useState(false);
+  const [basaraForm, setBasaraForm] = useState(false);
   const deferredQuery = useDeferredValue(query);
 
   const teams = useMemo(() => {
@@ -73,6 +76,9 @@ export function WikiPlayersPage() {
         if (game && player.game !== game) return false;
         if (team && !matchesTeamFilter(player, team)) return false;
         if (gender && player.gender !== gender) return false;
+        if (spiritOnly && !player.spiritDrop) return false;
+        if (heroForm && !player.heroStats) return false;
+        if (basaraForm && !player.basaraStats) return false;
         if (!needle) return true;
         const teamHit = [player.team, ...Object.values(player.teamNames ?? {})].some((n) =>
           fold(n).includes(needle),
@@ -86,7 +92,19 @@ export function WikiPlayersPage() {
         );
       })
       .sort((a, b) => b.total - a.total);
-  }, [dataset.players, deferredQuery, position, element, buildType, game, team, gender]);
+  }, [
+    dataset.players,
+    deferredQuery,
+    position,
+    element,
+    buildType,
+    game,
+    team,
+    gender,
+    spiritOnly,
+    heroForm,
+    basaraForm,
+  ]);
 
   const { scrollRef, range, onScroll } = useVirtualRows(results.length);
 
@@ -205,6 +223,30 @@ export function WikiPlayersPage() {
               <span className="hidden sm:inline">{buildTypeLabel(t, bt)}</span>
             </FilterChip>
           ))}
+        </div>
+
+        <div className="flex flex-wrap gap-1" role="group" aria-label={t("wiki.filterForms")}>
+          <FilterChip
+            active={spiritOnly}
+            onClick={() => setSpiritOnly((v) => !v)}
+            title={t("wiki.spiritDropOnly")}
+          >
+            {t("wiki.spiritDropOnly")}
+          </FilterChip>
+          <FilterChip
+            active={heroForm}
+            onClick={() => setHeroForm((v) => !v)}
+            title={t("wiki.hasHero")}
+          >
+            {t("wiki.hasHero")}
+          </FilterChip>
+          <FilterChip
+            active={basaraForm}
+            onClick={() => setBasaraForm((v) => !v)}
+            title={t("wiki.hasBasara")}
+          >
+            {t("wiki.hasBasara")}
+          </FilterChip>
         </div>
 
         <div
