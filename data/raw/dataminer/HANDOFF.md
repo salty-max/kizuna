@@ -84,26 +84,34 @@ Which param row belongs to which bundle entry follows the split upstream already
 col 41 is the rarity: 0 with a full second branch is a character, 5–7 a hero, 8 a basara. All
 55 000 skill references resolve; there are no unknown ids to tolerate.
 
+## Character → passive is a dead end, and that is the answer
+
+Not "unverified" any more. `ability_learning_config` rolls a player's passives from a nested
+lottery — `INFO(6) → MAIN(24) → SUB(72) → GROWTH(144) → STYLE(432) → SKILL` — keyed on attributes
+the character already carries, not on identity. The leaf list is 1710 entries for 40 distinct
+passives, the repetition being the draw weights. Counting every pool in that config (front, back,
+both lottery variants, supporter) gives 161 distinct passives out of 1716; all 161 resolve. The
+remainder are the custom passives the player farms from Hero-tier matches and slots by hand.
+
+Confirmed against how the game presents it: each player ships with five passives that scale with
+rarity, plus a custom slot unlocked at level 50. So the most a tool can offer is the candidate
+pool for a style and growth pattern. Stop looking for a per-character table.
+
 ## Open, in the order worth attacking
 
-1. **Character → passive.** The gap the root README names, still open. Lead: `ability_learning_config`
-   in `gamedata/skill`. `ABILITY_LEARNING_BOARD_EFFECT_LIST` has 23 790 rows whose first column is
-   *sometimes* a passive id (`-2085093640` → `swap_team_passive_01`) and sometimes not;
-   `ABILITY_LEARNING_TABLE_INFO_LIST` has 580 entries against 5418 characters, so any mapping is
-   per group or archetype. Unverified — do not assume it resolves per character.
-2. **`<VALUE>` for team passives.** Solved for the 1716 passives here, via the `REF_EFFECT` sub row
+1. **`<VALUE>` for team passives.** Solved for the 1716 passives here, via the `REF_EFFECT` sub row
    that indexes into `PASSIVE_SKILL_EFFECT_LIST`. The 410 rarity-table ids that resolve to nothing
    were checked against all 60 247 `cfg.bin` files in the extraction and exist nowhere else — cut
    or unreleased, not a missing file.
-3. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: no `.g4tp`
+2. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: no `.g4tp`
    descriptor ships for the icon atlases, the menu Lua is compiled bytecode, and no config column
    predicts the cell (all 17 of `SPECIAL_TACTICS_INFO` were tested against 70 known tactic cells;
    best was 3/81). The realistic route is an in-game screenshot of the synergy list, then
    pixel-matching. The icons are cut and numbered outside the repo, in
    `C:\Users\maxim\Downloads\icons_raw\synergy\` with a `_synergies.csv` listing all 37 with their
    members.
-4. **`passives/` icons are unlabelled**, for the same reason. 49 files, numbered by atlas cell.
-5. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
+3. **`passives/` icons are unlabelled**, for the same reason. 49 files, numbered by atlas cell.
+4. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
    covers place names too, if the wiki ever needs them.
 
 ## Wiring it into the app

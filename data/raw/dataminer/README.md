@@ -60,13 +60,17 @@ It **closes the character → hissatsu link**. `chara_param` columns 11–28 are
 pairs; all 5418 characters, 147 heroes and 72 basaras carry a full set, and every one of the ids
 resolves against `hissatsu`, `aura_hissatsu` or `auras` — 0 unknowns out of 55 000 references.
 
-It **does not** close the character → passive link. Nothing here says which passives a given
-character can carry, so hand entry in the UI stays. The lead, if anyone picks it up: the Abilearn
-board in `gamedata/skill/ability_learning_config`. `ABILITY_LEARNING_BOARD_EFFECT_LIST` holds
-23 790 rows whose first column is sometimes a passive id from `passives` here
-(`-2085093640` → `swap_team_passive_01`) and sometimes not, and
-`ABILITY_LEARNING_TABLE_INFO_LIST` has 580 entries — far fewer than the 5418 characters, so any
-mapping is per group or per archetype, not per character. Unverified.
+There is **no character → passive link to close**, and that is a finding rather than a gap. A
+player's passives are not authored per player: `ability_learning_config` rolls them from a
+lottery, nested `INFO(6) → MAIN(24) → SUB(72) → GROWTH(144) → STYLE(432) → SKILL`, keyed on
+attributes the character already has. The leaf list holds 1710 entries for **40 distinct
+passives** — the same id repeated to weight the draw. Across every pool in that config, front,
+back, their lottery variants and the supporter set, only **161 of the 1716 passives** appear at
+all; the rest are the custom ones farmed from Hero-tier matches and assigned by hand in game.
+
+So a build tool can offer the candidate pool for a given style and growth pattern, but nothing
+can tell you a specific player's passives, because the game does not know either until the copy
+is rolled.
 
 ## Reading the fields
 
