@@ -40,6 +40,10 @@ export const ja = {
     rarityBudgetHint: "Hero：スタメン最大2。Basara：編成全体で最大1（ベンチ含む）。",
     heroBudget: "Hero {n}/{max}",
     basaraBudget: "Basara {n}/{max}",
+    fillEmpty: "空きを埋める",
+    fillEmptyHint:
+      "ポジションごとに最強の選手を Legendary で配置。埋まっているスロットと Hero/Basara は触らない。",
+    fillEmptyNone: "埋める空きスロットがありません。",
     footer:
       "ファンプロジェクトであり、レベルファイブとは無関係です。データはゲーム（dataminer）、肖像はイナズグル由来。",
     footerDataOf: "データ日 {date}。",
@@ -249,6 +253,9 @@ export const ja = {
     passives: "パッシブ",
     passivesHint:
       "プリセット5（スタイル/成長の抽選枠・キャラ固定ではない）＋カスタム1（Lv50、ヒーロー周回）。",
+    fillPassives: "空きパッシブを埋める",
+    fillPassivesHint:
+      "ポジションとレアリティ向けの最良プリセット／カスタム。既存の選択は置き換えない。",
     passivesEffectsGap:
       "効果はまだダンプから構造化されていません（テキストのみ）— 表示はしますがパワー計算には入りません。",
     preset: "プリセット {n}",

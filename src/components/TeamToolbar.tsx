@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { Download, FolderOpen, Save, Share2 } from "lucide-react";
+import { Download, FolderOpen, Save, Share2, WandSparkles } from "lucide-react";
 
 import { Button, CountBadge, Select, TextInput } from "@/components/ui";
+import { countEmptySlots } from "@/domain/fillBest";
 import { FORMATIONS } from "@/domain/formations";
 import { applyFormation, rarityBudget, type Team } from "@/domain/team";
 import { useI18n } from "@/i18n";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/ui";
 interface Props {
   team: Team;
   onTeamChange: (team: Team) => void;
+  onFillEmpty?: () => void;
   saved: SavedTeam[];
   savedOpen: boolean;
   onSavedOpenChange: (open: boolean) => void;
@@ -30,6 +32,7 @@ interface Props {
 export function TeamToolbar({
   team,
   onTeamChange,
+  onFillEmpty,
   saved,
   savedOpen,
   onSavedOpenChange,
@@ -41,6 +44,7 @@ export function TeamToolbar({
 }: Props) {
   const { t } = useI18n();
   const budget = rarityBudget(team);
+  const emptyCount = countEmptySlots(team);
 
   return (
     <div className={cn("panel flex shrink-0 flex-wrap items-center gap-2 p-2.5", className)}>
@@ -91,6 +95,18 @@ export function TeamToolbar({
       </div>
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
+        {onFillEmpty && (
+          <Button
+            onClick={onFillEmpty}
+            disabled={emptyCount === 0}
+            title={emptyCount === 0 ? t("app.fillEmptyNone") : t("app.fillEmptyHint")}
+            icon={<WandSparkles className="size-4" />}
+          >
+            {t("app.fillEmpty")}
+            {emptyCount > 0 && <CountBadge>{emptyCount}</CountBadge>}
+          </Button>
+        )}
+
         <div className="relative">
           <Button
             onClick={() => onSavedOpenChange(!savedOpen)}

@@ -9,6 +9,7 @@ import { PlayerPicker } from "@/components/PlayerPicker";
 import { SlotEditor } from "@/components/SlotEditor";
 import { SynergyPanel } from "@/components/SynergyPanel";
 import { useDataset } from "@/data/useDataset";
+import { fillBestEmptySlots } from "@/domain/fillBest";
 import { computeSynergy } from "@/domain/synergy";
 import {
   createTeam,
@@ -121,6 +122,7 @@ export function BuilderPage() {
       <TeamToolbar
         team={team}
         onTeamChange={setTeam}
+        onFillEmpty={() => setTeam((current) => fillBestEmptySlots(current, dataset))}
         saved={saved}
         savedOpen={savedOpen}
         onSavedOpenChange={setSavedOpen}

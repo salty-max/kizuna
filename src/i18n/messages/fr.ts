@@ -41,6 +41,10 @@ export const fr = {
     rarityBudgetHint: "Hero : max 2 titulaires. Basara : max 1 dans l'effectif (banc inclus).",
     heroBudget: "Hero {n}/{max}",
     basaraBudget: "Basara {n}/{max}",
+    fillEmpty: "Remplir les vides",
+    fillEmptyHint:
+      "Meilleurs joueurs par poste en Legendary. Ne touche pas aux slots déjà pris, ni aux Hero/Basara.",
+    fillEmptyNone: "Aucun slot vide à remplir.",
     footer:
       "Projet de fan, sans lien avec Level-5. Données issues du jeu (dataminer) ; portraits via Inazugle.",
     footerDataOf: "Données du {date}.",
@@ -253,6 +257,9 @@ export const fr = {
     passives: "Passifs",
     passivesHint:
       "5 presets (loterie style/growth, pas fixés par perso) + 1 custom farmé (niv. 50).",
+    fillPassives: "Remplir les passifs vides",
+    fillPassivesHint:
+      "Meilleurs presets/custom pour le poste et la rareté. Ne remplace pas tes choix.",
     passivesEffectsGap:
       "Les effets ne sont pas encore parsés depuis le dump (texte seul) — ils s'affichent mais n'entrent pas dans le calcul de puissance.",
     preset: "Preset {n}",

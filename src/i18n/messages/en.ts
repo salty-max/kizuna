@@ -39,6 +39,10 @@ export const en = {
     rarityBudgetHint: "Hero: max 2 starters. Basara: max 1 in the whole squad (bench included).",
     heroBudget: "Hero {n}/{max}",
     basaraBudget: "Basara {n}/{max}",
+    fillEmpty: "Fill empty",
+    fillEmptyHint:
+      "Best players per position at Legendary. Leaves filled slots and Hero/Basara picks alone.",
+    fillEmptyNone: "No empty slots to fill.",
     footer:
       "Fan project, unaffiliated with Level-5. Game data from the dataminer; portraits via Inazugle.",
     footerDataOf: "Data of {date}.",
@@ -248,6 +252,9 @@ export const en = {
     passives: "Passives",
     passivesHint:
       "5 lottery presets (style/growth pools, not fixed per character) + 1 farmed custom (lv 50).",
+    fillPassives: "Fill empty passives",
+    fillPassivesHint:
+      "Best presets/custom for the position and rarity. Does not replace your picks.",
     passivesEffectsGap:
       "Effects are not parsed from the dump yet (text only) — they display but do not feed the power calculation.",
     preset: "Preset {n}",

@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { ExternalLink, Shirt, Trash2, UserPlus } from "lucide-react";
+import { ExternalLink, Shirt, Trash2, UserPlus, WandSparkles } from "lucide-react";
 
 import { imageUrl } from "@/data/load";
+import { countEmptyPassives, fillBestPassives } from "@/domain/fillBest";
 import { POWER_KEYS, STAT_KEYS, type PowerKey } from "@/domain/stats";
 import type { Modifier, SynergyResult } from "@/domain/synergy";
 import {
@@ -591,7 +592,31 @@ export function SlotEditor({
       )}
 
       {/* ── Passives ─────────────────────────────────────────────────────── */}
-      <Panel as="h3" title={t("editor.passives")}>
+      <Panel
+        as="h3"
+        title={t("editor.passives")}
+        action={
+          slot.player && countEmptyPassives(assignment) > 0 ? (
+            <Button
+              onClick={() =>
+                onChange(
+                  fillBestPassives(
+                    assignment,
+                    slot.kind,
+                    slot.expectedPosition ?? slot.player?.position ?? null,
+                    dataset,
+                  ),
+                )
+              }
+              title={t("editor.fillPassivesHint")}
+              icon={<WandSparkles className="size-3.5" />}
+              className="text-[11px]"
+            >
+              {t("editor.fillPassives")}
+            </Button>
+          ) : null
+        }
+      >
         <div className="flex flex-col gap-2">
           {Array.from({ length: MAX_SLOT_PASSIVES }, (_, index) => {
             const source = passiveSourceFor(slot.kind, index);
