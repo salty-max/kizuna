@@ -4,7 +4,13 @@ import { Callout, DataList, DataRow, Panel } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import type { Passive, PassiveEffect } from "@/domain/types";
 import { passiveDisplayDescription, useI18n } from "@/i18n";
-import { conditionLabel, directionLabel, passiveStatLabel, scopeLabel } from "@/i18n/labels";
+import {
+  conditionLabel,
+  directionLabel,
+  passiveStatLabel,
+  scopeLabel,
+  statLabel,
+} from "@/i18n/labels";
 import { formatNumber } from "@/lib/ui";
 
 export function WikiPassiveDetailPage() {
@@ -108,21 +114,27 @@ export function WikiPassiveDetailPage() {
 
 function EffectLine({ effect }: { effect: PassiveEffect }) {
   const { t } = useI18n();
-  const parts = [
-    scopeLabel(t, effect.scope),
-    `${directionLabel(t, effect.direction)} ${passiveStatLabel(t, effect.stat)}`,
-  ];
+  const statText =
+    effect.mode === "flat"
+      ? `${directionLabel(t, effect.direction)} ${statLabel(t, effect.baseStat)} (flat)`
+      : `${directionLabel(t, effect.direction)} ${passiveStatLabel(t, effect.stat)}`;
+  const parts = [scopeLabel(t, effect.scope), statText];
   if (effect.conditions.length > 0) {
     parts.push(effect.conditions.map((c) => conditionLabel(t, c)).join(" · "));
   }
   return <span>{parts.join(" · ")}</span>;
 }
 
+function isFlatOnly(passive: Passive): boolean {
+  return passive.effects.length > 0 && passive.effects.every((e) => e.mode === "flat");
+}
+
 function formatValueRange(passive: Passive, locale: "fr" | "en" | "ja"): string {
   const weak = formatBound(passive.weakValue, locale);
   const strong = formatBound(passive.strongValue, locale);
-  if (passive.weakValue === passive.strongValue) return `${strong} %`;
-  return `${weak} % – ${strong} %`;
+  const unit = isFlatOnly(passive) ? "" : " %";
+  if (passive.weakValue === passive.strongValue) return `${strong}${unit}`;
+  return `${weak}${unit} – ${strong}${unit}`;
 }
 
 function formatBound(value: number, locale: "fr" | "en" | "ja"): string {

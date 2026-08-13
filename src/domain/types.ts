@@ -1,4 +1,4 @@
-import type { BaseStats, PowerKey } from "./stats";
+import type { BaseStats, PowerKey, StatKey } from "./stats";
 
 export const POSITIONS = ["GK", "DF", "MF", "FW"] as const;
 export type Position = (typeof POSITIONS)[number];
@@ -425,13 +425,28 @@ export const PASSIVE_CONDITIONS = [
 ] as const;
 export type PassiveCondition = (typeof PASSIVE_CONDITIONS)[number];
 
-export interface PassiveEffect {
-  scope: PassiveScope;
-  stat: PassiveStat;
-  mode: "percent";
-  direction: "increase" | "decrease";
-  conditions: PassiveCondition[];
-}
+/**
+ * Structured effect on a passive.
+ *
+ * - `percent` — modifies a power/gauge stat (synergy engine).
+ * - `flat` — adds a flat amount to a base stat before power is derived
+ *   (e.g. "Kick +7"); applied during team resolution.
+ */
+export type PassiveEffect =
+  | {
+      mode: "percent";
+      scope: PassiveScope;
+      stat: PassiveStat;
+      direction: "increase" | "decrease";
+      conditions: PassiveCondition[];
+    }
+  | {
+      mode: "flat";
+      scope: PassiveScope;
+      baseStat: StatKey;
+      direction: "increase" | "decrease";
+      conditions: PassiveCondition[];
+    };
 
 export interface Passive {
   id: string;

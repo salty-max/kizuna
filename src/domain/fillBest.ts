@@ -233,6 +233,17 @@ export function passiveFillScore(
       score -= value * 0.5;
       continue;
     }
+    if (effect.mode === "flat") {
+      // Flat base stats: weight by how much the post cares about that stat.
+      const weights = position ? EQUIP_STAT_WEIGHTS[position] : null;
+      const w = weights?.[effect.baseStat] ?? 0.8;
+      let weight = w * 0.35; // smaller than % power buffs of similar "number"
+      if (effect.scope === "self" || effect.scope === "team") weight *= 1.2;
+      if (effect.conditions.length === 0) weight *= 1.35;
+      else weight *= 0.55;
+      score += value * weight;
+      continue;
+    }
     const mapped = POWER_STAT_MAP[effect.stat];
     const hit = mapped ? mapped.some((k) => want.has(k)) : false;
     // Gauges (tension, drop rates…) still matter a bit, but lose to real power.

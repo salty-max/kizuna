@@ -86,11 +86,13 @@ function passive(
   };
 }
 
-function effect(partial: Partial<PassiveEffect>): PassiveEffect {
+function effect(
+  partial: Partial<Extract<PassiveEffect, { mode: "percent" }>> = {},
+): Extract<PassiveEffect, { mode: "percent" }> {
   return {
+    mode: "percent",
     scope: "team",
     stat: "shotAT",
-    mode: "percent",
     direction: "increase",
     conditions: [],
     ...partial,

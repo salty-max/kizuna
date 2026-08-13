@@ -97,7 +97,7 @@ export const ja = {
     tactics: "必殺タクティクス",
     tacticsHint: "チーム必殺タクティクスと TP コスト。",
     passives: "パッシブ",
-    passivesHint: "選手・監督・マネージャーのパッシブ — テキスト・数値範囲・構造化効果（約96%）。",
+    passivesHint: "選手・監督・マネージャーのパッシブ — テキスト・数値範囲・構造化効果（約99%）。",
     passivesEffectsGap:
       "構造化効果のないパッシブもあります（テキストのみ）— パワー計算には入りません。",
     effects: "構造化効果",

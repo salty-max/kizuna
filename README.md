@@ -319,9 +319,9 @@ Still open after the dataminer pass (see [`data/raw/dataminer/HANDOFF.md`](data/
   carry. Hand entry stays (six slots: five presets + one custom lottery/custom
   pools — not per-character tables).
 - **Structured passive effects.** Best-effort parse from English passive text
-  covers most of the catalogue (`effects` on each passive). Charge-rank loops
-  are conditional (one rank of magnitude). Flat base-stat rows (`Kick +7`) stay
-  text-only. The wiki filters parsed vs text-only.
+  covers nearly the whole catalogue. Charge-rank loops are conditional (one
+  rank of magnitude). Flat base-stat rows (`Kick +7`) apply in resolveTeam
+  before power is derived. A handful of empty/id-only rows stay text-only.
 - **Level 1–98 curve, Abilearn, beans.** Only lv50 and lv99 tables are extracted.
   The builder targets lv99.
 

@@ -453,7 +453,18 @@ export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
     const rarity = assignment.rarity ?? "common";
     const scaledStats = player ? statsForRarity(player, rarity) : emptyBaseStats();
 
-    const stats = equipment.reduce((acc, item) => addBaseStats(acc, item.stats), scaledStats);
+    let stats = equipment.reduce((acc, item) => addBaseStats(acc, item.stats), scaledStats);
+
+    // Flat base-stat passives on this slot (self). Team-scoped flats need a
+    // second pass once every starter exists — see below.
+    for (const { passive, value } of passives) {
+      for (const effect of passive.effects) {
+        if (effect.mode !== "flat" || effect.scope !== "self") continue;
+        if (effect.conditions.length > 0) continue; // match-gated flats: unknown
+        const delta = effect.direction === "decrease" ? -value : value;
+        stats = { ...stats, [effect.baseStat]: stats[effect.baseStat] + delta };
+      }
+    }
 
     return {
       slotId,
@@ -473,6 +484,27 @@ export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
         player == null || expectedPosition == null || player.position === expectedPosition,
     };
   });
+
+  // Team-scoped flat base passives (coach/manager/player "Team Kick +N").
+  const starters = slots.filter((s) => s.kind === "pitch" && s.player !== null);
+  const flatSources = slots.filter((s) => s.kind !== "bench" && s.passives.length > 0);
+  for (const source of flatSources) {
+    for (const { passive, value } of source.passives) {
+      for (const effect of passive.effects) {
+        if (effect.mode !== "flat" || effect.scope !== "team") continue;
+        if (effect.conditions.length > 0) continue;
+        const delta = effect.direction === "decrease" ? -value : value;
+        for (const target of starters) {
+          target.stats = {
+            ...target.stats,
+            [effect.baseStat]: target.stats[effect.baseStat] + delta,
+          };
+          target.total = totalOf(target.stats);
+          target.power = computePower(target.stats);
+        }
+      }
+    }
+  }
 
   return {
     team,

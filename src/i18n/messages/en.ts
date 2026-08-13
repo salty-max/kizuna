@@ -92,7 +92,7 @@ export const en = {
     tactics: "Tactics",
     tacticsHint: "Team tactics and TP cost.",
     passives: "Passives",
-    passivesHint: "Player, coach and manager passives — text, bounds, structured effects (~96%).",
+    passivesHint: "Player, coach and manager passives — text, bounds, structured effects (~99%).",
     passivesEffectsGap:
       "Some passives have no structured effect (text only) — they do not enter the power calc.",
     effects: "Structured effects",

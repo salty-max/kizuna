@@ -226,6 +226,9 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
   for (const source of sources) {
     for (const { passive, value } of source.passives) {
       for (const effect of passive.effects) {
+        // Flat base-stat bonuses are baked into resolved stats in resolveTeam.
+        if (effect.mode === "flat") continue;
+
         const resolution = resolveScope(effect, source, starters);
 
         if (resolution.kind === "unresolvable") {

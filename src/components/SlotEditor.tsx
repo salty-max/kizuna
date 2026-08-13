@@ -714,7 +714,7 @@ export function SlotEditor({
                   />
 
                   <NumberInput
-                    step="0.1"
+                    step={selected?.effects.every((e) => e.mode === "flat") ? "1" : "0.1"}
                     value={current.value || ""}
                     disabled={!current.passiveId}
                     onChange={(event) => {
@@ -728,7 +728,11 @@ export function SlotEditor({
                     className="w-20 shrink-0"
                     aria-label={t("editor.percentValue")}
                   />
-                  <span className="shrink-0 text-xs text-ink-500">%</span>
+                  <span className="shrink-0 text-xs text-ink-500">
+                    {selected?.effects.length && selected.effects.every((e) => e.mode === "flat")
+                      ? ""
+                      : "%"}
+                  </span>
                 </div>
                 {unparsed && (
                   <p className="pl-[5.5rem] text-[11px] text-ink-500">

@@ -1,18 +1,29 @@
 /**
  * Best-effort parser: English passive text → structured effects for the
  * synergy engine. Charge-rank loops are modelled as conditional (one rank of
- * magnitude — the builder cannot know live charge). Flat base stats (Kick +7)
- * stay empty — no percent-power model for them yet.
+ * magnitude — the builder cannot know live charge). Flat base-stat rows
+ * (`Kick +7`) use mode `flat` and are applied in resolveTeam.
  *
  * Prefer EN over FR: grammar is more regular ("Team AT +4% for the first half").
  */
 
+import type { StatKey } from "./stats";
 import {
   type PassiveCondition,
   type PassiveEffect,
   type PassiveScope,
   type PassiveStat,
 } from "./types";
+
+const BASE_STAT_NAMES: Record<string, StatKey> = {
+  kick: "kick",
+  control: "control",
+  technique: "technique",
+  pressure: "pressure",
+  physical: "physical",
+  agility: "agility",
+  intelligence: "intelligence",
+};
 
 /** More specific patterns first. */
 const STAT_RULES: { re: RegExp; stat: PassiveStat }[] = [
@@ -154,18 +165,33 @@ function parseDirection(text: string): "increase" | "decrease" {
  * Parse one English passive blurb into zero or more effects.
  * Empty array = leave the passive text-only (engine ignores it).
  */
+/** `Kick +7` / `Team Control +5` → flat base-stat effect. */
+function parseFlatBaseEffect(text: string): PassiveEffect | null {
+  const m = text.match(
+    /^(?:(team|own|personal)\s+)?(kick|control|technique|pressure|physical|agility|intelligence)\s*([+\-−－])\s*(\d+(?:\.\d+)?)\s*$/i,
+  );
+  if (!m) return null;
+  const prefix = (m[1] ?? "").toLowerCase();
+  const baseStat = BASE_STAT_NAMES[m[2]!.toLowerCase()];
+  if (!baseStat) return null;
+  const sign = m[3]!;
+  const scope: PassiveScope =
+    prefix === "team" ? "team" : prefix === "own" || prefix === "personal" ? "self" : "self";
+  return {
+    mode: "flat",
+    scope,
+    baseStat,
+    direction: sign === "+" ? "increase" : "decrease",
+    conditions: [],
+  };
+}
+
 export function parsePassiveEffectsFromEn(text: string): PassiveEffect[] {
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (!cleaned) return [];
 
-  // Flat base stats ("Kick +7") are not percent power modifiers.
-  if (
-    /^(?:kick|control|technique|pressure|physical|agility|intelligence)\s*[+\-−－]?\s*\d+\s*$/i.test(
-      cleaned,
-    )
-  ) {
-    return [];
-  }
+  const flat = parseFlatBaseEffect(cleaned);
+  if (flat) return [flat];
 
   const stat = parseStat(cleaned);
   if (!stat) return [];
@@ -178,9 +204,9 @@ export function parsePassiveEffectsFromEn(text: string): PassiveEffect[] {
 
   return [
     {
+      mode: "percent",
       scope: parseScope(cleaned),
       stat,
-      mode: "percent",
       direction: parseDirection(cleaned),
       conditions,
     },
