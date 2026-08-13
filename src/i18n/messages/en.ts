@@ -43,6 +43,10 @@ export const en = {
     fillEmptyHint:
       "Best players per position at Legendary. Leaves filled slots and Hero/Basara picks alone.",
     fillEmptyNone: "No empty slots to fill.",
+    fillGear: "Equip empty",
+    fillGearHint:
+      "Best gear per position for every player. Does not replace pieces you already picked.",
+    fillGearNone: "No empty equipment slots.",
     footer:
       "Fan project, unaffiliated with Level-5. Game data from the dataminer; portraits via Inazugle.",
     footerDataOf: "Data of {date}.",
@@ -262,6 +266,8 @@ export const en = {
     fillPassives: "Fill empty passives",
     fillPassivesHint:
       "Best presets/custom for the position and rarity. Does not replace your picks.",
+    fillEquipment: "Fill empty gear",
+    fillEquipmentHint: "Best pieces for the position. Does not replace your picks.",
     passivesEffectsGap:
       "This passive has no structured effect — it displays but does not enter the power calc.",
     preset: "Preset {n}",

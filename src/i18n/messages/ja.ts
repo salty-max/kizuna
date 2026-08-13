@@ -49,6 +49,9 @@ export const ja = {
     fillEmptyHint:
       "ポジションごとに最強の選手をレジェンダリーで配置。埋まっているスロットとヒーロー／バサラは触らない。",
     fillEmptyNone: "埋める空きスロットがありません。",
+    fillGear: "空き装備を埋める",
+    fillGearHint: "ポジション向けの最良装備。既に選んだ装備は置き換えない。",
+    fillGearNone: "空きの装備スロットがありません。",
     footer:
       "ファンプロジェクトであり、レベルファイブとは無関係です。データはゲーム解析由来、肖像はイナズグル由来。",
     footerDataOf: "データ日 {date}。",
@@ -267,6 +270,8 @@ export const ja = {
     fillPassives: "空きパッシブを埋める",
     fillPassivesHint:
       "ポジションとレアリティ向けの最良プリセット／カスタム。既存の選択は置き換えない。",
+    fillEquipment: "空き装備を埋める",
+    fillEquipmentHint: "ポジション向けの最良装備。既存の選択は置き換えない。",
     passivesEffectsGap:
       "このパッシブに構造化効果はありません — 表示はしますがパワー計算には入りません。",
     preset: "プリセット {n}",

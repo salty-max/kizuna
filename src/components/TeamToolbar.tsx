@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { Download, FolderOpen, Save, Share2, WandSparkles } from "lucide-react";
+import { Download, FolderOpen, Save, Share2, Shirt, WandSparkles } from "lucide-react";
 
 import { Button, CountBadge, Select, TextInput } from "@/components/ui";
-import { countEmptySlots } from "@/domain/fillBest";
+import { countEmptyEquipmentOnTeam, countEmptySlots } from "@/domain/fillBest";
 import { FORMATIONS } from "@/domain/formations";
 import { applyFormation, rarityBudget, type Team } from "@/domain/team";
 import { useI18n } from "@/i18n";
@@ -19,6 +19,7 @@ interface Props {
   team: Team;
   onTeamChange: (team: Team) => void;
   onFillEmpty?: () => void;
+  onFillGear?: () => void;
   saved: SavedTeam[];
   savedOpen: boolean;
   onSavedOpenChange: (open: boolean) => void;
@@ -33,6 +34,7 @@ export function TeamToolbar({
   team,
   onTeamChange,
   onFillEmpty,
+  onFillGear,
   saved,
   savedOpen,
   onSavedOpenChange,
@@ -45,6 +47,7 @@ export function TeamToolbar({
   const { t } = useI18n();
   const budget = rarityBudget(team);
   const emptyCount = countEmptySlots(team);
+  const emptyGear = countEmptyEquipmentOnTeam(team);
 
   return (
     <div className={cn("panel flex shrink-0 flex-wrap items-center gap-2 p-2.5", className)}>
@@ -104,6 +107,17 @@ export function TeamToolbar({
           >
             {t("app.fillEmpty")}
             {emptyCount > 0 && <CountBadge>{emptyCount}</CountBadge>}
+          </Button>
+        )}
+        {onFillGear && (
+          <Button
+            onClick={onFillGear}
+            disabled={emptyGear === 0}
+            title={emptyGear === 0 ? t("app.fillGearNone") : t("app.fillGearHint")}
+            icon={<Shirt className="size-4" />}
+          >
+            {t("app.fillGear")}
+            {emptyGear > 0 && <CountBadge>{emptyGear}</CountBadge>}
           </Button>
         )}
 

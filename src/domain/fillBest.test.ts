@@ -1,16 +1,20 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  countEmptyEquipment,
   countEmptyPassives,
   countEmptySlots,
+  equipmentFillScore,
+  fillBestEmptyEquipment,
   fillBestEmptySlots,
+  fillBestEquipment,
   fillBestPassives,
   passiveFillScore,
   playerSlotScore,
   positionPowerScore,
 } from "./fillBest";
 import { createTeam, emptyAssignment, filledAssignment } from "./team";
-import type { Dataset, Passive, Player } from "./types";
+import type { Dataset, Equipment, Passive, Player } from "./types";
 import { emptyBaseStats, computePower } from "./stats";
 
 function player(
@@ -77,11 +81,34 @@ function passive(
   };
 }
 
-function tinyDataset(players: Player[], passives: Passive[] = []): Dataset {
+function gear(
+  id: string,
+  slot: Equipment["slot"],
+  stats: Equipment["stats"],
+  total: number,
+): Equipment {
+  return {
+    id,
+    slot,
+    name: id,
+    names: { en: id },
+    description: "",
+    descriptions: {},
+    shop: "",
+    stats,
+    total,
+  };
+}
+
+function tinyDataset(
+  players: Player[],
+  passives: Passive[] = [],
+  equipment: Equipment[] = [],
+): Dataset {
   return {
     players,
     passives,
-    equipment: [],
+    equipment,
     abilities: [],
     tactics: [],
     synergies: [],
@@ -240,5 +267,46 @@ describe("fillBestPassives", () => {
   test("no-ops without a player", () => {
     const empty = emptyAssignment();
     expect(fillBestPassives(empty, "pitch", "FW", dataset)).toEqual(empty);
+  });
+});
+
+describe("fillBestEquipment", () => {
+  const bootsKick = gear("b1", "boots", { kick: 40, control: 10 }, 50);
+  const bootsWall = gear("b2", "boots", { pressure: 40, physical: 40 }, 80);
+  const pendant = gear("p1", "pendant", { kick: 20 }, 20);
+  const bracelet = gear("r1", "bracelet", { control: 15 }, 15);
+  const misc = gear("m1", "misc", { agility: 12 }, 12);
+
+  const dataset = tinyDataset(
+    [player(1, "FW", { kick: 50 })],
+    [],
+    [bootsKick, bootsWall, pendant, bracelet, misc],
+  );
+
+  test("weights FW toward kick boots over higher total wall boots", () => {
+    expect(equipmentFillScore(bootsKick, "FW")).toBeGreaterThan(
+      equipmentFillScore(bootsWall, "FW"),
+    );
+  });
+
+  test("fills empty slots without clobbering existing gear", () => {
+    const assignment = filledAssignment(1, {
+      equipment: { boots: "b2" },
+    });
+    const next = fillBestEquipment(assignment, "FW", dataset);
+    expect(next.equipment.boots).toBe("b2");
+    expect(next.equipment.pendant).toBe("p1");
+    expect(next.equipment.bracelet).toBe("r1");
+    expect(next.equipment.misc).toBe("m1");
+    expect(countEmptyEquipment(next)).toBe(0);
+  });
+
+  test("team fill only touches occupied slots", () => {
+    const team = createTeam("4-4-2-diamond");
+    team.slots.fw1 = filledAssignment(1);
+    const next = fillBestEmptyEquipment(team, dataset);
+    expect(next.slots.fw1?.equipment.boots).toBe("b1");
+    expect(next.slots.gk?.playerId).toBeNull();
+    expect(next.slots.gk?.equipment.boots).toBeUndefined();
   });
 });

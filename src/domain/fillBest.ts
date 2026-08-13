@@ -12,14 +12,17 @@ import {
   type Team,
 } from "./team";
 import {
+  EQUIPMENT_SLOTS,
   POWER_STAT_MAP,
   RARITY_SCALES,
   type BuildType,
   type Dataset,
+  type Equipment,
   type Passive,
   type Player,
   type Position,
 } from "./types";
+import type { StatKey } from "./stats";
 
 /**
  * Greedy "fill empty" helpers for the builder.
@@ -315,4 +318,98 @@ export function fillBestPassives(
 
 export function countEmptyPassives(assignment: SlotAssignment): number {
   return assignment.passives.filter((p) => !p.passiveId).length;
+}
+
+/* ── Equipment ────────────────────────────────────────────────────────────── */
+
+/** How much each base stat matters for a formation post (relative weights). */
+const EQUIP_STAT_WEIGHTS: Record<Position, Partial<Record<StatKey, number>>> = {
+  GK: { pressure: 2, physical: 2, agility: 1.5, intelligence: 1, technique: 0.5 },
+  DF: { pressure: 2, physical: 2, technique: 1, intelligence: 1, agility: 0.8 },
+  MF: { technique: 2, control: 1.5, intelligence: 1.5, kick: 1, agility: 1 },
+  FW: { kick: 2, control: 2, technique: 1.5, physical: 0.8, agility: 1 },
+};
+
+/** Score an equipment piece for a post (or raw total if no position). */
+export function equipmentFillScore(item: Equipment, position: Position | null): number {
+  if (!position) return item.total;
+  const weights = EQUIP_STAT_WEIGHTS[position];
+  let score = 0;
+  for (const key of STAT_KEYS) {
+    const value = item.stats[key] ?? 0;
+    if (!value) continue;
+    score += value * (weights[key] ?? 0.4);
+  }
+  // Tiny total tie-break so equal weighted pieces still rank.
+  return score + item.total * 0.01;
+}
+
+/**
+ * Fill empty gear slots on one assignment. Does not replace pieces the user set.
+ * The same item can equip multiple players (builder has no inventory limit).
+ */
+export function fillBestEquipment(
+  assignment: SlotAssignment,
+  position: Position | null,
+  dataset: Dataset,
+): SlotAssignment {
+  if (assignment.playerId == null) return assignment;
+
+  const equipment = { ...assignment.equipment };
+  let changed = false;
+
+  for (const slot of EQUIPMENT_SLOTS) {
+    if (equipment[slot]) continue;
+    const candidates = dataset.equipment.filter((e) => e.slot === slot);
+    let best: Equipment | null = null;
+    let bestScore = -Infinity;
+    for (const item of candidates) {
+      const score = equipmentFillScore(item, position);
+      if (score > bestScore) {
+        bestScore = score;
+        best = item;
+      }
+    }
+    if (best) {
+      equipment[slot] = best.id;
+      changed = true;
+    }
+  }
+
+  return changed ? { ...assignment, equipment } : assignment;
+}
+
+export function countEmptyEquipment(assignment: SlotAssignment): number {
+  if (assignment.playerId == null) return 0;
+  return EQUIPMENT_SLOTS.filter((slot) => !assignment.equipment[slot]).length;
+}
+
+/**
+ * Fill empty gear on every squad member that already has a character.
+ * Leaves empty portrait slots alone.
+ */
+export function fillBestEmptyEquipment(team: Team, dataset: Dataset): Team {
+  const formation = findFormation(team.formationId);
+  const slots: Record<string, SlotAssignment> = { ...team.slots };
+  let changed = false;
+
+  for (const [slotId, assignment] of Object.entries(slots)) {
+    if (assignment.playerId == null) continue;
+    const expected = formation.slots.find((s) => s.id === slotId)?.position ?? null;
+    const next = fillBestEquipment(assignment, expected, dataset);
+    if (next !== assignment) {
+      slots[slotId] = next;
+      changed = true;
+    }
+  }
+
+  return changed ? { ...team, slots } : team;
+}
+
+export function countEmptyEquipmentOnTeam(team: Team): number {
+  let n = 0;
+  for (const assignment of Object.values(team.slots)) {
+    n += countEmptyEquipment(assignment);
+  }
+  return n;
 }

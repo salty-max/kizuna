@@ -2,7 +2,12 @@ import { useMemo } from "react";
 import { ExternalLink, Shirt, Trash2, UserPlus, WandSparkles } from "lucide-react";
 
 import { imageUrl } from "@/data/load";
-import { countEmptyPassives, fillBestPassives } from "@/domain/fillBest";
+import {
+  countEmptyEquipment,
+  countEmptyPassives,
+  fillBestEquipment,
+  fillBestPassives,
+} from "@/domain/fillBest";
 import { POWER_KEYS, STAT_KEYS, type PowerKey } from "@/domain/stats";
 import type { Modifier, SynergyResult } from "@/domain/synergy";
 import {
@@ -482,7 +487,30 @@ export function SlotEditor({
 
       {/* ── Equipment ────────────────────────────────────────────────────── */}
       {!staffOnly && (
-        <Panel as="h3" title={t("editor.equipment")}>
+        <Panel
+          as="h3"
+          title={t("editor.equipment")}
+          action={
+            slot.player && countEmptyEquipment(assignment) > 0 ? (
+              <Button
+                onClick={() =>
+                  onChange(
+                    fillBestEquipment(
+                      assignment,
+                      slot.expectedPosition ?? slot.player?.position ?? null,
+                      dataset,
+                    ),
+                  )
+                }
+                title={t("editor.fillEquipmentHint")}
+                icon={<WandSparkles className="size-3.5" />}
+                className="text-[11px]"
+              >
+                {t("editor.fillEquipment")}
+              </Button>
+            ) : null
+          }
+        >
           <div className="flex flex-col gap-2">
             {EQUIPMENT_SLOTS.map((equipmentSlot) => {
               const items = equipmentBySlot.get(equipmentSlot) ?? [];
