@@ -16,6 +16,8 @@ import {
   type PowerStats,
 } from "./stats";
 import {
+  MAX_BASARA_IN_SQUAD,
+  MAX_HERO_STARTERS,
   MAX_TEAM_TACTICS,
   RARITY_SCALES,
   type BuildType,
@@ -33,6 +35,13 @@ import {
 
 /** Five preset slots plus one custom passive, matching the in-game limit. */
 export const MAX_SLOT_PASSIVES = 6;
+
+/**
+ * Default rarity when the user *picks* a character into a slot.
+ * Competitive floor is Legendary; Hero/Basara are separate capped acquisitions.
+ * Empty slots keep `common` so tallies ignore vacant pitch spots.
+ */
+export const DEFAULT_FILLED_RARITY: Rarity = "legendary";
 
 export type SlotKind = "pitch" | "bench" | "coach" | "manager";
 
@@ -94,6 +103,84 @@ export function emptyAssignment(): SlotAssignment {
   };
 }
 
+/** Assignment for a freshly picked character — Legendary, not Common. */
+export function filledAssignment(
+  playerId: number,
+  extras: Partial<Omit<SlotAssignment, "playerId">> = {},
+): SlotAssignment {
+  return {
+    ...emptyAssignment(),
+    ...extras,
+    playerId,
+    rarity: extras.rarity ?? DEFAULT_FILLED_RARITY,
+  };
+}
+
+/** Hero starters on the pitch (bench Heroes do not count). */
+export function countHeroStarters(team: Team, excludeSlotId?: string): number {
+  const formation = findFormation(team.formationId);
+  let n = 0;
+  for (const { id } of formation.slots) {
+    if (id === excludeSlotId) continue;
+    const a = team.slots[id];
+    if (a?.playerId != null && a.rarity === "hero") n++;
+  }
+  return n;
+}
+
+/** Basara across pitch + bench + staff (whole roster). */
+export function countBasaraInSquad(team: Team, excludeSlotId?: string): number {
+  const formation = findFormation(team.formationId);
+  let n = 0;
+  for (const id of allSlotIds(formation)) {
+    if (id === excludeSlotId) continue;
+    const a = team.slots[id];
+    if (a?.playerId != null && a.rarity === "basara") n++;
+  }
+  return n;
+}
+
+function isPitchSlot(team: Team, slotId: string): boolean {
+  return findFormation(team.formationId).slots.some((s) => s.id === slotId);
+}
+
+/**
+ * Whether `rarity` can be set on `slotId` without breaking game caps.
+ * Current slot is excluded so re-selecting the same rarity always stays valid.
+ */
+export function isRarityAllowed(team: Team, slotId: string, rarity: Rarity): boolean {
+  if (rarity === "hero") {
+    // Bench/staff Heroes are free — only pitch Heroes are capped.
+    if (!isPitchSlot(team, slotId)) return true;
+    return countHeroStarters(team, slotId) < MAX_HERO_STARTERS;
+  }
+  if (rarity === "basara") {
+    return countBasaraInSquad(team, slotId) < MAX_BASARA_IN_SQUAD;
+  }
+  return true;
+}
+
+/** Hero / Basara counters for the toolbar. */
+export function rarityBudget(team: Team): {
+  heroes: number;
+  maxHeroes: number;
+  basaras: number;
+  maxBasaras: number;
+  heroOver: boolean;
+  basaraOver: boolean;
+} {
+  const heroes = countHeroStarters(team);
+  const basaras = countBasaraInSquad(team);
+  return {
+    heroes,
+    maxHeroes: MAX_HERO_STARTERS,
+    basaras,
+    maxBasaras: MAX_BASARA_IN_SQUAD,
+    heroOver: heroes > MAX_HERO_STARTERS,
+    basaraOver: basaras > MAX_BASARA_IN_SQUAD,
+  };
+}
+
 export function createTeam(formationId: string = DEFAULT_FORMATION.id): Team {
   const formation = findFormation(formationId);
   const slots: Record<string, SlotAssignment> = {};
@@ -122,14 +209,60 @@ export function normalizeTeam(team: Team): Team {
 
 /**
  * Which passive catalogue a given passive slot draws from.
- * Coach / manager slots use their game catalogues (`mps*` / `cps*`).
- * Pitch and the 6th "custom" slot share the player catalogue until the game
- * exposes a separate custom list.
+ *
+ * Game model (HANDOFF): five lottery presets (style/growth pools — not fixed
+ * per character) plus one custom farmed slot at level 50. Coach/manager use
+ * their own catalogues. Index 0–4 → presets, index 5 → custom.
  */
-export function passiveSourceFor(kind: SlotKind, _index: number): PassiveSource {
+export function passiveSourceFor(kind: SlotKind, index: number): PassiveSource {
   if (kind === "coach") return "coach";
   if (kind === "manager") return "manager";
+  if (index >= MAX_SLOT_PASSIVES - 1) return "custom";
   return "player";
+}
+
+/**
+ * Map character rarity to the dump's passive tier (0…4).
+ * Hero / Basara use the top preset tier (Legendary ceiling for lottery rows).
+ */
+export function passiveTierForRarity(rarity: Rarity): number {
+  switch (rarity) {
+    case "common":
+      return 0;
+    case "rising":
+      return 1;
+    case "advanced":
+      return 2;
+    case "top":
+      return 3;
+    case "legendary":
+    case "hero":
+    case "basara":
+      return 4;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Magnitude for a passive at a given character rarity: prefer the sibling row
+ * in the same `family` at the matching tier, else fall back to `strongValue`.
+ */
+export function passiveValueForRarity(
+  passive: Passive,
+  rarity: Rarity,
+  catalogue: readonly Passive[],
+): number {
+  if (passive.family == null) return passive.strongValue;
+  const want = passiveTierForRarity(rarity);
+  const match = catalogue.find((p) => p.family === passive.family && p.tier === want);
+  if (match) return match.strongValue;
+  // Closest lower tier, then any sibling.
+  const siblings = catalogue
+    .filter((p) => p.family === passive.family && p.tier != null)
+    .sort((a, b) => (b.tier ?? 0) - (a.tier ?? 0));
+  const lower = siblings.find((p) => (p.tier ?? 0) <= want);
+  return lower?.strongValue ?? siblings[0]?.strongValue ?? passive.strongValue;
 }
 
 export function allSlotIds(formation: Formation): string[] {
