@@ -1,18 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 
 import { ImportDialog, ShareDialog } from "@/components/ShareModals";
+import { BuilderWelcome } from "@/components/BuilderWelcome";
+import { ActionNotice, type ActionFeedback } from "@/components/ActionNotice";
+import { OptimizationReportPanel } from "@/components/OptimizationReportPanel";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TeamToolbar } from "@/components/TeamToolbar";
-import { IconButton, Panel, Tab } from "@/components/ui";
+import { IconButton, Panel } from "@/components/ui";
 import { Pitch } from "@/components/Pitch";
 import { PlayerPicker } from "@/components/PlayerPicker";
 import { SlotEditor } from "@/components/SlotEditor";
+import { SlotSheet } from "@/components/SlotSheet";
 import { SynergyPanel } from "@/components/SynergyPanel";
 import { useDataset } from "@/data/useDataset";
-import { fillBestEmptyEquipment, fillBestEmptySlots } from "@/domain/fillBest";
+import {
+  fillBestEmptyEquipment,
+  optimizeEmptySlots,
+  type OptimizationReport,
+} from "@/domain/fillBest";
 import { computeSynergy } from "@/domain/synergy";
 import {
   createTeam,
+  clearTeamAssignments,
   emptyAssignment,
   filledAssignment,
   normalizeTeam,
@@ -24,6 +34,7 @@ import { playerDisplayName, useI18n } from "@/i18n";
 import {
   decodeShareInput,
   encodeShareCode,
+  encodeTeam,
   teamFromLocationHash,
   teamShareUrl,
   writeTeamToLocationHash,
@@ -37,7 +48,7 @@ import {
   saveTeam,
   type SavedTeam,
 } from "@/lib/storage";
-import { formatDateTime } from "@/lib/ui";
+import { cn, formatDateTime } from "@/lib/ui";
 
 /** A shared link wins over the local draft — that is the point of opening one. */
 function initialTeam(): Team {
@@ -56,7 +67,14 @@ export function BuilderPage() {
   const [savedOpen, setSavedOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const feedbackId = useRef(0);
+  const [optimization, setOptimization] = useState<{
+    report: OptimizationReport;
+    teamCode: string;
+  } | null>(null);
 
   // Debounce hash + localStorage: typing a team name shouldn't rewrite history
   // 20×/s. 300ms is short enough that a hard refresh still keeps the draft.
@@ -72,6 +90,16 @@ export function BuilderPage() {
   const synergy = useMemo(() => computeSynergy(resolved), [resolved]);
 
   const selectedSlot = resolved.slots.find((slot) => slot.slotId === selectedSlotId) ?? null;
+  const currentTeamCode = encodeTeam(team);
+  const activeOptimization =
+    optimization && optimization.teamCode === currentTeamCode ? optimization.report : null;
+  const hasPlayers = resolved.slots.some(
+    (slot) => (slot.kind === "pitch" || slot.kind === "bench") && slot.player !== null,
+  );
+  const notify = (tone: ActionFeedback["tone"], message: string) => {
+    setFeedback({ id: ++feedbackId.current, tone, message });
+  };
+  const dismissFeedback = useCallback(() => setFeedback(null), []);
 
   const updateAssignment = useCallback((slotId: string, next: SlotAssignment) => {
     setTeam((current) => ({
@@ -85,6 +113,7 @@ export function BuilderPage() {
     try {
       await navigator.clipboard.writeText(code);
       setCopied("code");
+      notify("success", t("app.codeCopied"));
       setTimeout(() => setCopied(null), 2000);
     } catch {
       window.prompt(t("app.copyCodePrompt"), code);
@@ -96,6 +125,7 @@ export function BuilderPage() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied("link");
+      notify("success", t("app.linkCopied"));
       setTimeout(() => setCopied(null), 2000);
     } catch {
       window.prompt(t("app.copyLinkPrompt"), url);
@@ -108,22 +138,69 @@ export function BuilderPage() {
     setTeam(normalizeTeam(next));
     setSelectedSlotId(null);
     setImportOpen(false);
+    notify("success", t("app.importSuccess", { name: next.name || t("team.defaultName") }));
     return true;
   };
 
   const handleSave = () => {
     const named = team.name.trim() === "" ? { ...team, name: t("team.defaultName") } : team;
     if (named !== team) setTeam(named);
-    setSaved(saveTeam(named));
+    const result = saveTeam(named);
+    if (result.persisted) {
+      setSaved(result.value);
+      notify("success", t("app.saveSuccess", { name: named.name }));
+    } else {
+      notify("error", t("app.saveFailed"));
+    }
   };
+
+  const handleOptimize = (source: Team) => {
+    const result = optimizeEmptySlots(source, dataset);
+    setTeam(result.team);
+    setOptimization({ report: result.report, teamCode: encodeTeam(result.team) });
+  };
+  const closePicker = () => {
+    const slotId = selectedSlotId;
+    setPickerOpen(false);
+    if (slotId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`slot-player-action-${slotId}`)?.focus();
+      });
+    }
+  };
+
+  const closeSlotSheet = () => {
+    const slotId = selectedSlotId;
+    setSelectedSlotId(null);
+    setPickerOpen(false);
+    if (slotId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`slot-player-action-${slotId}`)?.focus();
+      });
+    }
+  };
+  const renderWelcome = () => (
+    <BuilderWelcome
+      onGenerateExample={() =>
+        handleOptimize(team.name.trim() ? team : { ...team, name: t("onboarding.sampleName") })
+      }
+      onStartManually={() => {
+        const firstSlotId = resolved.formation.slots[0]?.id;
+        if (!firstSlotId) return;
+        setSelectedSlotId(firstSlotId);
+        setPickerOpen(true);
+      }}
+    />
+  );
 
   return (
     <>
       <TeamToolbar
         team={team}
         onTeamChange={setTeam}
-        onFillEmpty={() => setTeam((current) => fillBestEmptySlots(current, dataset))}
+        onFillEmpty={() => handleOptimize(team)}
         onFillGear={() => setTeam((current) => fillBestEmptyEquipment(current, dataset))}
+        onClear={() => setClearOpen(true)}
         saved={saved}
         savedOpen={savedOpen}
         onSavedOpenChange={setSavedOpen}
@@ -144,17 +221,31 @@ export function BuilderPage() {
                 if (restored) {
                   setTeam(normalizeTeam(restored));
                   setSelectedSlotId(null);
+                  notify("success", t("app.restoreSuccess", { name: entry.name }));
+                } else {
+                  notify("error", t("app.restoreFailed"));
                 }
                 setSavedOpen(false);
               }}
-              onDelete={(id) => setSaved(deleteSavedTeam(id))}
+              onDelete={(entry) => {
+                const result = deleteSavedTeam(entry.id);
+                if (result.persisted) {
+                  setSaved(result.value);
+                  notify("success", t("app.deleteSuccess", { name: entry.name }));
+                } else {
+                  notify("error", t("app.deleteFailed"));
+                }
+              }}
             />
           ) : null
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="scroll-slim min-h-0 overflow-y-auto pr-1">
+      {!hasPlayers && <div className="lg:hidden">{renderWelcome()}</div>}
+
+      {/* Pitch stays primary; team rail is always composition — never swapped for a slot tab. */}
+      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:gap-4">
+        <div className="min-h-0 min-w-0 lg:overflow-y-auto lg:scroll-slim">
           <Pitch
             resolved={resolved}
             synergy={synergy}
@@ -164,41 +255,75 @@ export function BuilderPage() {
           />
         </div>
 
-        <aside className="flex min-h-0 min-w-0 flex-col gap-3">
-          <div role="tablist" className="flex shrink-0 gap-1">
-            <Tab active={selectedSlot === null} onClick={() => setSelectedSlotId(null)}>
-              {t("app.tabTeam")}
-            </Tab>
-            <Tab active={selectedSlot !== null} disabled={!selectedSlot}>
-              {selectedSlot?.player
-                ? playerDisplayName(selectedSlot.player, showOriginalNames, locale)
-                : t("app.tabSlot")}
-            </Tab>
-          </div>
-
-          <div className="scroll-slim min-h-0 flex-1 overflow-y-auto pr-1">
-            {selectedSlot ? (
-              <SlotEditor
-                slot={selectedSlot}
-                assignment={team.slots[selectedSlot.slotId] ?? emptyAssignment()}
-                team={team}
-                dataset={dataset}
-                synergy={synergy}
-                onChange={(next) => updateAssignment(selectedSlot.slotId, next)}
-                onOpenPicker={() => setPickerOpen(true)}
-              />
+        <aside
+          className={cn("flex min-h-0 min-w-0 flex-col gap-3", !hasPlayers && "hidden lg:flex")}
+        >
+          <div className="min-h-0 lg:flex-1 lg:overflow-y-auto lg:scroll-slim">
+            {hasPlayers ? (
+              <div className="flex flex-col gap-4">
+                {activeOptimization && (
+                  <OptimizationReportPanel
+                    report={activeOptimization}
+                    dataset={dataset}
+                    onDismiss={() => setOptimization(null)}
+                  />
+                )}
+                <SynergyPanel
+                  resolved={resolved}
+                  synergy={synergy}
+                  dataset={dataset}
+                  tacticIds={team.tacticIds}
+                  onTacticsChange={(tacticIds) => setTeam((current) => ({ ...current, tacticIds }))}
+                  offensiveSynergyId={team.offensiveSynergyId}
+                  defensiveSynergyId={team.defensiveSynergyId}
+                  onSynergiesChange={(ids) => setTeam((current) => ({ ...current, ...ids }))}
+                  teamBuildType={team.teamBuildType}
+                  buildRank={team.buildRank}
+                  onBuildRankChange={(next) => setTeam((current) => ({ ...current, ...next }))}
+                />
+              </div>
             ) : (
-              <SynergyPanel
-                resolved={resolved}
-                synergy={synergy}
-                dataset={dataset}
-                tacticIds={team.tacticIds}
-                onTacticsChange={(tacticIds) => setTeam((current) => ({ ...current, tacticIds }))}
-              />
+              renderWelcome()
             )}
           </div>
         </aside>
       </div>
+
+      {selectedSlot && !pickerOpen && (
+        <SlotSheet
+          title={
+            selectedSlot.player
+              ? playerDisplayName(selectedSlot.player, showOriginalNames, locale)
+              : t("app.tabSlot")
+          }
+          subtitle={
+            selectedSlot.expectedPosition
+              ? `${selectedSlot.expectedPosition}${
+                  selectedSlot.player && !selectedSlot.positionMatch
+                    ? ` · ${selectedSlot.player.position}`
+                    : ""
+                }`
+              : selectedSlot.kind === "coach"
+                ? t("pitch.coach")
+                : selectedSlot.kind === "manager"
+                  ? t("pitch.managerRole")
+                  : selectedSlot.kind === "bench"
+                    ? t("pitch.bench")
+                    : null
+          }
+          onClose={closeSlotSheet}
+        >
+          <SlotEditor
+            slot={selectedSlot}
+            assignment={team.slots[selectedSlot.slotId] ?? emptyAssignment()}
+            team={team}
+            dataset={dataset}
+            synergy={synergy}
+            onChange={(next) => updateAssignment(selectedSlot.slotId, next)}
+            onOpenPicker={() => setPickerOpen(true)}
+          />
+        </SlotSheet>
+      )}
 
       {pickerOpen && selectedSlot && (
         <PlayerPicker
@@ -220,9 +345,9 @@ export function BuilderPage() {
                 rarity: previous.playerId != null ? previous.rarity : undefined,
               }),
             );
-            setPickerOpen(false);
+            closePicker();
           }}
-          onClose={() => setPickerOpen(false)}
+          onClose={closePicker}
         />
       )}
 
@@ -237,6 +362,26 @@ export function BuilderPage() {
       )}
 
       {importOpen && <ImportDialog onImport={handleImport} onClose={() => setImportOpen(false)} />}
+      {clearOpen && (
+        <ConfirmDialog
+          title={t("app.clearTeamTitle")}
+          description={t("app.clearTeamDescription")}
+          confirmLabel={t("app.clearTeamConfirm")}
+          cancelLabel={t("app.cancel")}
+          onClose={() => setClearOpen(false)}
+          onConfirm={() => {
+            setTeam((current) => clearTeamAssignments(current));
+            setSelectedSlotId(null);
+            setPickerOpen(false);
+            setOptimization(null);
+            setClearOpen(false);
+            notify("success", t("app.clearTeamSuccess"));
+          }}
+        />
+      )}
+      {feedback && (
+        <ActionNotice key={feedback.id} feedback={feedback} onDismiss={dismissFeedback} />
+      )}
     </>
   );
 }
@@ -252,7 +397,7 @@ function SavedTeamsMenu({
   locale: import("@/i18n").Locale;
   onClose: () => void;
   onRestore: (entry: SavedTeam) => void;
-  onDelete: (id: string) => void;
+  onDelete: (entry: SavedTeam) => void;
 }) {
   const { t } = useI18n();
 
@@ -285,7 +430,7 @@ function SavedTeamsMenu({
               </button>
               <IconButton
                 tone="danger"
-                onClick={() => onDelete(entry.id)}
+                onClick={() => onDelete(entry)}
                 className="mr-2 border-transparent bg-transparent"
                 aria-label={t("app.deleteTeam", {
                   name: entry.name || t("team.defaultName"),

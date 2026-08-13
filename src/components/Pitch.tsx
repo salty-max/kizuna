@@ -25,7 +25,7 @@ export function Pitch({ resolved, synergy, imageBase, selectedSlotId, onSelectSl
   const bySlot = new Map(resolved.slots.map((slot) => [slot.slotId, slot]));
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <FormationBoard
         formation={resolved.formation}
         bySlot={bySlot}
@@ -59,8 +59,9 @@ const CARD_WIDTH = 124;
 const CARD_HEIGHT = 60;
 /** Board size in px. Official coords pack denser than these cards; layoutPitchSlots
  *  spreads collisions, and a slightly larger board keeps nudges small. */
-const BOARD_MIN_WIDTH = 720;
-const BOARD_HEIGHT = 500;
+/** Slightly under 720 so pitch + ~22rem team rail fit more 1280–1440 viewports without dual scroll. */
+const BOARD_MIN_WIDTH = 640;
+const BOARD_HEIGHT = 480;
 const BOARD_PAD_Y_EXTRA = 12;
 
 /**
