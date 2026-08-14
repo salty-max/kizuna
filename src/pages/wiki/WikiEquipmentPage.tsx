@@ -2,6 +2,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Search } from "lucide-react";
 
+import { InazugleImage } from "@/components/InazugleImage";
 import { FilterChip, Panel, PanelMeta } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import { imageUrl } from "@/data/load";
@@ -115,12 +116,18 @@ function EquipmentRow({ item, imageBase }: { item: Equipment; imageBase: string 
         )}
       >
         {item.image ? (
-          <img
+          <InazugleImage
             src={imageUrl(imageBase, item.image, 48)}
+            kind="equipment"
             alt=""
-            width={32}
-            height={32}
-            className="size-8 shrink-0 border border-ink-700 object-contain bg-ink-950"
+            loading="lazy"
+            frameClassName="size-8 shrink-0 border border-ink-700 bg-ink-950"
+            className="size-8 object-contain"
+            fallback={
+              <span className="flex size-8 items-center justify-center text-[10px] text-ink-600">
+                —
+              </span>
+            }
           />
         ) : (
           <span className="flex size-8 shrink-0 items-center justify-center border border-ink-800 bg-ink-950 text-[10px] text-ink-600">

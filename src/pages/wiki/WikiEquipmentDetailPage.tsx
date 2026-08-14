@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router";
 
+import { InazugleImage } from "@/components/InazugleImage";
 import { Callout, DataList, DataRow, Panel } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
 import { imageUrl } from "@/data/load";
@@ -48,12 +49,15 @@ export function WikiEquipmentDetailPage() {
       <Panel title={name} bodyClassName="flex flex-col gap-4">
         <div className="flex items-start gap-4">
           {item.image ? (
-            <img
+            <InazugleImage
               src={imageUrl(dataset.imageBase, item.image, 128)}
+              kind="equipment"
               alt=""
-              width={72}
-              height={72}
-              className="size-[72px] shrink-0 border-2 border-ink-700 bg-ink-950 object-contain"
+              frameClassName="size-[72px] shrink-0 border-2 border-ink-700 bg-ink-950"
+              className="size-[72px] object-contain"
+              fallback={
+                <span className="flex size-[72px] items-center justify-center text-ink-600">—</span>
+              }
             />
           ) : (
             <span className="flex size-[72px] shrink-0 items-center justify-center border-2 border-ink-800 bg-ink-950 text-ink-600">

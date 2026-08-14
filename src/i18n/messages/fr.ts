@@ -437,6 +437,7 @@ export const fr = {
   },
   viewer: {
     open: "Voir le modèle",
+    close: "Fermer",
     unavailable: "Modèle 3D indisponible pour ce personnage.",
     loadError: "Impossible de charger les vues du modèle.",
     poseBust: "Buste",

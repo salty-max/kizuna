@@ -6,6 +6,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { Box, RotateCcw, X } from "lucide-react";
 
 import {
@@ -17,6 +18,7 @@ import {
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/ui";
 import { Button, IconButton, Panel, Tab } from "@/components/ui";
+import { InazugleImage } from "./InazugleImage";
 import { useDialogFocus } from "./useDialogFocus";
 
 const DRAG_THRESHOLD_PX = 14;
@@ -33,10 +35,10 @@ interface Props {
 }
 
 /**
- * In-house turntable for Inazugle pre-rendered character frames.
+ * Compact turntable for Inazugle pre-rendered character frames.
  *
- * Drag (or arrow keys) to spin; tabs switch bust / full-body. Same CDN and
- * asset model as portraits — no WebGL dependency.
+ * Dialog card (not a full-height sheet). Drag or arrow keys spin; bust /
+ * full-body tabs swap pose. Explicit close in the title bar and footer.
  */
 export function CharacterModelViewer({ name, imageBase, modelStem, characterId, onClose }: Props) {
   const { t, locale } = useI18n();
@@ -44,31 +46,25 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
   const dialogRef = useDialogFocus<HTMLDivElement>(onClose);
   const [pose, setPose] = useState<ModelPose>("bust");
   const [frame, setFrame] = useState(0);
-  const [failed, setFailed] = useState(false);
   const drag = useRef<{ active: boolean; startX: number; origin: number } | null>(null);
 
   const hasModel = modelStem.length > 0;
   const src = hasModel ? modelFrameUrl(imageBase, modelStem, frame, pose, "webp") : "";
 
   useEffect(() => {
-    setFailed(false);
-  }, [src]);
-
-  // Prefetch the rest of the ring once the first frame is known good.
-  useEffect(() => {
-    if (!hasModel || failed) return;
+    if (!hasModel) return;
     for (let i = 0; i < MODEL_FRAME_COUNT; i++) {
       const img = new Image();
       img.src = modelFrameUrl(imageBase, modelStem, i, pose, "webp");
     }
-  }, [hasModel, failed, imageBase, modelStem, pose]);
+  }, [hasModel, imageBase, modelStem, pose]);
 
   const step = useCallback((delta: number) => {
     setFrame((current) => (current + delta + MODEL_FRAME_COUNT) % MODEL_FRAME_COUNT);
   }, []);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!hasModel || failed) return;
+    if (!hasModel) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { active: true, startX: event.clientX, origin: frame };
   };
@@ -98,8 +94,8 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
     ? inazugleModelViewerUrl(characterId, locale === "ja" ? "ja" : locale === "fr" ? "fr" : "en")
     : null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-ink-950/80" onClick={onClose} />
       <div
         ref={dialogRef}
@@ -107,7 +103,8 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative z-10 w-full max-w-md outline-none"
+        data-testid="character-model-viewer"
+        className="relative z-10 w-full max-w-sm outline-none"
         onKeyDown={(event) => {
           if (event.key === "ArrowLeft") {
             event.preventDefault();
@@ -121,16 +118,20 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
         <Panel
           title={
             <span id={titleId} className="flex min-w-0 items-center gap-2">
-              <Box className="size-4 shrink-0 text-bolt-400" aria-hidden />
+              <Box className="size-4 shrink-0" aria-hidden />
               <span className="truncate">{name}</span>
             </span>
           }
           action={
-            <IconButton onClick={onClose} aria-label={t("app.importClose")}>
-              <X className="size-4" />
+            <IconButton
+              onClick={onClose}
+              aria-label={t("viewer.close")}
+              className="border-ink-950/50 bg-ink-950/20 text-ink-950 hover:border-ink-950 hover:bg-ink-950/30 hover:text-ink-950"
+            >
+              <X className="size-4" strokeWidth={2.75} />
             </IconButton>
           }
-          bodyClassName="flex flex-col gap-3"
+          bodyClassName="flex flex-col gap-2.5"
         >
           <div role="tablist" className="flex gap-1">
             <Tab active={pose === "bust"} onClick={() => setPose("bust")}>
@@ -143,26 +144,33 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
 
           <div
             className={cn(
-              "relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden",
-              "border-2 border-ink-800 bg-ink-950",
-              hasModel && !failed && "cursor-grab active:cursor-grabbing touch-none",
+              "relative mx-auto w-full max-w-[15.5rem] overflow-hidden border-2 border-ink-800 bg-ink-950",
+              "aspect-[3/4]",
+              hasModel && "cursor-grab active:cursor-grabbing touch-none",
             )}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
           >
-            {hasModel && !failed ? (
-              <img
+            {hasModel ? (
+              <InazugleImage
+                key={src}
                 src={src}
+                kind="model"
                 alt=""
                 draggable={false}
+                frameClassName="absolute inset-0 flex items-center justify-center"
                 className="max-h-full max-w-full select-none object-contain"
-                onError={() => setFailed(true)}
+                fallback={
+                  <span className="flex h-full w-full items-center justify-center px-3 text-center text-sm text-ink-500">
+                    {t("viewer.loadError")}
+                  </span>
+                }
               />
             ) : (
-              <p className="px-4 text-center text-sm text-ink-500">
-                {hasModel ? t("viewer.loadError") : t("viewer.unavailable")}
+              <p className="flex h-full items-center justify-center px-4 text-center text-sm text-ink-500">
+                {t("viewer.unavailable")}
               </p>
             )}
           </div>
@@ -171,7 +179,7 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
             <Button
               size="sm"
               onClick={() => step(1)}
-              disabled={!hasModel || failed}
+              disabled={!hasModel}
               aria-label={t("viewer.rotateLeft")}
             >
               ‹
@@ -179,7 +187,7 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
             <Button
               size="sm"
               onClick={() => step(-1)}
-              disabled={!hasModel || failed}
+              disabled={!hasModel}
               aria-label={t("viewer.rotateRight")}
             >
               ›
@@ -188,18 +196,23 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
               size="sm"
               icon={<RotateCcw className="size-3.5" />}
               onClick={() => setFrame(0)}
-              disabled={!hasModel || failed || frame === 0}
+              disabled={!hasModel || frame === 0}
             >
               {t("viewer.reset")}
             </Button>
             <span className="ml-auto font-display text-[11px] font-bold tracking-wide text-ink-500 uppercase italic tnum">
-              {hasModel && !failed
-                ? t("viewer.frame", { n: frame + 1, total: MODEL_FRAME_COUNT })
-                : null}
+              {hasModel ? t("viewer.frame", { n: frame + 1, total: MODEL_FRAME_COUNT }) : null}
             </span>
           </div>
 
-          <p className="text-[11px] leading-relaxed text-ink-500">{t("viewer.hint")}</p>
+          <div className="flex flex-wrap items-center gap-2 border-t-2 border-ink-800 pt-2.5">
+            <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-ink-500">
+              {t("viewer.hint")}
+            </p>
+            <Button size="sm" onClick={onClose} icon={<X className="size-3.5" />}>
+              {t("viewer.close")}
+            </Button>
+          </div>
 
           {externalUrl && (
             <a
@@ -213,7 +226,8 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
           )}
         </Panel>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

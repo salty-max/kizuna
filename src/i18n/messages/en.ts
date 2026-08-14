@@ -431,6 +431,7 @@ export const en = {
   },
   viewer: {
     open: "View model",
+    close: "Close",
     unavailable: "No 3D model available for this character.",
     loadError: "Could not load model frames.",
     poseBust: "Portrait",

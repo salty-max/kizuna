@@ -1,8 +1,7 @@
-import { useState } from "react";
-
 import { imageUrl } from "@/data/load";
 import type { Player } from "@/domain/types";
 import { ELEMENT_STYLES, cn } from "@/lib/ui";
+import { InazugleImage } from "./InazugleImage";
 
 interface Props {
   player: Player;
@@ -40,15 +39,12 @@ export function PlayerAvatar({
   ringClassName,
   className,
 }: Props) {
-  const [failed, setFailed] = useState(false);
   const element = ELEMENT_STYLES[player.element];
-
   const boxWidth = width ?? size ?? 40;
   const boxHeight = height ?? size ?? 40;
   const src = player.image
     ? imageUrl(imageBase, player.image, Math.ceil(Math.max(boxWidth, boxHeight) * 2))
     : "";
-  const showFallback = failed || !src;
 
   const initials = (displayName ?? player.name)
     .split(/\s+/)
@@ -57,33 +53,42 @@ export function PlayerAvatar({
     .join("")
     .toUpperCase();
 
+  const fallback = (
+    <span
+      className={cn(
+        "flex h-full w-full items-center justify-center font-semibold",
+        element.bg,
+        element.text,
+      )}
+      style={{ fontSize: Math.max(10, Math.min(boxWidth, boxHeight) * 0.36) }}
+    >
+      {initials}
+    </span>
+  );
+
   return (
     <span
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
         "ring-2 ring-inset",
-        showFallback && element.bg,
+        !src && element.bg,
         ringClassName === null ? "ring-0" : (ringClassName ?? element.ring),
         className,
       )}
       style={{ width: boxWidth, height: boxHeight }}
     >
-      {showFallback ? (
-        <span
-          className={cn("font-semibold", element.text)}
-          style={{ fontSize: Math.max(10, Math.min(boxWidth, boxHeight) * 0.36) }}
-        >
-          {initials}
-        </span>
-      ) : (
-        <img
+      {src ? (
+        <InazugleImage
           src={src}
+          kind="portrait"
           alt=""
           loading="lazy"
-          decoding="async"
+          frameClassName="absolute inset-0"
           className="h-full w-full object-cover"
-          onError={() => setFailed(true)}
+          fallback={fallback}
         />
+      ) : (
+        fallback
       )}
     </span>
   );

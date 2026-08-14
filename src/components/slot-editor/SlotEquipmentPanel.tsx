@@ -6,6 +6,7 @@ import { EQUIPMENT_SLOTS, type Dataset, type Equipment, type EquipmentSlot } fro
 import { equipmentDisplayName, useI18n } from "@/i18n";
 import { equipmentSlotLabel } from "@/i18n/labels";
 import { cn } from "@/lib/ui";
+import { InazugleImage } from "../InazugleImage";
 import { Button, Panel, Select } from "../ui";
 
 interface Props {
@@ -101,21 +102,29 @@ export function SlotEquipmentPanel({
 }
 
 function EquipmentIcon({ item, size = 34 }: { item: Equipment | undefined; size?: number }) {
+  const empty = (
+    <span className="flex h-full w-full items-center justify-center">
+      <Shirt className={cn("size-4", item ? "text-ink-300" : "text-ink-700")} />
+    </span>
+  );
+
   return (
     <span
       className="flex shrink-0 items-center justify-center overflow-hidden border-2 border-ink-800 bg-ink-950"
       style={{ width: size, height: size }}
     >
       {item?.image ? (
-        <img
+        <InazugleImage
           src={item.image}
+          kind="equipment"
           alt=""
           loading="lazy"
-          decoding="async"
+          frameClassName="h-full w-full"
           className="h-full w-full object-contain"
+          fallback={empty}
         />
       ) : (
-        <Shirt className={cn("size-4", item ? "text-ink-300" : "text-ink-700")} />
+        empty
       )}
     </span>
   );

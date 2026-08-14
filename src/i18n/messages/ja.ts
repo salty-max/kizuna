@@ -430,6 +430,7 @@ export const ja = {
   },
   viewer: {
     open: "モデルを見る",
+    close: "閉じる",
     unavailable: "このキャラクターのモデルはありません。",
     loadError: "モデル画像を読み込めませんでした。",
     poseBust: "バスト",

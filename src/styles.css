@@ -421,6 +421,48 @@
     border-radius: 0;
     box-shadow: 5px 6px 0 var(--shadow-hard-color);
   }
+
+  /* Remote Inazugle artwork gets a branded scan surface while it arrives.
+     It reads as part of the manga UI at 36 px and as a proper stage in the
+     turntable — no generic spinner floating over an empty black box. */
+  .inazugle-loader {
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      linear-gradient(145deg, transparent 0 42%, rgb(255 46 0 / 10%) 43% 45%, transparent 46%),
+      radial-gradient(circle at 50% 42%, rgb(255 241 0 / 9%), transparent 38%), var(--color-ink-850);
+  }
+
+  .inazugle-loader::before {
+    position: absolute;
+    inset: -45%;
+    content: "";
+    background: linear-gradient(
+      108deg,
+      transparent 37%,
+      rgb(255 241 0 / 4%) 44%,
+      rgb(255 241 0 / 22%) 49%,
+      rgb(255 46 0 / 15%) 53%,
+      transparent 62%
+    );
+    animation: inazugle-scan 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .inazugle-loader::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(22%, 2rem);
+    min-width: 0.45rem;
+    aspect-ratio: 1;
+    content: "";
+    border: 2px solid rgb(255 241 0 / 52%);
+    box-shadow:
+      0 0 0 3px rgb(15 11 13 / 68%),
+      0 0 18px rgb(255 46 0 / 22%);
+    transform: translate(-50%, -50%) rotate(45deg);
+    animation: inazugle-sigil 1.35s ease-in-out infinite;
+  }
 }
 
 @layer utilities {
@@ -470,6 +512,11 @@
     .drawer-panel {
       transition-duration: 1ms;
     }
+
+    .inazugle-loader::before,
+    .inazugle-loader::after {
+      animation: none;
+    }
   }
 
   /**
@@ -496,5 +543,27 @@
 
   .label-display {
     @apply font-display text-xs font-bold tracking-wide text-ink-500 uppercase italic;
+  }
+}
+
+@keyframes inazugle-scan {
+  0% {
+    transform: translateX(-42%);
+  }
+  55%,
+  100% {
+    transform: translateX(42%);
+  }
+}
+
+@keyframes inazugle-sigil {
+  0%,
+  100% {
+    opacity: 0.38;
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.82);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) rotate(45deg) scale(1);
   }
 }

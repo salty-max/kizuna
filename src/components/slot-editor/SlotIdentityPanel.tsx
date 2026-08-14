@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Trash2, UserPlus } from "lucide-react";
 
-import { imageUrl } from "@/data/load";
 import {
   isRarityAllowed,
   passiveValueForRarity,
@@ -19,11 +18,12 @@ import {
   type Dataset,
   type Rarity,
 } from "@/domain/types";
-import { playerDisplayName, playerInitials, useI18n } from "@/i18n";
+import { playerDisplayName, useI18n } from "@/i18n";
 import { buildTypeLabel, rarityDisplayLabel } from "@/i18n/labels";
-import { ELEMENT_STYLES, cn, rarityStyle } from "@/lib/ui";
+import { cn, rarityStyle } from "@/lib/ui";
 import { CharacterModelButton, CharacterModelViewer } from "../CharacterModelViewer";
 import { ElementBadge, PositionBadge, StaffIcon, StyleBadge } from "../GameIcon";
+import { PlayerAvatar } from "../PlayerAvatar";
 import { Button, Callout, IconButton, Panel, Select } from "../ui";
 
 interface Props {
@@ -54,30 +54,13 @@ export function SlotIdentityPanel({
         {slot.player ? (
           <div className="flex items-start gap-3">
             <div className="relative shrink-0">
-              {slot.player.image ? (
-                <img
-                  src={imageUrl(dataset.imageBase, slot.player.image, 128)}
-                  alt={displayName}
-                  width={64}
-                  height={64}
-                  className={cn(
-                    "size-16 object-cover ring-2 ring-inset",
-                    ELEMENT_STYLES[slot.player.element].ring,
-                    ELEMENT_STYLES[slot.player.element].bg,
-                  )}
-                />
-              ) : (
-                <div
-                  className={cn(
-                    "flex size-16 items-center justify-center text-lg font-semibold ring-2 ring-inset",
-                    ELEMENT_STYLES[slot.player.element].ring,
-                    ELEMENT_STYLES[slot.player.element].bg,
-                    ELEMENT_STYLES[slot.player.element].text,
-                  )}
-                >
-                  {playerInitials(displayName)}
-                </div>
-              )}
+              <PlayerAvatar
+                player={slot.player}
+                imageBase={dataset.imageBase}
+                size={64}
+                displayName={displayName}
+                className="rounded-none"
+              />
               <CharacterModelButton
                 hasModel={Boolean(slot.player.modelStem)}
                 onOpen={() => setModelOpen(true)}
