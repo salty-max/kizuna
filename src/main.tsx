@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App";
+import { AuthProvider } from "./backend/AuthContext";
 import { LocaleProvider } from "./i18n";
 import "./styles.css";
 
@@ -11,7 +12,9 @@ if (!root) throw new Error("#root missing");
 createRoot(root).render(
   <StrictMode>
     <LocaleProvider>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </LocaleProvider>
   </StrictMode>,
 );

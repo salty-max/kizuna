@@ -1,16 +1,16 @@
-import { LogIn } from "lucide-react";
+import { Cloud, UserRound } from "lucide-react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router";
 
+import { useAuth } from "@/backend/useAuth";
+import { AuthDialog } from "@/components/AuthDialog";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { Button } from "@/components/ui";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/ui";
 
 /**
- * App chrome — brand, primary nav, account.
- *
- * Kept separate from the team toolbar on purpose: this bar will grow (auth,
- * extra routes) without shoving formation / share controls around.
+ * App chrome — brand, primary navigation and locale preferences.
  */
 
 const NAV = [
@@ -21,6 +21,8 @@ const NAV = [
 export function TopBar({ className }: { className?: string }) {
   const { t } = useI18n();
   const { pathname } = useLocation();
+  const { configured, loading, user } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
 
   return (
     <header
@@ -65,21 +67,18 @@ export function TopBar({ className }: { className?: string }) {
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <LanguageSwitch />
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled
-          aria-disabled="true"
-          title={t("nav.signInSoon")}
-          icon={<LogIn className="size-3.5" />}
-          className="opacity-60"
-        >
-          {t("nav.signIn")}
-          <span className="ml-1 font-display text-[9px] font-bold tracking-wide text-ink-500 uppercase not-italic">
-            {t("nav.soon")}
-          </span>
-        </Button>
+        {configured && !loading && (
+          <Button
+            size="sm"
+            variant={user ? "primary" : "default"}
+            icon={user ? <Cloud className="size-3.5" /> : <UserRound className="size-3.5" />}
+            onClick={() => setAuthOpen(true)}
+          >
+            {user ? t("auth.account") : t("auth.signIn")}
+          </Button>
+        )}
       </div>
+      {authOpen && <AuthDialog onClose={() => setAuthOpen(false)} />}
     </header>
   );
 }
