@@ -23,6 +23,7 @@ export {
   matchesTeamFilter,
   passiveDisplayDescription,
   playerDetailDescription,
+  playerCardName,
   playerDisplayName,
   playerInitials,
   tacticDisplayDescription,

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useId, useState } from "react";
 import { Check, Copy, Download, Link2 } from "lucide-react";
 
 import { Button, Panel } from "@/components/ui";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/ui";
+import { useDialogFocus } from "./useDialogFocus";
 
 /** Share / import dialogs for team codes (`KZ1…`). */
 
@@ -67,6 +68,7 @@ export function ImportDialog({
   const { t } = useI18n();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(false);
+  const errorId = useId();
 
   return (
     <ModalShell title={t("app.importTitle")} onClose={onClose}>
@@ -79,13 +81,20 @@ export function ImportDialog({
         }}
         rows={5}
         placeholder={t("app.importPlaceholder")}
+        aria-label={t("app.importField")}
+        aria-invalid={error}
+        aria-describedby={error ? errorId : undefined}
         className={cn(
           "field scroll-slim h-auto min-h-[7rem] resize-y py-2 font-mono text-[11px] leading-relaxed break-all",
           error && "border-[var(--color-bad)]",
         )}
         autoFocus
       />
-      {error && <p className="text-xs text-[var(--color-bad)]">{t("app.importInvalid")}</p>}
+      {error && (
+        <p id={errorId} role="alert" className="text-xs text-[var(--color-bad)]">
+          {t("app.importInvalid")}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         <Button
           variant="primary"
@@ -111,24 +120,24 @@ function ModalShell({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const titleId = useId();
+  const dialogRef = useDialogFocus<HTMLDivElement>(onClose);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink-950/80" onClick={onClose} />
-      <Panel
-        title={title}
-        className="relative z-10 w-full max-w-lg"
-        bodyClassName="flex flex-col gap-3"
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-lg outline-none"
       >
-        {children}
-      </Panel>
+        <Panel title={<span id={titleId}>{title}</span>} bodyClassName="flex flex-col gap-3">
+          {children}
+        </Panel>
+      </div>
     </div>
   );
 }

@@ -4,11 +4,19 @@ type DeepString<T> = T extends string ? string : { [K in keyof T]: DeepString<T[
 /** French UI catalogue — source of truth for the message tree shape. */
 export const fr = {
   app: {
+    undo: "Annuler",
+    redo: "Rétablir",
+    exportImage: "Exporter",
+    exportingImage: "Export…",
+    exportImageSuccess: "L’image de l’équipe a été exportée.",
+    exportImageFailed: "Impossible de générer l’image de l’équipe.",
     loading: "Chargement des données…",
     loadError: "Impossible de charger les données.",
     loadErrorHint: "Lance {cmd} pour régénérer {path}.",
+    retry: "Réessayer",
     teamName: "Nom de l'équipe",
     formation: "Formation",
+    ruleset: "Règles du match",
     tactics: "Tactiques",
     tacticSlot: "Tactique {n}",
     tacticEmpty: "Aucune tactique",
@@ -32,19 +40,37 @@ export const fr = {
     importPlaceholder: "KZ1.…",
     importLoad: "Charger",
     importInvalid: "Code invalide ou illisible.",
+    importField: "Code d'équipe à importer",
+    importSuccess: "Équipe « {name} » importée.",
     importClose: "Fermer",
+    saveSuccess: "Équipe « {name} » enregistrée.",
+    saveFailed: "Impossible d'enregistrer l'équipe dans ce navigateur.",
+    restoreSuccess: "Équipe « {name} » restaurée.",
+    restoreFailed: "Cette équipe enregistrée est devenue illisible.",
+    deleteSuccess: "Équipe « {name} » supprimée.",
+    deleteFailed: "Impossible de supprimer l'équipe enregistrée.",
+    dismissNotice: "Masquer le message",
     tabTeam: "Équipe",
     tabSlot: "Slot",
     noSavedTeams: "Aucune équipe enregistrée.",
     deleteTeam: "Supprimer {name}",
+    cancel: "Annuler",
+    clearTeam: "Vider l'équipe",
+    clearTeamHint: "Retirer tous les joueurs et le staff de cette équipe.",
+    clearTeamNone: "L'équipe est déjà vide.",
+    clearTeamTitle: "Vider l'équipe ?",
+    clearTeamDescription:
+      "Tous les joueurs, le staff, leurs équipements et leurs passifs seront retirés. Le nom, la formation, les règles et les réglages tactiques seront conservés.",
+    clearTeamConfirm: "Vider l'équipe",
+    clearTeamSuccess: "L'effectif a été vidé. Les réglages de l'équipe sont conservés.",
     rarityBudget: "Limites de rareté",
     rarityBudgetHint: "Héros : max 2 titulaires. Basara : max 1 dans l'effectif (banc inclus).",
     heroBudget: "Héros {n}/{max}",
     basaraBudget: "Basara {n}/{max}",
-    fillEmpty: "Remplir les vides",
+    fillEmpty: "Composer",
     fillEmptyHint:
-      "Meilleurs joueurs par poste en Légendaire. Ne touche pas aux slots déjà pris, ni aux Héros/Basara.",
-    fillEmptyNone: "Aucun slot vide à remplir.",
+      "Ouvre l'assistant pour générer trois équipes selon ton objectif, ton style et ta formation.",
+    fillEmptyNone: "L'équipe est complète. Vide-la pour repartir de zéro.",
     fillGear: "Équiper les vides",
     fillGearHint:
       "Meilleur équipement par poste pour chaque joueur. Ne remplace pas les pièces déjà choisies.",
@@ -59,17 +85,211 @@ export const fr = {
     originalNames: "Noms japonais",
     originalNamesHint: "Afficher les noms d'origine romanisés (Endo Mamoru…)",
     documentTitle: "Kizuna — Composition d'équipe Inazuma Eleven : Victory Road",
+    documentDescription:
+      "Composez, vérifiez et partagez votre équipe Inazuma Eleven: Victory Road avec règles de tournoi, synergies, Build Ranks et calcul des passifs.",
+  },
+  auth: {
+    title: "Compte Kizuna",
+    signIn: "Connexion",
+    account: "Mon compte",
+    discordHint:
+      "Connecte ton compte Discord pour retrouver tes équipes sur plusieurs appareils. Kizuna ne reçoit jamais ton mot de passe.",
+    continueDiscord: "Continuer avec Discord",
+    redirecting: "Redirection…",
+    discordFailed: "Impossible d’ouvrir la connexion Discord. Réessaie dans un instant.",
+    connectedAs: "Connecté avec {email}",
+    cloudHint:
+      "Tes prochaines sauvegardes seront conservées sur cet appareil et synchronisées dans ton compte.",
+    signOut: "Se déconnecter",
+  },
+  cloud: {
+    cloudSection: "Cloud",
+    deviceSection: "Cet appareil",
+    loadFailed: "Impossible de charger les équipes du cloud.",
+    saveSuccess: "Équipe « {name} » enregistrée et synchronisée.",
+    saveFailedLocalKept:
+      "La synchronisation a échoué, mais l’équipe reste enregistrée sur cet appareil.",
+    restoreSuccess: "Équipe cloud « {name} » restaurée.",
+    deleteSuccess: "Équipe cloud « {name} » supprimée.",
+    deleteFailed: "Impossible de supprimer cette équipe du cloud.",
   },
   nav: {
     label: "Navigation",
+    skipContent: "Aller au contenu",
     brand: "Kizuna",
     tagline: "Victory Road",
     homeAria: "Kizuna — accueil",
     builder: "Composition",
     wiki: "Catalogue",
-    signIn: "Connexion",
-    signInSoon: "Bientôt — compte et sync d'équipes",
-    soon: "Bientôt",
+  },
+  onboarding: {
+    title: "Coup d'envoi",
+    eyebrow: "Composition · calcul · partage",
+    headline: "Construisez une équipe qui tient son plan de match.",
+    description:
+      "Kizuna réunit le terrain, les règles de tournoi et les calculs de puissance dans un seul atelier.",
+    compose: "Composez",
+    composeHint: "Partez d'un onze optimisé ou choisissez chaque joueur.",
+    adjust: "Ajustez",
+    adjustHint:
+      "Raretés, équipements, passifs, tactiques et synergies restent sous votre contrôle.",
+    share: "Partagez",
+    shareHint: "Exportez un code compact que votre équipe peut restaurer à l'identique.",
+    generate: "Générer une équipe exemple",
+    manual: "Choisir mon premier joueur",
+    sampleName: "Équipe exemple",
+  },
+  generator: {
+    title: "Assistant de composition",
+    close: "Fermer l'assistant",
+    progress: "Progression de la génération",
+    steps: {
+      goal: "Objectif",
+      plan: "Plan de jeu",
+      results: "Propositions",
+    },
+    goalTitle: "Pour quel terrain construit-on ?",
+    styleTitle: "Quel football veux-tu jouer ?",
+    configure: "Choisir le plan",
+    generate: "Générer trois équipes",
+    back: "Retour",
+    formation: "Formation",
+    formationAuto: "Laisser Kizuna proposer",
+    allowAlternate: "Autoriser les postes secondaires",
+    allowAlternateHint:
+      "Un poste secondaire officiel est valide. Les vrais hors-postes restent toujours interdits.",
+    preserveExisting: "Conserver mes choix actuels",
+    preserveExistingHint:
+      "Les joueurs déjà placés ne seront pas remplacés ; seules les places libres seront composées.",
+    seasonalWarning:
+      "Le tournoi exige cinq joueurs saisonniers titulaires. Le dump ne les identifie pas encore : Kizuna construira au niveau 50, mais cette contrainte restera à vérifier dans le jeu.",
+    resultsTitle: "Trois plans, aucun hors-poste",
+    resultsHint:
+      "Chaque proposition respecte les postes et l'unicité des personnages. Les variantes changent la formation, le risque et le moteur secondaire.",
+    seasonalResultWarning:
+      "Avant inscription au tournoi, remplace si nécessaire cinq titulaires par leurs versions saisonnières.",
+    apply: "Choisir cette équipe",
+    applied: "La proposition a été appliquée. Tu peux maintenant ajuster passifs et équipement.",
+    reserveKeeper: "Un gardien de secours est prévu sur le banc.",
+    noReserveKeeper: "Aucun gardien de secours disponible.",
+    metrics: {
+      starters: "titulaires",
+      heroes: "Héros",
+      basaras: "Basara",
+      alternate: "postes secondaires",
+      elements: "éléments",
+      buildMatches: "profils de build",
+    },
+    profiles: {
+      safe: {
+        title: "Plan sûr",
+        hint: "Priorité à la stabilité, au gardien et aux duels défensifs.",
+      },
+      balanced: {
+        title: "Plan équilibré",
+        hint: "Le meilleur compromis entre Focus, récupération et finition.",
+      },
+      offensive: {
+        title: "Plan offensif",
+        hint: "Plus de création et de puissance de tir, avec davantage de risque.",
+      },
+    },
+    goals: {
+      competitive: {
+        title: "PvP libre",
+        hint: "Une équipe polyvalente pour le jeu en ligne standard.",
+      },
+      tournament: {
+        title: "Tournoi VR",
+        hint: "Niveau 50, personnages uniques et cinq saisonniers à contrôler.",
+      },
+      pve: {
+        title: "Chronicle / PvE",
+        hint: "Une équipe adaptée aux affrontements difficiles contre l'IA.",
+      },
+    },
+    styles: {
+      auto: {
+        title: "Recommandé",
+        hint: "Compare Justice, Counter et Bond selon le niveau de risque.",
+      },
+      stable: {
+        title: "Justice",
+        hint: "Une montée en puissance régulière tant que l'équipe évite les fautes.",
+      },
+      counter: {
+        title: "Counter",
+        hint: "Récupérer puis convertir rapidement la possession en tir.",
+      },
+      tension: {
+        title: "Tension",
+        hint: "Multiplier les techniques et gagner les Focus au bon moment.",
+      },
+      bond: {
+        title: "Bond",
+        hint: "Faire circuler le ballon et chercher les tirs directs.",
+      },
+      aggressive: {
+        title: "Rough Play",
+        hint: "Imposer les contacts et jouer un football manuel plus risqué.",
+      },
+    },
+  },
+  optimizer: {
+    title: "Équipe complétée",
+    added: "{n} ajout",
+    added_other: "{n} ajouts",
+    dismiss: "Masquer l'explication",
+    summary: "Kizuna a rempli {n} place vide sans modifier tes choix.",
+    summary_other: "Kizuna a rempli {n} places vides sans modifier tes choix.",
+    rebuiltSummary: "Kizuna a composé {n} place de ton nouvel effectif.",
+    rebuiltSummary_other: "Kizuna a composé {n} places de ton nouvel effectif.",
+    keyFigures: "Résumé des choix automatiques",
+    filledMetric: "places remplies",
+    inPositionMetric: "à leur poste",
+    fallbackMetric: "hors poste",
+    fallbackWarning: "{n} joueur ajouté est hors poste. Vérifie ce choix en priorité.",
+    fallbackWarning_other: "{n} joueurs ajoutés sont hors poste. Vérifie ces choix en priorité.",
+    noFallback: "Aucun joueur ajouté hors poste.",
+    appliedPriorities: "Priorités appliquées",
+    emptyOnly:
+      "Compléter agit uniquement sur les places vides. Pour recomposer tout l'effectif, utilise « Vider l'équipe », puis relance Compléter.",
+    rebuiltInfo:
+      "Cette proposition remplace l'effectif précédent. Tu peux encore déplacer ou remplacer chaque choix.",
+    policy:
+      "Pour chaque place vide, Kizuna cherche d'abord un joueur compatible avec le poste. La puissance du rôle, le Team Build et les synergies équipées départagent ensuite les candidats.",
+    natural: "{n} postes compatibles",
+    teamBuild: "{n} bonus Team Build",
+    synergy: "{n} membres de synergie",
+    fallback: "{n} solutions de repli",
+    safeguards:
+      "Les choix existants sont conservés, les personnages restent uniques et les formes Héros/Basara disponibles respectent leurs plafonds.",
+    rebuiltSafeguards:
+      "Les personnages restent uniques, chaque titulaire respecte son poste et les meilleures formes Héros/Basara disponibles sont utilisées dans leurs plafonds.",
+    details: "Voir le choix joueur par joueur ({n})",
+    slots: {
+      pitch: "Terrain",
+      bench: "Banc",
+      coach: "Coach",
+      manager: "Manager",
+    },
+    reasons: {
+      equippedSynergy: "membre d'une synergie équipée",
+      teamBuild: "Team Build compatible",
+      naturalPosition: "poste naturel",
+      alternatePosition: "poste secondaire compatible",
+      fallbackPosition: "solution hors poste",
+      rolePower: "meilleure puissance disponible pour ce rôle",
+      totalStats: "meilleur total disponible",
+      staffRole: "rôle de staff compatible",
+    },
+  },
+  workspace: {
+    setup: "Construction",
+    analysis: "Analyse",
+    roster: "Effectif",
+    starters: "titulaires",
+    alerts: "alertes",
   },
   formations: {
     "4-4-2-diamond": "4-4-2 Diamant",
@@ -80,6 +300,10 @@ export const fr = {
     "4-5-1-balanced": "4-5-1 Équilibré",
     "3-6-1-hexa": "3-6-1 Hexa",
     "5-4-1-double-volante": "5-4-1 Double Volante",
+  },
+  rulesets: {
+    standard: "Jeu standard",
+    tournament: "Tournoi VR · Niv. 50",
   },
   wiki: {
     title: "Catalogue",
@@ -185,6 +409,16 @@ export const fr = {
     outOfPositionTitle: "Joueur {player} sur un poste {expected}",
     passivesCount: "{n} passif",
     passivesCount_other: "{n} passifs",
+    draggableCard: "carte de joueur déplaçable",
+    dragInstructions:
+      "Pour déplacer cette carte, appuyez sur Espace ou Entrée. Utilisez ensuite les flèches, puis Espace ou Entrée pour déposer. Échap annule le déplacement.",
+    dragStart: "Carte saisie depuis {source}.",
+    dragOver: "Cible actuelle : {target}.",
+    dragEnd: "Carte déplacée de {source} vers {target}.",
+    dragCancel: "Déplacement annulé.",
+    dragInvalid:
+      "Déplacement incompatible : terrain et banc partagent les builds joueur, tandis que coach et managers utilisent leurs propres passifs.",
+    dragHint: "Glisser pour déplacer · déposer pour permuter",
   },
   picker: {
     search: "Rechercher un personnage…",
@@ -299,8 +533,30 @@ export const fr = {
     totalPowerHint: "Somme des titulaires, passifs garantis appliqués.",
     gauges: "Jauges",
     gaugesHint: "Effets d'équipe sans équivalent par joueur — comptés une seule fois.",
+    capApplied: "Plafond officiel appliqué : {raw} → {applied}",
     unresolved: "Non calculable",
     contributions: "Contributions",
+    buildRank: "Build Rank",
+    teamBuild: "Team Build",
+    teamBuildEmpty: "Aucun build simulé",
+    simulatedRank: "Rang simulé",
+    buildRankHint:
+      "Projection de match : seuls les passifs « par rang » du build choisi sont multipliés dans la puissance potentielle.",
+    buildRankRules: {
+      breach: "Monte après 15 s sans Brèche ni arrêt.",
+      tension: "Monte après avoir dépensé 50 % de la tension maximale.",
+      counter: "Monte en récupérant la possession (hors arrêts).",
+      bond: "Monte en dépensant de la puissance de lien.",
+      roughPlay: "Monte en réalisant une attaque brutale ; baisse sur faute.",
+      justice: "Monte après 25 s sans faute ; baisse sur faute.",
+    },
+    attachments: "Synergies équipées",
+    offensive: "Flag offensif",
+    defensive: "Pilier défensif",
+    attachmentEmpty: "Aucune synergie",
+    attachmentActive: "Active — tous les personnages requis sont présents.",
+    buffDataUnavailable:
+      "Activation calculée exactement. Les valeurs des buffs ne figurent pas dans les données du jeu actuellement disponibles.",
     bonds: "Liens",
     bondsHint:
       "Synergies de personnages actives quand tous les membres sont dans l'effectif (terrain ou banc).",
@@ -457,6 +713,12 @@ export const fr = {
   violations: {
     heroLimit: "{count} Héros titulaires — le jeu en autorise {max} sur le terrain.",
     basaraLimit: "{count} Basara dans l'effectif — le jeu en autorise {max}.",
+    duplicateCharacter:
+      "{name} apparaît {count} fois — le règlement tournoi limite un même personnage à {max}.",
+  },
+  ruleNotices: {
+    seasonalNotModelled:
+      "Le tournoi exige {required} joueurs saisonniers titulaires ; cette information n'est pas encore présente dans les données.",
   },
 } as const;
 

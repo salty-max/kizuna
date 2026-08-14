@@ -1,35 +1,53 @@
 import type { ReactNode } from "react";
-import { Download, FolderOpen, Save, Share2, Shirt, Trash2, WandSparkles } from "lucide-react";
+import {
+  Download,
+  FolderOpen,
+  ImageDown,
+  Redo2,
+  Save,
+  Share2,
+  Shirt,
+  Trash2,
+  Undo2,
+  WandSparkles,
+} from "lucide-react";
 
-import { Button, CountBadge, Select, TextInput } from "@/components/ui";
+import { Button, CountBadge, IconButton, Select, TextInput } from "@/components/ui";
 import { countEmptyEquipmentOnTeam, countEmptySlots } from "@/domain/fillBest";
 import { FORMATIONS } from "@/domain/formations";
 import { RULESET_IDS } from "@/domain/rules";
-import { applyFormation, rarityBudget, type Team } from "@/domain/team";
+import { applyFormation, type Team } from "@/domain/team";
+import type { Player } from "@/domain/types";
 import { useI18n } from "@/i18n";
 import { formationLabel } from "@/i18n/labels";
-import type { SavedTeam } from "@/lib/storage";
 import { cn } from "@/lib/ui";
 
 /**
  * Team-scoped controls under the app top bar: identity, formation, local save
  * and share. Not app navigation — that lives in `TopBar`.
  *
- * Two deliberate rows (identity / actions) instead of a single wrap that
- * collapses into an awkward left cluster + right cluster.
+ * A single dense command bar on desktop; wrapping remains available on narrow
+ * screens without reserving two permanent rows above the tactical workspace.
  */
 
 interface Props {
   team: Team;
+  players: readonly Player[];
   onTeamChange: (team: Team) => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
   onFillEmpty?: () => void;
   onFillGear?: () => void;
   onClear: () => void;
-  saved: SavedTeam[];
+  savedCount: number;
   savedOpen: boolean;
   onSavedOpenChange: (open: boolean) => void;
   onSave: () => void;
   onImport: () => void;
+  onExport: () => void;
+  exporting: boolean;
   onShare: () => void;
   savedMenu: ReactNode;
   className?: string;
@@ -37,34 +55,44 @@ interface Props {
 
 export function TeamToolbar({
   team,
+  players,
   onTeamChange,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   onFillEmpty,
   onFillGear,
   onClear,
-  saved,
+  savedCount,
   savedOpen,
   onSavedOpenChange,
   onSave,
   onImport,
+  onExport,
+  exporting,
   onShare,
   savedMenu,
   className,
 }: Props) {
   const { t } = useI18n();
-  const budget = rarityBudget(team);
   const emptyCount = countEmptySlots(team);
   const emptyGear = countEmptyEquipmentOnTeam(team);
   const canClear = Object.values(team.slots).some((assignment) => assignment.playerId != null);
 
   return (
-    <div className={cn("panel flex shrink-0 flex-col gap-2 p-2.5", className)}>
-      {/* Identity — team shape and constraints */}
-      <div className="flex flex-wrap items-center gap-2">
+    <div
+      className={cn(
+        "panel flex shrink-0 flex-wrap items-center gap-2 p-2 lg:flex-nowrap",
+        className,
+      )}
+    >
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:flex-nowrap">
         <TextInput
           value={team.name}
           onChange={(event) => onTeamChange({ ...team, name: event.target.value })}
           placeholder={t("team.defaultName")}
-          className="min-w-[10rem] flex-1 sm:max-w-xs sm:flex-none sm:w-56"
+          className="min-w-[9rem] flex-1 lg:w-44 lg:flex-none"
           aria-label={t("app.teamName")}
         />
 
@@ -74,9 +102,9 @@ export function TeamToolbar({
             value: formation.id,
             label: formationLabel(t, formation),
           }))}
-          onChange={(id) => onTeamChange(applyFormation(team, id))}
+          onChange={(id) => onTeamChange(applyFormation(team, id, players))}
           aria-label={t("app.formation")}
-          className="w-44 sm:w-52"
+          className="w-40 lg:w-44"
         />
 
         <Select
@@ -84,45 +112,34 @@ export function TeamToolbar({
           options={RULESET_IDS.map((id) => ({ value: id, label: t(`rulesets.${id}`) }))}
           onChange={(rulesetId) => onTeamChange({ ...team, rulesetId })}
           aria-label={t("app.ruleset")}
-          className="w-36 sm:w-40"
+          className="w-36"
         />
-
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          aria-label={t("app.rarityBudget")}
-          title={t("app.rarityBudgetHint")}
-        >
-          <span
-            className={cn(
-              "border-2 px-1.5 py-0.5 font-display text-[11px] font-bold tracking-wide uppercase italic tnum",
-              budget.heroOver
-                ? "border-[var(--color-bad)] text-[var(--color-bad)]"
-                : "border-ink-700 text-ink-300",
-            )}
-          >
-            {t("app.heroBudget", { n: budget.heroes, max: budget.maxHeroes })}
-          </span>
-          <span
-            className={cn(
-              "border-2 px-1.5 py-0.5 font-display text-[11px] font-bold tracking-wide uppercase italic tnum",
-              budget.basaraOver
-                ? "border-[var(--color-bad)] text-[var(--color-bad)]"
-                : "border-ink-700 text-ink-300",
-            )}
-          >
-            {t("app.basaraBudget", { n: budget.basaras, max: budget.maxBasaras })}
-          </span>
-        </div>
       </div>
 
-      {/* Actions — tools vs persistence */}
-      <div className="flex flex-wrap items-center gap-2 border-t-2 border-ink-800 pt-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2 border-t-2 border-ink-800 pt-2 lg:w-auto lg:flex-nowrap lg:border-t-0 lg:border-l-2 lg:pt-0 lg:pl-2">
+        <div className="flex items-center gap-1 border-r-2 border-ink-800 pr-2">
+          <IconButton
+            onClick={onUndo}
+            disabled={!canUndo}
+            aria-label={t("app.undo")}
+            title={`${t("app.undo")} · Ctrl/⌘ Z`}
+          >
+            <Undo2 className="size-4" />
+          </IconButton>
+          <IconButton
+            onClick={onRedo}
+            disabled={!canRedo}
+            aria-label={t("app.redo")}
+            title={`${t("app.redo")} · Ctrl/⌘ ⇧ Z`}
+          >
+            <Redo2 className="size-4" />
+          </IconButton>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
           {onFillEmpty && (
             <Button
               onClick={onFillEmpty}
-              disabled={emptyCount === 0}
-              title={emptyCount === 0 ? t("app.fillEmptyNone") : t("app.fillEmptyHint")}
+              title={t("app.fillEmptyHint")}
               icon={<WandSparkles className="size-4" />}
             >
               {t("app.fillEmpty")}
@@ -151,7 +168,7 @@ export function TeamToolbar({
           </Button>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2 lg:flex-nowrap">
           <div className="relative">
             <Button
               onClick={() => onSavedOpenChange(!savedOpen)}
@@ -159,17 +176,39 @@ export function TeamToolbar({
               icon={<FolderOpen className="size-4" />}
             >
               {t("app.myTeams")}
-              {saved.length > 0 && <CountBadge>{saved.length}</CountBadge>}
+              {savedCount > 0 && <CountBadge>{savedCount}</CountBadge>}
             </Button>
             {savedMenu}
           </div>
 
-          <Button onClick={onSave} icon={<Save className="size-4" />}>
-            {t("app.save")}
+          <Button
+            onClick={onSave}
+            icon={<Save className="size-4" />}
+            aria-label={t("app.save")}
+            title={t("app.save")}
+          >
+            <span className="lg:hidden 2xl:inline">{t("app.save")}</span>
           </Button>
 
-          <Button onClick={onImport} icon={<Download className="size-4" />}>
-            {t("app.import")}
+          <Button
+            onClick={onImport}
+            icon={<Download className="size-4" />}
+            aria-label={t("app.import")}
+            title={t("app.import")}
+          >
+            <span className="lg:hidden 2xl:inline">{t("app.import")}</span>
+          </Button>
+
+          <Button
+            onClick={onExport}
+            disabled={exporting}
+            icon={<ImageDown className="size-4" />}
+            aria-label={exporting ? t("app.exportingImage") : t("app.exportImage")}
+            title={t("app.exportImage")}
+          >
+            <span className="lg:hidden 2xl:inline">
+              {exporting ? t("app.exportingImage") : t("app.exportImage")}
+            </span>
           </Button>
 
           <Button variant="primary" onClick={onShare} icon={<Share2 className="size-4" />}>

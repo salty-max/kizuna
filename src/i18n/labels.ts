@@ -5,7 +5,7 @@
 
 import type { Formation } from "@/domain/formations";
 import type { PowerKey, StatKey } from "@/domain/stats";
-import type { ScopeNote, UnresolvedReason, Violation } from "@/domain/synergy";
+import type { RuleNotice, ScopeNote, UnresolvedReason, Violation } from "@/domain/synergy";
 import {
   heroVariantFor,
   type AuraType,
@@ -138,5 +138,12 @@ export function violationLabel(t: Translator["t"], violation: Violation): string
   return t(`violations.${violation.code}` as MessageKey, {
     count: violation.count,
     max: violation.max,
+    name: "name" in violation ? violation.name : "",
+  });
+}
+
+export function ruleNoticeLabel(t: Translator["t"], notice: RuleNotice): string {
+  return t(`ruleNotices.${notice.code}` as MessageKey, {
+    required: notice.required,
   });
 }
