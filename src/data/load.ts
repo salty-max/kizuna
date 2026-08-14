@@ -8,6 +8,7 @@ import type {
   PlayerDetails,
   Tactic,
 } from "@/domain/types";
+import { decodePlayerShard } from "./player-shard";
 
 interface Meta {
   generatedAt: string;
@@ -15,6 +16,33 @@ interface Meta {
   games: string[];
   detailBucketSize: number;
   counts: Record<string, number>;
+}
+
+export const DATA_SHARDS = [
+  "players",
+  "passives",
+  "equipment",
+  "abilities",
+  "tactics",
+  "synergies",
+] as const;
+export type DataShard = (typeof DATA_SHARDS)[number];
+
+const WIKI_SHARDS: Record<string, readonly DataShard[]> = {
+  abilities: ["abilities"],
+  equipment: ["equipment"],
+  tactics: ["tactics"],
+  passives: ["passives"],
+  bonds: ["players", "synergies"],
+};
+
+/** Smallest catalogue set that can render a route. The builder needs everything. */
+export function datasetShardsForPath(pathname: string): readonly DataShard[] {
+  if (pathname === "/" || !pathname.startsWith("/wiki")) return DATA_SHARDS;
+  const [, , section, id] = pathname.split("/");
+  if (!section) return [];
+  if (section === "players") return id ? ["players", "abilities"] : ["players"];
+  return WIKI_SHARDS[section] ?? [];
 }
 
 const BASE = `${import.meta.env.BASE_URL}data`;
@@ -33,37 +61,80 @@ function isRealTactic(tactic: Tactic): boolean {
   return !/必殺タクティクス名|test_/i.test(blob) && !tactic.id.startsWith("test_");
 }
 
-let cached: Promise<Dataset> | null = null;
+interface ShardContents {
+  players: Player[];
+  passives: Passive[];
+  equipment: Equipment[];
+  abilities: Ability[];
+  tactics: Tactic[];
+  synergies: BondSynergy[];
+}
 
-/** Fetched once at boot; the JSON shards are independent so they go in parallel. */
-export function loadDataset(): Promise<Dataset> {
-  cached ??= (async () => {
-    const [meta, players, passives, equipment, abilities, tactics, synergies] = await Promise.all([
-      getJson<Meta>("meta.json"),
-      getJson<Player[]>("players.json"),
-      getJson<Passive[]>("passives.json"),
-      getJson<Equipment[]>("equipment.json"),
-      getJson<Ability[]>("abilities.json"),
-      getJson<Tactic[]>("tactics.json"),
-      getJson<BondSynergy[]>("synergies.json"),
-    ]);
+const SHARD_FILES: { [K in DataShard]: string } = {
+  players: "players.json",
+  passives: "passives.json",
+  equipment: "equipment.json",
+  abilities: "abilities.json",
+  tactics: "tactics.json",
+  synergies: "synergies.json",
+};
 
-    detailBucketSize = meta.detailBucketSize;
+let metaCache: Promise<Meta> | null = null;
+const shardCache = new Map<DataShard, Promise<unknown>>();
 
-    return {
-      players,
-      passives,
-      equipment,
-      abilities,
-      tactics: tactics.filter(isRealTactic),
-      synergies,
-      games: meta.games,
-      imageBase: meta.imageBase,
-      generatedAt: meta.generatedAt,
-    };
-  })();
+function loadMeta(): Promise<Meta> {
+  if (!metaCache) {
+    const pending = getJson<Meta>("meta.json");
+    metaCache = pending;
+    pending.catch(() => {
+      if (metaCache === pending) metaCache = null;
+    });
+  }
+  return metaCache;
+}
 
-  return cached;
+function loadShard<K extends DataShard>(shard: K): Promise<ShardContents[K]> {
+  let pending = shardCache.get(shard);
+  if (!pending) {
+    pending = getJson<unknown>(SHARD_FILES[shard]).then((contents) =>
+      shard === "players" ? decodePlayerShard(contents) : contents,
+    );
+    shardCache.set(shard, pending);
+    pending.catch(() => {
+      if (shardCache.get(shard) === pending) shardCache.delete(shard);
+    });
+  }
+  return pending as Promise<ShardContents[K]>;
+}
+
+/** Fetch only the catalogue shards required by the current route; cache each once. */
+export async function loadDataset(shards: readonly DataShard[] = DATA_SHARDS): Promise<Dataset> {
+  const requested = new Set(shards);
+  const empty = <T>() => Promise.resolve([] as T[]);
+  const [meta, players, passives, equipment, abilities, tactics, synergies] = await Promise.all([
+    loadMeta(),
+    requested.has("players") ? loadShard("players") : empty<Player>(),
+    requested.has("passives") ? loadShard("passives") : empty<Passive>(),
+    requested.has("equipment") ? loadShard("equipment") : empty<Equipment>(),
+    requested.has("abilities") ? loadShard("abilities") : empty<Ability>(),
+    requested.has("tactics") ? loadShard("tactics") : empty<Tactic>(),
+    requested.has("synergies") ? loadShard("synergies") : empty<BondSynergy>(),
+  ]);
+
+  detailBucketSize = meta.detailBucketSize;
+
+  return {
+    players,
+    passives,
+    equipment,
+    abilities,
+    tactics: tactics.filter(isRealTactic),
+    synergies,
+    games: meta.games,
+    imageBase: meta.imageBase,
+    generatedAt: meta.generatedAt,
+    counts: meta.counts,
+  };
 }
 
 let detailBucketSize = 250;

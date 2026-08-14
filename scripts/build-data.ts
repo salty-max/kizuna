@@ -2,8 +2,8 @@
  * Turns `data/raw/` into the artifacts the app actually fetches, in `public/data/`.
  *
  * Source of truth: the datamined bundles in `data/raw/dataminer/` (the game's own
- * files) plus Inazugle scrapes for portraits (`player-images.json`) and equipment
- * icons (`equipment-images.json`). No community dump.
+ * files) plus Inazugle portrait (`player-images.json`) and equipment-icon
+ * (`equipment-images.json`) indexes. No community dump.
  *
  * Still aborts on any enum-ish value it does not recognise. An upstream refresh
  * that adds a new element or passive scope must fail here, loudly.
@@ -33,6 +33,7 @@ import {
   type Position,
 } from "../src/domain/types";
 import { STAT_KEYS, totalOf, type BaseStats } from "../src/domain/stats";
+import { encodePlayerShard } from "../src/data/player-shard";
 
 const RAW = new URL("../data/raw/", import.meta.url);
 const OUT = new URL("../public/data/", import.meta.url);
@@ -168,6 +169,12 @@ interface RawCharacter {
   name_original?: string;
   name_original_plain?: string;
   name_plain?: string;
+  nickname?: string;
+  nickname_plain?: string;
+  surname?: string;
+  surname_plain?: string;
+  given_name?: string;
+  given_name_plain?: string;
   description?: string | null;
   description_plain?: string;
   series?: string;
@@ -530,6 +537,26 @@ function collectPlayerNames(locales: Record<LocaleKey, Bundle>): Map<number, Loc
   return map;
 }
 
+/** character id → the game's localised short pitch name. */
+function collectPlayerNicknames(locales: Record<LocaleKey, Bundle>): Map<number, LocalizedNames> {
+  const map = new Map<number, LocalizedNames>();
+  for (const locale of LOCALES) {
+    const bundle = locales[locale];
+    for (const rows of [bundle.characters, bundle.heroes, bundle.basaras]) {
+      for (const row of rows) {
+        const nickname = cleanText(row.nickname_plain ?? row.nickname)
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!nickname) continue;
+        const entry = map.get(row.id) ?? {};
+        entry[locale] = nickname;
+        map.set(row.id, entry);
+      }
+    }
+  }
+  return map;
+}
+
 /** character id → localised bios. */
 function collectPlayerDescriptions(
   locales: Record<LocaleKey, Bundle>,
@@ -567,6 +594,7 @@ async function buildPlayers(
 
   const teamNamesById = collectTeamNames(locales);
   const playerNamesById = collectPlayerNames(locales);
+  const playerNicknamesById = collectPlayerNicknames(locales);
   const playerDescriptionsById = collectPlayerDescriptions(locales);
   const portraits = await loadInazuglePortraits();
 
@@ -621,6 +649,8 @@ async function buildPlayers(
       name,
       nameOriginal,
     ]);
+    const nicknames: LocalizedNames = { ...(playerNicknamesById.get(id) ?? {}) };
+    const nickname = pickLangText(nicknames, name);
     if (image) portraitsMatched++;
     const gender = mapGender(base.gender, `${where}.gender`);
     const spiritDrop = base.spirit_drop === true;
@@ -638,7 +668,8 @@ async function buildPlayers(
       name,
       names,
       nameOriginal,
-      nickname: nameOriginal && nameOriginal !== name ? nameOriginal : "",
+      nickname,
+      nicknames,
       image,
       game: series,
       team,
@@ -648,8 +679,8 @@ async function buildPlayers(
       altPosition,
       element,
       buildType,
-      // Game dump has no staff role; everyone is a field character. Staff slots
-      // pick from the full roster.
+      // Game dump has no staff roster; every character row is a field player.
+      // The builder therefore keeps staff slots passives-only.
       role: "Player",
       gender,
       spiritDrop,
@@ -710,7 +741,7 @@ async function buildPlayers(
     droppedClones: finalized.droppedClones,
     junk: finalized.junk,
     buckets: buckets.size,
-    gameVersion: display.game_version,
+    contentVersion: display.game_version,
     portraitIndexSize: portraits.size,
   };
 }
@@ -1041,6 +1072,7 @@ async function buildSynergies(display: Bundle, locales: Record<LocaleKey, Bundle
     const descriptions = { ...(descriptionsById.get(s.string_id) ?? {}) };
     return {
       id: s.string_id,
+      kind: s.string_id.startsWith("sf") ? "offensive" : "defensive",
       name: pickLangText(names, cleanText(s.name)),
       names,
       description: pickLangText(descriptions, cleanText(s.description)),
@@ -1181,7 +1213,7 @@ const {
   droppedClones,
   junk: junkPlayers,
   buckets,
-  gameVersion,
+  contentVersion,
   portraitIndexSize,
 } = await buildPlayers(display, en, { fr, en, ja }, knownAbilityIds);
 const passives = buildPassives(display, { fr, en, ja });
@@ -1191,7 +1223,7 @@ const tactics = await buildTactics(display, { fr, en, ja });
 const iconCount = await copyIcons();
 
 const sizes = {
-  "players.json": await write("players.json", players),
+  "players.json": await write("players.json", encodePlayerShard(players)),
   "passives.json": await write("passives.json", passives),
   "equipment.json": await write("equipment.json", equipment),
   "abilities.json": await write("abilities.json", abilities),
@@ -1200,7 +1232,11 @@ const sizes = {
   "meta.json": await write("meta.json", {
     generatedAt: new Date().toISOString(),
     source: "dataminer",
-    gameVersion,
+    // The dump calls this `game_version`, but it is an internal content build
+    // marker, not the public client patch number (for example 7.1.2).
+    contentVersion,
+    // Legacy alias for consumers of older generated metadata.
+    gameVersion: contentVersion,
     lang: LANG,
     imageBase,
     games,
@@ -1222,7 +1258,7 @@ const sizes = {
 };
 
 const kb = (n: number) => `${(n / 1024).toFixed(0)} KB`;
-console.log(`source      dataminer ${gameVersion} (${LANG}) — no community`);
+console.log(`source      latest client · content ${contentVersion} (${LANG}) — no community`);
 console.log(
   `players     ${String(players.length).padStart(5)}  ${kb(sizes["players.json"])}   ` +
     `(${portraitsMatched}/${portraitIndexSize || "?"} portraits Inazugle` +

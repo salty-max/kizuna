@@ -35,6 +35,28 @@ export function playerDisplayName(
   return localizedText(player.names, locale, player.name);
 }
 
+/** Compact identity used only where a full player name cannot fit, such as squad cards. */
+export function playerCardName(
+  player:
+    Pick<Player, "name" | "names" | "nameOriginal" | "nickname" | "nicknames"> | null | undefined,
+  showOriginalNames: boolean,
+  locale: Locale = "fr",
+): string {
+  if (!player) return "";
+  const fullName = playerDisplayName(player, showOriginalNames, locale);
+  const localizedNickname = localizedText(player.nicknames, locale, player.nickname);
+  const japaneseNickname = player.nicknames?.ja;
+  if (locale === "ja") return japaneseNickname || fullName;
+  if (showOriginalNames) {
+    const japaneseParts = player.names.ja?.trim().split(/\s+/) ?? [];
+    const originalParts = player.nameOriginal.trim().split(/\s+/);
+    const nicknamePart = japaneseParts.indexOf(japaneseNickname ?? "");
+    if (nicknamePart >= 0 && originalParts[nicknamePart]) return originalParts[nicknamePart]!;
+    return originalParts[0] || fullName;
+  }
+  return localizedNickname || fullName;
+}
+
 /**
  * Club name in the active UI locale. Falls back through en → fr → ja → the
  * build-time `team` string so a missing translation never blanks the row.

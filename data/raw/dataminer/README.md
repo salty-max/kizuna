@@ -1,6 +1,7 @@
 # Dataminer dump
 
-Extracted directly from the game — **build 6.00.23.00**, 2026-08-10 — with
+Extracted directly from the latest public client (7.1.2) on 2026-08-10. The dump’s
+internal content marker is **6.00.23.00**; it is not the public client version. Extracted with
 [`Telmo26/ievr_dataminer`](https://github.com/Telmo26/ievr_dataminer). Vendored like the rest of
 `data/raw/`: never read at runtime. `scripts/build-data.ts` consumes these bundles as the
 **only** character/passive/equipment source (display language: `fr`; English used to join
