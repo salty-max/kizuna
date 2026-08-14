@@ -140,9 +140,10 @@ export function TeamToolbar({
             <Button
               onClick={onFillEmpty}
               title={t("app.fillEmptyHint")}
+              aria-label={t("app.fillEmpty")}
               icon={<WandSparkles className="size-4" />}
             >
-              {t("app.fillEmpty")}
+              <span className="hidden 2xl:inline">{t("app.fillEmpty")}</span>
               {emptyCount > 0 && <CountBadge>{emptyCount}</CountBadge>}
             </Button>
           )}
@@ -151,9 +152,10 @@ export function TeamToolbar({
               onClick={onFillGear}
               disabled={emptyGear === 0}
               title={emptyGear === 0 ? t("app.fillGearNone") : t("app.fillGearHint")}
+              aria-label={t("app.fillGear")}
               icon={<Shirt className="size-4" />}
             >
-              {t("app.fillGear")}
+              <span className="hidden 2xl:inline">{t("app.fillGear")}</span>
               {emptyGear > 0 && <CountBadge>{emptyGear}</CountBadge>}
             </Button>
           )}
@@ -162,9 +164,10 @@ export function TeamToolbar({
             onClick={onClear}
             disabled={!canClear}
             title={canClear ? t("app.clearTeamHint") : t("app.clearTeamNone")}
+            aria-label={t("app.clearTeam")}
             icon={<Trash2 className="size-4" />}
           >
-            {t("app.clearTeam")}
+            <span className="hidden 2xl:inline">{t("app.clearTeam")}</span>
           </Button>
         </div>
 
@@ -173,9 +176,10 @@ export function TeamToolbar({
             <Button
               onClick={() => onSavedOpenChange(!savedOpen)}
               aria-expanded={savedOpen}
+              aria-label={t("app.myTeams")}
               icon={<FolderOpen className="size-4" />}
             >
-              {t("app.myTeams")}
+              <span className="hidden 2xl:inline">{t("app.myTeams")}</span>
               {savedCount > 0 && <CountBadge>{savedCount}</CountBadge>}
             </Button>
             {savedMenu}
@@ -211,8 +215,13 @@ export function TeamToolbar({
             </span>
           </Button>
 
-          <Button variant="primary" onClick={onShare} icon={<Share2 className="size-4" />}>
-            {t("app.share")}
+          <Button
+            variant="primary"
+            onClick={onShare}
+            aria-label={t("app.share")}
+            icon={<Share2 className="size-4" />}
+          >
+            <span className="hidden 2xl:inline">{t("app.share")}</span>
           </Button>
         </div>
       </div>

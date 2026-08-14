@@ -61,7 +61,7 @@ export function PlayerPickerResults({
         )}
       </div>
 
-      <footer className="border-t-2 border-ink-800 px-3 py-2 font-display text-[11px] font-bold tracking-wide text-ink-500 uppercase italic tnum">
+      <footer className="shrink-0 border-t-2 border-ink-800 px-3 py-2 font-display text-[11px] font-bold tracking-wide text-ink-500 uppercase italic tnum">
         {t("picker.count", {
           n: players.length,
           shown: formatNumber(players.length, locale),

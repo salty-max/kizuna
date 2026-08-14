@@ -58,7 +58,7 @@ export function PlayerPickerControls({ dataset, filters, inputRef, onChange, onC
         </IconButton>
       </header>
 
-      <div className="flex flex-wrap items-center gap-1.5 border-b-2 border-ink-800 p-3">
+      <div className="scroll-slim flex max-h-[42dvh] shrink-0 flex-wrap items-center gap-1.5 overflow-y-auto border-b-2 border-ink-800 p-3 sm:max-h-none sm:overflow-visible">
         <FilterGroup
           values={POSITIONS}
           active={filters.position}

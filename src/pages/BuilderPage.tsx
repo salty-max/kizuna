@@ -180,6 +180,15 @@ export function BuilderPage() {
   const hasPlayers = resolved.slots.some(
     (slot) => (slot.kind === "pitch" || slot.kind === "bench") && slot.player !== null,
   );
+  const analysisScrollRef = useRef<HTMLDivElement>(null);
+
+  // The empty-state CTA can scroll the analysis rail before opening the
+  // generator. A generated squad replaces that content in place, so restore
+  // the match-day summary to the top instead of inheriting the old position.
+  useEffect(() => {
+    analysisScrollRef.current?.scrollTo({ top: 0 });
+  }, [hasPlayers, activeOptimization]);
+
   const notify = (tone: ActionFeedback["tone"], message: string) => {
     setFeedback({ id: ++feedbackId.current, tone, message });
   };
@@ -441,7 +450,7 @@ export function BuilderPage() {
           aria-label={t("workspace.analysis")}
         >
           <h2 className="cockpit-rail-title">{t("workspace.analysis")}</h2>
-          <div className="scroll-slim min-h-0 flex-1 overflow-y-auto">
+          <div ref={analysisScrollRef} className="scroll-slim min-h-0 flex-1 overflow-y-auto">
             {hasPlayers ? (
               <div className="cockpit-stack flex flex-col">
                 <SynergyPanel
