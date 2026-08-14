@@ -1,22 +1,74 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 
 import { Footer } from "@/components/Footer";
+import { RouteHeading, RouteMetadata } from "@/components/RouteMetadata";
 import { TopBar } from "@/components/TopBar";
 import { DatasetProvider } from "@/data/DatasetContext";
+import { useI18n } from "@/i18n";
 import { BuilderPage } from "@/pages/BuilderPage";
-import { WikiAbilitiesPage } from "@/pages/wiki/WikiAbilitiesPage";
-import { WikiAbilityDetailPage } from "@/pages/wiki/WikiAbilityDetailPage";
-import { WikiBondDetailPage } from "@/pages/wiki/WikiBondDetailPage";
-import { WikiBondsPage } from "@/pages/wiki/WikiBondsPage";
-import { WikiEquipmentDetailPage } from "@/pages/wiki/WikiEquipmentDetailPage";
-import { WikiEquipmentPage } from "@/pages/wiki/WikiEquipmentPage";
-import { WikiHomePage } from "@/pages/wiki/WikiHomePage";
-import { WikiPassiveDetailPage } from "@/pages/wiki/WikiPassiveDetailPage";
-import { WikiPassivesPage } from "@/pages/wiki/WikiPassivesPage";
-import { WikiPlayerDetailPage } from "@/pages/wiki/WikiPlayerDetailPage";
-import { WikiPlayersPage } from "@/pages/wiki/WikiPlayersPage";
-import { WikiTacticDetailPage } from "@/pages/wiki/WikiTacticDetailPage";
-import { WikiTacticsPage } from "@/pages/wiki/WikiTacticsPage";
+
+const WikiAbilitiesPage = lazy(() =>
+  import("@/pages/wiki/WikiAbilitiesPage").then((module) => ({
+    default: module.WikiAbilitiesPage,
+  })),
+);
+const WikiAbilityDetailPage = lazy(() =>
+  import("@/pages/wiki/WikiAbilityDetailPage").then((module) => ({
+    default: module.WikiAbilityDetailPage,
+  })),
+);
+const WikiBondDetailPage = lazy(() =>
+  import("@/pages/wiki/WikiBondDetailPage").then((module) => ({
+    default: module.WikiBondDetailPage,
+  })),
+);
+const WikiBondsPage = lazy(() =>
+  import("@/pages/wiki/WikiBondsPage").then((module) => ({ default: module.WikiBondsPage })),
+);
+const WikiEquipmentDetailPage = lazy(() =>
+  import("@/pages/wiki/WikiEquipmentDetailPage").then((module) => ({
+    default: module.WikiEquipmentDetailPage,
+  })),
+);
+const WikiEquipmentPage = lazy(() =>
+  import("@/pages/wiki/WikiEquipmentPage").then((module) => ({
+    default: module.WikiEquipmentPage,
+  })),
+);
+const WikiHomePage = lazy(() =>
+  import("@/pages/wiki/WikiHomePage").then((module) => ({ default: module.WikiHomePage })),
+);
+const WikiPassiveDetailPage = lazy(() =>
+  import("@/pages/wiki/WikiPassiveDetailPage").then((module) => ({
+    default: module.WikiPassiveDetailPage,
+  })),
+);
+const WikiPassivesPage = lazy(() =>
+  import("@/pages/wiki/WikiPassivesPage").then((module) => ({
+    default: module.WikiPassivesPage,
+  })),
+);
+const WikiPlayerDetailPage = lazy(() =>
+  import("@/pages/wiki/WikiPlayerDetailPage").then((module) => ({
+    default: module.WikiPlayerDetailPage,
+  })),
+);
+const WikiPlayersPage = lazy(() =>
+  import("@/pages/wiki/WikiPlayersPage").then((module) => ({
+    default: module.WikiPlayersPage,
+  })),
+);
+const WikiTacticDetailPage = lazy(() =>
+  import("@/pages/wiki/WikiTacticDetailPage").then((module) => ({
+    default: module.WikiTacticDetailPage,
+  })),
+);
+const WikiTacticsPage = lazy(() =>
+  import("@/pages/wiki/WikiTacticsPage").then((module) => ({
+    default: module.WikiTacticsPage,
+  })),
+);
 
 /**
  * App shell: top chrome + routes.
@@ -26,10 +78,62 @@ import { WikiTacticsPage } from "@/pages/wiki/WikiTacticsPage";
  */
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <DatasetProvider>
-        <div className="mx-auto flex h-dvh max-w-[1600px] flex-col gap-2 overflow-hidden p-4">
-          <TopBar />
+        <AppFrame />
+      </DatasetProvider>
+    </BrowserRouter>
+  );
+}
+
+let previousPath: string | null = null;
+let routeAwaitingFocus: string | null = null;
+
+function AppFrame() {
+  const { t } = useI18n();
+  const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (previousPath !== null && previousPath !== pathname) routeAwaitingFocus = pathname;
+    previousPath = pathname;
+    const frame = window.requestAnimationFrame(() => {
+      const main = mainRef.current;
+      if (routeAwaitingFocus === pathname && main && document.contains(main)) {
+        main.focus();
+        routeAwaitingFocus = null;
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname]);
+
+  return (
+    <div className="mx-auto flex min-h-dvh w-full max-w-[1600px] flex-col gap-2 p-2 lg:p-4 xl:h-dvh xl:overflow-hidden">
+      <a
+        href="#main-content"
+        className="fixed top-2 left-2 z-[110] -translate-y-20 border-2 border-bolt-400 bg-ink-950 px-3 py-2 font-display text-sm font-bold text-bolt-400 uppercase italic no-underline focus:translate-y-0"
+      >
+        {t("nav.skipContent")}
+      </a>
+      <TopBar />
+      <RouteMetadata />
+      <main
+        ref={mainRef}
+        id="main-content"
+        tabIndex={-1}
+        className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 outline-none"
+      >
+        <RouteHeading />
+        <Suspense
+          fallback={
+            <p
+              role="status"
+              className="flex-1 py-8 text-center font-display text-sm font-bold tracking-wide text-ink-500 uppercase italic"
+            >
+              …
+            </p>
+          }
+        >
           <Routes>
             <Route path="/" element={<BuilderPage />} />
             <Route path="/wiki" element={<WikiHomePage />} />
@@ -47,9 +151,9 @@ export default function App() {
             <Route path="/wiki/bonds/:id" element={<WikiBondDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <Footer />
-        </div>
-      </DatasetProvider>
-    </BrowserRouter>
+        </Suspense>
+      </main>
+      <Footer className="xl:hidden" />
+    </div>
   );
 }

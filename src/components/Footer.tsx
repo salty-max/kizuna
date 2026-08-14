@@ -30,7 +30,7 @@ export function Footer({ className }: { className?: string }) {
           {t("app.footer")}
         </p>
         {dataset.generatedAt && (
-          <p className="mt-0.5 text-[10px] text-ink-600 tnum">
+          <p className="mt-0.5 text-[10px] text-ink-500 tnum">
             {t("app.footerDataOf", { date: formatDateTime(dataset.generatedAt, locale) })}
           </p>
         )}

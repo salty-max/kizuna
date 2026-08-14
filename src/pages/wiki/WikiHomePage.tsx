@@ -51,12 +51,12 @@ export function WikiHomePage() {
   const dataset = useDataset();
 
   const counts = {
-    players: dataset.players.length,
-    abilities: dataset.abilities.length,
-    equipment: dataset.equipment.length,
-    tactics: dataset.tactics.length,
-    passives: dataset.passives.length,
-    bonds: dataset.synergies.length,
+    players: dataset.counts?.players ?? dataset.players.length,
+    abilities: dataset.counts?.abilities ?? dataset.abilities.length,
+    equipment: dataset.counts?.equipment ?? dataset.equipment.length,
+    tactics: dataset.counts?.tactics ?? dataset.tactics.length,
+    passives: dataset.counts?.passives ?? dataset.passives.length,
+    bonds: dataset.counts?.synergies ?? dataset.synergies.length,
   };
 
   return (

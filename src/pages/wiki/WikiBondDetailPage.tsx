@@ -110,7 +110,7 @@ export function WikiBondDetailPage() {
                       <span className="block truncate text-xs text-ink-500">{secondary}</span>
                     )}
                   </span>
-                  <code className="shrink-0 text-[11px] text-ink-600 tnum">{memberId}</code>
+                  <code className="shrink-0 text-[11px] text-ink-500 tnum">{memberId}</code>
                 </>
               );
 

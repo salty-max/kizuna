@@ -86,7 +86,7 @@ export function WikiPlayersPage() {
         return (
           fold(localizedSearchBlob(player.names, player.name)).includes(needle) ||
           fold(player.nameOriginal).includes(needle) ||
-          fold(player.nickname).includes(needle) ||
+          fold(localizedSearchBlob(player.nicknames, player.nickname)).includes(needle) ||
           teamHit ||
           String(player.id).includes(needle)
         );
