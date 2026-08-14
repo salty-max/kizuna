@@ -19,6 +19,8 @@ function player(overrides: Partial<Player> & Pick<Player, "id" | "name">): Playe
     nameOriginal: "",
     nickname: "",
     image: "",
+    characterId: "",
+    modelStem: "",
     game: "Inazuma Eleven",
     team: "Raimon",
     teamId: 1,

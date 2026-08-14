@@ -22,6 +22,8 @@ function player(id: number): Player {
     nickname: `J${id}`,
     nicknames: { fr: `J${id}`, en: `P${id}`, ja: `選${id}` },
     image: `portraits/${id}.png`,
+    characterId: `c0${id}`,
+    modelStem: id === 1 ? "1/k/q/l/example" : "",
     game: "Victory Road",
     team: "Raimon",
     teamId: 42,

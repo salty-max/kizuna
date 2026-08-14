@@ -29,6 +29,8 @@ function player(
     nameOriginal: `Player ${id}`,
     nickname: `P${id}`,
     image: "",
+    characterId: `c-test-${id}`,
+    modelStem: "",
     game: "Test",
     team: "Test",
     teamId: 1,

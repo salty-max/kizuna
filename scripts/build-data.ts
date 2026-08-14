@@ -181,6 +181,8 @@ interface RawCharacter {
   series_plain?: string;
   /** Dump strings: `male` / `female` / `other`. */
   gender?: string;
+  /** Inazugle catalogue id (`c01000010`). */
+  character_id?: string;
   element: number;
   main_position: number;
   alt_position?: number;
@@ -305,6 +307,26 @@ async function loadInazuglePortraits(): Promise<Map<string, string>> {
     if (!row?.name || !row?.image) continue;
     const key = normalizeName(row.name);
     if (!map.has(key)) map.set(key, row.image);
+  }
+  return map;
+}
+
+/**
+ * Inazugle turntable stems (`bun run data:character-models`).
+ * Map character_id → relative CDN path without `_rN` suffix.
+ */
+async function loadCharacterModels(): Promise<Map<string, string>> {
+  const file = Bun.file(new URL("character-models.json", RAW));
+  if (!(await file.exists())) {
+    problems.push(
+      "data/raw/character-models.json absent — lance `bun run data:character-models` (viewer sans modèles)",
+    );
+    return new Map();
+  }
+  const raw = (await file.json()) as Record<string, string>;
+  const map = new Map<string, string>();
+  for (const [id, stem] of Object.entries(raw ?? {})) {
+    if (id && stem) map.set(id, stem);
   }
   return map;
 }
@@ -597,6 +619,7 @@ async function buildPlayers(
   const playerNicknamesById = collectPlayerNicknames(locales);
   const playerDescriptionsById = collectPlayerDescriptions(locales);
   const portraits = await loadInazuglePortraits();
+  const characterModels = await loadCharacterModels();
 
   const baseById = firstById(display.characters);
   const heroById = firstById(display.heroes);
@@ -607,6 +630,7 @@ async function buildPlayers(
   const players: Player[] = [];
   const details: PlayerDetails[] = [];
   let portraitsMatched = 0;
+  let modelsMatched = 0;
 
   for (const id of [...allIds].sort((a, b) => a - b)) {
     const base = baseById.get(id) ?? heroById.get(id) ?? basaraById.get(id);
@@ -652,6 +676,9 @@ async function buildPlayers(
     const nicknames: LocalizedNames = { ...(playerNicknamesById.get(id) ?? {}) };
     const nickname = pickLangText(nicknames, name);
     if (image) portraitsMatched++;
+    const characterId = typeof base.character_id === "string" ? base.character_id.trim() : "";
+    const modelStem = characterId ? (characterModels.get(characterId) ?? "") : "";
+    if (modelStem) modelsMatched++;
     const gender = mapGender(base.gender, `${where}.gender`);
     const spiritDrop = base.spirit_drop === true;
 
@@ -671,6 +698,8 @@ async function buildPlayers(
       nickname,
       nicknames,
       image,
+      characterId,
+      modelStem,
       game: series,
       team,
       teamId,
@@ -738,11 +767,13 @@ async function buildPlayers(
     games,
     imageBase: IMAGE_BASE,
     portraitsMatched,
+    modelsMatched,
     droppedClones: finalized.droppedClones,
     junk: finalized.junk,
     buckets: buckets.size,
     contentVersion: display.game_version,
     portraitIndexSize: portraits.size,
+    modelIndexSize: characterModels.size,
   };
 }
 
@@ -1210,11 +1241,13 @@ const {
   games,
   imageBase,
   portraitsMatched,
+  modelsMatched,
   droppedClones,
   junk: junkPlayers,
   buckets,
   contentVersion,
   portraitIndexSize,
+  modelIndexSize,
 } = await buildPlayers(display, en, { fr, en, ja }, knownAbilityIds);
 const passives = buildPassives(display, { fr, en, ja });
 const { equipment, matched: equipmentIcons } = await buildEquipment(display, { fr, en, ja });
@@ -1252,6 +1285,8 @@ const sizes = {
       basaras: players.filter((p) => p.basaraStats).length,
       portraits: portraitsMatched,
       portraitIndex: portraitIndexSize,
+      models: modelsMatched,
+      modelIndex: modelIndexSize,
       icons: iconCount,
     },
   }),
@@ -1261,8 +1296,10 @@ const kb = (n: number) => `${(n / 1024).toFixed(0)} KB`;
 console.log(`source      latest client · content ${contentVersion} (${LANG}) — no community`);
 console.log(
   `players     ${String(players.length).padStart(5)}  ${kb(sizes["players.json"])}   ` +
-    `(${portraitsMatched}/${portraitIndexSize || "?"} portraits Inazugle` +
+    `(${portraitsMatched}/${portraitIndexSize || "?"} portraits` +
+    `; ${modelsMatched}/${modelIndexSize || "?"} models Inazugle` +
     (portraitIndexSize === 0 ? "; lance `bun run data:player-images`" : "") +
+    (modelIndexSize === 0 ? "; lance `bun run data:character-models`" : "") +
     (droppedClones ? `; −${droppedClones} clones` : "") +
     (junkPlayers ? `; −${junkPlayers} junk` : "") +
     `)`,

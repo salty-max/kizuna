@@ -13,7 +13,7 @@ import type {
 } from "@/domain/types";
 
 /** Versioned wire format. The domain keeps readable objects; only transport is compact. */
-const PLAYER_SHARD_VERSION = 2 as const;
+const PLAYER_SHARD_VERSION = 3 as const;
 
 type WireStats = [number, number, number, number, number, number, number];
 type WireSkill = [level: number, abilityId: string];
@@ -59,9 +59,11 @@ type WirePlayer = [
   nicknameFr: string | null,
   nicknameEn: string | null,
   nicknameJa: string | null,
+  characterId: string,
+  modelStem: string,
 ];
 
-export interface PlayerShardV2 {
+export interface PlayerShardV3 {
   v: typeof PLAYER_SHARD_VERSION;
   g: string[];
   t: WireTeam[];
@@ -127,7 +129,7 @@ function localizedNames(fr: string | null, en: string | null, ja: string | null)
 }
 
 /** Deduplicate series and teams, then encode repeated objects as positional tuples. */
-export function encodePlayerShard(players: Player[]): PlayerShardV2 {
+export function encodePlayerShard(players: Player[]): PlayerShardV3 {
   const games = [...new Set(players.map((player) => player.game))];
   const gameIndexes = new Map(games.map((game, index) => [game, index]));
   const teams: WireTeam[] = [];
@@ -185,6 +187,8 @@ export function encodePlayerShard(players: Player[]): PlayerShardV2 {
       player.nicknames?.fr ?? null,
       player.nicknames?.en ?? null,
       player.nicknames?.ja ?? null,
+      player.characterId,
+      player.modelStem,
     ]),
   };
 }
@@ -194,7 +198,7 @@ export function decodePlayerShard(input: unknown): Player[] {
   if (!input || typeof input !== "object" || !("v" in input) || input.v !== PLAYER_SHARD_VERSION) {
     throw new Error("players.json: unsupported player shard version");
   }
-  const shard = input as PlayerShardV2;
+  const shard = input as PlayerShardV3;
   if (!Array.isArray(shard.g) || !Array.isArray(shard.t) || !Array.isArray(shard.p)) {
     throw new Error("players.json: malformed player shard");
   }
@@ -213,6 +217,8 @@ export function decodePlayerShard(input: unknown): Player[] {
       nickname: row[27],
       nicknames: localizedNames(row[28], row[29], row[30]),
       image: row[6],
+      characterId: row[31] ?? "",
+      modelStem: row[32] ?? "",
       game: shard.g[row[7]]!,
       team: team[1],
       teamId: team[0],

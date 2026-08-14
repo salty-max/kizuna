@@ -33,6 +33,8 @@ function player(
     nameOriginal: `P${id}`,
     nickname: `P${id}`,
     image: "x.png",
+    characterId: `c-test-${id}`,
+    modelStem: "",
     game: "Test",
     team: "T",
     teamId: null,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 
+import { CharacterModelButton, CharacterModelViewer } from "@/components/CharacterModelViewer";
 import {
   AbilityIcon,
   ElementBadge,
@@ -42,6 +43,7 @@ export function WikiPlayerDetailPage() {
   const player = Number.isFinite(id) ? (dataset.players.find((p) => p.id === id) ?? null) : null;
 
   const [form, setForm] = useState<FormTab>("common");
+  const [modelOpen, setModelOpen] = useState(false);
   const [details, setDetails] = useState<Awaited<ReturnType<typeof loadPlayerDetails>>>(null);
 
   useEffect(() => {
@@ -101,13 +103,19 @@ export function WikiPlayerDetailPage() {
 
       <div className="flex flex-col gap-3">
         <Panel bodyClassName="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <PlayerAvatar
-            player={player}
-            imageBase={dataset.imageBase}
-            size={96}
-            displayName={displayName}
-            className="shrink-0"
-          />
+          <div className="relative shrink-0 self-start">
+            <PlayerAvatar
+              player={player}
+              imageBase={dataset.imageBase}
+              size={96}
+              displayName={displayName}
+            />
+            <CharacterModelButton
+              hasModel={Boolean(player.modelStem)}
+              onOpen={() => setModelOpen(true)}
+              className="absolute -right-1 -bottom-1 size-8 border-2 border-ink-800 bg-ink-900"
+            />
+          </div>
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-xl font-bold uppercase italic">{displayName}</h2>
             {player.nameOriginal && player.nameOriginal !== localName && (
@@ -221,6 +229,16 @@ export function WikiPlayerDetailPage() {
           )}
         </Panel>
       </div>
+
+      {modelOpen && (
+        <CharacterModelViewer
+          name={displayName}
+          imageBase={dataset.imageBase}
+          modelStem={player.modelStem}
+          characterId={player.characterId}
+          onClose={() => setModelOpen(false)}
+        />
+      )}
     </div>
   );
 }

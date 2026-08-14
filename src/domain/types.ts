@@ -159,6 +159,16 @@ export interface Player {
   nicknames?: LocalizedNames;
   /** Path under the Inazugle CDN (`imageBase`); empty when no portrait joined. */
   image: string;
+  /**
+   * Inazugle catalogue id (`c01000010`). Used for the character viewer URL and
+   * to join pre-rendered turntable frames.
+   */
+  characterId: string;
+  /**
+   * Relative CDN stem for the 8-frame turntable (`1/k/q/l/qluc-tlklmm`), empty
+   * when the model index has no entry. Frames: `{stem}_r{0-7}[_fullbody].webp`.
+   */
+  modelStem: string;
   /** Series label from the game (`Inazuma Eleven`, `… Victory Road`, …). */
   game: string;
   /**

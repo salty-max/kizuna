@@ -22,6 +22,7 @@
     "data": "bun run scripts/build-data.ts",
     "data:images": "bun run scripts/fetch-equipment-images.ts",
     "data:player-images": "bun run scripts/fetch-player-images.ts",
+    "data:character-models": "bun run scripts/fetch-character-models.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
