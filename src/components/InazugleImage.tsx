@@ -21,11 +21,10 @@ interface Props extends Omit<ImgHTMLAttributes<HTMLImageElement>, "onLoad" | "on
 }
 
 /**
- * Remote Inazugle artwork with a branded loading surface.
+ * Remote Inazugle artwork with a quiet loading surface.
  *
- * CDN latency is normal, not exceptional: the frame fills with the scan/sigil
- * loader, then the image cross-fades in. Failures fall through to `fallback`
- * (or an empty frame) rather than a broken-image icon.
+ * CDN latency is normal: solid ink + a soft shimmer, then the image
+ * cross-fades in. Failures fall through to `fallback` rather than a broken glyph.
  */
 export function InazugleImage({
   src,
