@@ -74,7 +74,10 @@ const CONDITION_RULES: { re: RegExp; cond: PassiveCondition }[] = [
     cond: "differentElementAllyNearby",
   },
   { re: /after\s*(?:a\s*)?pass|when\s*making\s*a\s*pass|on\s*team\s*pass/i, cond: "onTeamPass" },
-  { re: /after\s*(?:a\s*)?substitution|after\s*subbing/i, cond: "afterSubstitution" },
+  {
+    re: /after\s*(?:a\s*)?substitution|after\s*subbing|upon\s*being\s*subbed/i,
+    cond: "afterSubstitution",
+  },
   {
     re: /winning\s*(?:a\s*)?(?:focus|scramble)|focus\s*or\s*scramble\s*(?:battle\s*)?victory|when\s*winning\s*a\s*focus\s*or\s*scramble/i,
     cond: "whenWinningFocusOrScramble",
@@ -82,15 +85,27 @@ const CONDITION_RULES: { re: RegExp; cond: PassiveCondition }[] = [
   { re: /while\s*dashing|on\s*dash(?!\s*knockback)/i, cond: "whileDashing" },
   { re: /breach\s*rate.*15|15\s*%.*breach/i, cond: "teamBreachRateAtLeast15" },
   { re: /not\s*leading|score\s*not\s*leading/i, cond: "scoreNotLeading" },
-  { re: /no\s*foul|without\s*(?:a\s*)?foul|no\s*foul\s*committed/i, cond: "noFoulCommittedYet" },
+  {
+    re: /no\s*foul|without\s*(?:a\s*)?foul|no\s*foul\s*committed|until\s*you\s*incur\s*a\s*foul/i,
+    cond: "noFoulCommittedYet",
+  },
   {
     re: /opposition\s*commits?\s*a\s*foul|opponent\s*foul|when\s*the\s*opposition\s*commits/i,
     cond: "onOpponentFoul",
   },
-  { re: /lost\s*(?:a\s*)?scramble|on\s*lost\s*scramble/i, cond: "onLostScramble" },
-  { re: /ball\s*recovery|after\s*recovering/i, cond: "afterBallRecoveryNoDirectCatch" },
+  {
+    re: /lost\s*(?:a\s*)?scramble|losing\s*(?:a\s*)?scramble|on\s*lost\s*scramble/i,
+    cond: "onLostScramble",
+  },
+  {
+    re: /ball\s*recovery|after\s*recovering|on\s*gaining\s*possession\s*\(excluding\s*catches\)/i,
+    cond: "afterBallRecoveryNoDirectCatch",
+  },
   { re: /next\s*rough\s*attack/i, cond: "nextRoughAttackOnly" },
-  { re: /marked\s*or\s*blocked.*dash|dash.*marked/i, cond: "onMarkedOrBlockedWhileDashing" },
+  {
+    re: /marked\s*or\s*blocked.*dash|dash.*marked|on\s*dash\s*knockback/i,
+    cond: "onMarkedOrBlockedWhileDashing",
+  },
   { re: /opponent\s*pass.*focus|pass\s*during\s*focus/i, cond: "onOpponentPassDuringFocus" },
 ];
 
@@ -202,6 +217,20 @@ export function parsePassiveEffectsFromEn(text: string): PassiveEffect[] {
     if (!conditions.includes("perBuildChargeRank")) conditions.push("perBuildChargeRank");
   }
 
+  const requiredBuildType = /breach team build/i.test(cleaned)
+    ? "breach"
+    : /tension team build/i.test(cleaned)
+      ? "tension"
+      : /counter team build/i.test(cleaned)
+        ? "counter"
+        : /bond team build/i.test(cleaned)
+          ? "bond"
+          : /rough play team build/i.test(cleaned)
+            ? "roughPlay"
+            : /justice team build/i.test(cleaned)
+              ? "justice"
+              : undefined;
+
   return [
     {
       mode: "percent",
@@ -209,6 +238,7 @@ export function parsePassiveEffectsFromEn(text: string): PassiveEffect[] {
       stat,
       direction: parseDirection(cleaned),
       conditions,
+      ...(requiredBuildType ? { requiredBuildType } : {}),
     },
   ];
 }

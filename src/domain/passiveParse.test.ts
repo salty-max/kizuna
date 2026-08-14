@@ -82,6 +82,18 @@ describe("parsePassiveEffectsFromEn", () => {
     expect(e.direction).toBe("increase");
   });
 
+  test("charge-rank effects retain their required Team Build", () => {
+    expect(
+      parsePassiveEffectsFromEn(
+        "For each Charge Rank up with Justice Team Build, Team AT & DF +0.8%",
+      )[0],
+    ).toMatchObject({
+      stat: "all",
+      conditions: ["perBuildChargeRank"],
+      requiredBuildType: "justice",
+    });
+  });
+
   test("castle wall pierce on charge rank", () => {
     const e = percentEffect(
       parsePassiveEffectsFromEn(
@@ -103,6 +115,31 @@ describe("parsePassiveEffectsFromEn", () => {
     const e = percentEffect(parsePassiveEffectsFromEn("Upon being subbed in, AT +8% for 15 sec"));
     expect(e.scope).toBe("subbedOnPlayer");
     expect(e.stat).toBe("AT");
+    expect(e.conditions).toContain("afterSubstitution");
+  });
+
+  test("possession recovery window", () => {
+    const e = percentEffect(
+      parsePassiveEffectsFromEn(
+        "On gaining possession (excluding catches), Team Shot AT +8% for 30 sec",
+      ),
+    );
+    expect(e.stat).toBe("shotAT");
+    expect(e.conditions).toContain("afterBallRecoveryNoDirectCatch");
+  });
+
+  test("dash knockback", () => {
+    const e = percentEffect(parsePassiveEffectsFromEn("On Dash knockback, Team Bond Power +15%"));
+    expect(e.stat).toBe("bondGain");
+    expect(e.conditions).toContain("onMarkedOrBlockedWhileDashing");
+  });
+
+  test("until first foul", () => {
+    const e = percentEffect(
+      parsePassiveEffectsFromEn("Until you incur a foul, Team Castle Wall DF +5%"),
+    );
+    expect(e.stat).toBe("wallDF");
+    expect(e.conditions).toContain("noFoulCommittedYet");
   });
 
   test("save rate is a team gauge (including charge-rank)", () => {

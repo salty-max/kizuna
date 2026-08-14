@@ -1,8 +1,13 @@
 import { POWER_KEYS, emptyPowerStats, type PowerKey, type PowerStats } from "./stats";
 import type { ResolvedSlot, ResolvedTeam } from "./team";
+import { characterIdentity, findRuleset } from "./rules";
 import {
-  MAX_BASARA_IN_SQUAD,
-  MAX_HERO_STARTERS,
+  clampPassiveTotal,
+  passiveCapFor,
+  type PassiveCap,
+  type PassiveCapId,
+} from "./passiveCaps";
+import {
   PASSIVE_STATS,
   POWER_STAT_MAP,
   type PassiveCondition,
@@ -45,6 +50,16 @@ export interface Contribution {
   conditions: PassiveCondition[];
   /** Set when the scope itself is situational rather than the conditions. */
   note?: ScopeNote;
+  /** Official accumulated-team cap applying to this passive family. */
+  cap?: PassiveCap;
+}
+
+export interface AppliedCap {
+  id: PassiveCapId;
+  limit: number;
+  raw: number;
+  applied: number;
+  certainty: "always" | "conditional";
 }
 
 export interface Modifier {
@@ -52,6 +67,11 @@ export interface Modifier {
   guaranteed: number;
   /** Extra percent once every condition holds. */
   conditional: number;
+  /** Totals before official upper/lower limits are applied. */
+  rawGuaranteed: number;
+  rawConditional: number;
+  /** Only caps that actually clipped the accumulated value. */
+  caps: AppliedCap[];
   contributions: Contribution[];
 }
 
@@ -175,7 +195,14 @@ function resolveScope(
 }
 
 function emptyModifier(): Modifier {
-  return { guaranteed: 0, conditional: 0, contributions: [] };
+  return {
+    guaranteed: 0,
+    conditional: 0,
+    rawGuaranteed: 0,
+    rawConditional: 0,
+    caps: [],
+    contributions: [],
+  };
 }
 
 function emptyPowerModifiers(): Record<PowerKey, Modifier> {
@@ -192,8 +219,48 @@ function emptyPowerModifiers(): Record<PowerKey, Modifier> {
 
 function record(modifier: Modifier, contribution: Contribution) {
   modifier.contributions.push(contribution);
-  if (contribution.certainty === "always") modifier.guaranteed += contribution.percent;
-  else modifier.conditional += contribution.percent;
+}
+
+function finalizeModifier(modifier: Modifier): void {
+  const calculate = (certainty: Contribution["certainty"]) => {
+    const contributions = modifier.contributions.filter((c) => c.certainty === certainty);
+    const capped = new Map<PassiveCapId, { cap: PassiveCap; raw: number }>();
+    let raw = 0;
+    let applied = 0;
+
+    for (const contribution of contributions) {
+      raw += contribution.percent;
+      if (!contribution.cap) {
+        applied += contribution.percent;
+        continue;
+      }
+      const bucket = capped.get(contribution.cap.id) ?? { cap: contribution.cap, raw: 0 };
+      bucket.raw += contribution.percent;
+      capped.set(contribution.cap.id, bucket);
+    }
+
+    for (const { cap, raw: bucketRaw } of capped.values()) {
+      const bucketApplied = clampPassiveTotal(bucketRaw, cap.limit);
+      applied += bucketApplied;
+      if (bucketApplied !== bucketRaw) {
+        modifier.caps.push({
+          id: cap.id,
+          limit: cap.limit,
+          raw: bucketRaw,
+          applied: bucketApplied,
+          certainty,
+        });
+      }
+    }
+    return { raw, applied };
+  };
+
+  const guaranteed = calculate("always");
+  const conditional = calculate("conditional");
+  modifier.rawGuaranteed = guaranteed.raw;
+  modifier.guaranteed = guaranteed.applied;
+  modifier.rawConditional = conditional.raw;
+  modifier.conditional = conditional.applied;
 }
 
 function applyPercent(
@@ -241,7 +308,17 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
           continue;
         }
 
-        const percent = effect.direction === "decrease" ? -value : value;
+        const perBuildRank = effect.conditions.includes("perBuildChargeRank");
+        if (
+          perBuildRank &&
+          (!effect.requiredBuildType ||
+            effect.requiredBuildType !== resolved.team.teamBuildType ||
+            resolved.team.buildRank === 0)
+        ) {
+          continue;
+        }
+        const magnitude = perBuildRank ? value * resolved.team.buildRank : value;
+        const percent = effect.direction === "decrease" ? -magnitude : magnitude;
         const conditional = effect.conditions.length > 0 || resolution.note !== undefined;
 
         const contribution: Contribution = {
@@ -254,6 +331,7 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
           certainty: conditional ? "conditional" : "always",
           conditions: effect.conditions,
           note: resolution.note,
+          cap: passiveCapFor(effect) ?? undefined,
         };
 
         const powerKeys = POWER_STAT_MAP[effect.stat];
@@ -272,6 +350,13 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
         }
       }
     }
+  }
+
+  for (const modifiers of power.values()) {
+    for (const key of POWER_KEYS) finalizeModifier(modifiers[key]);
+  }
+  for (const modifier of Object.values(gauges)) {
+    if (modifier) finalizeModifier(modifier);
   }
 
   const effective = new Map<string, PowerStats>();
@@ -306,7 +391,10 @@ export function computeSynergy(resolved: ResolvedTeam): SynergyResult {
 /** Stable codes — UI translates via i18n `violations.*`. */
 export type Violation =
   | { code: "heroLimit"; count: number; max: number }
-  | { code: "basaraLimit"; count: number; max: number };
+  | { code: "basaraLimit"; count: number; max: number }
+  | { code: "duplicateCharacter"; count: number; max: number; name: string };
+
+export type RuleNotice = { code: "seasonalNotModelled"; required: number };
 
 export interface SquadShape {
   elements: { element: string; count: number }[];
@@ -316,11 +404,14 @@ export interface SquadShape {
   outOfPosition: ResolvedSlot[];
   /** Game limits that the current squad breaks. */
   violations: Violation[];
+  /** Rules the selected profile requires but the current data cannot verify. */
+  notices: RuleNotice[];
   filled: number;
   capacity: number;
 }
 
 export function squadShape(resolved: ResolvedTeam): SquadShape {
+  const ruleset = findRuleset(resolved.team.rulesetId);
   const pitch = resolved.slots.filter((s) => s.kind === "pitch");
   const tally = <T extends string>(values: (T | undefined)[]) => {
     const counts = new Map<T, number>();
@@ -339,15 +430,40 @@ export function squadShape(resolved: ResolvedTeam): SquadShape {
   ).length;
 
   const violations: Violation[] = [];
-  if (heroStarters > MAX_HERO_STARTERS) {
-    violations.push({ code: "heroLimit", count: heroStarters, max: MAX_HERO_STARTERS });
+  if (heroStarters > ruleset.maxHeroStarters) {
+    violations.push({ code: "heroLimit", count: heroStarters, max: ruleset.maxHeroStarters });
   }
-  if (basaraInSquad > MAX_BASARA_IN_SQUAD) {
-    violations.push({ code: "basaraLimit", count: basaraInSquad, max: MAX_BASARA_IN_SQUAD });
+  if (basaraInSquad > ruleset.maxBasaraInSquad) {
+    violations.push({ code: "basaraLimit", count: basaraInSquad, max: ruleset.maxBasaraInSquad });
   }
 
+  if (ruleset.uniqueCharacters) {
+    const byIdentity = new Map<string, ResolvedSlot[]>();
+    for (const slot of resolved.slots) {
+      if (!slot.player || (slot.kind !== "pitch" && slot.kind !== "bench")) continue;
+      const identity = characterIdentity(slot.player);
+      const entries = byIdentity.get(identity) ?? [];
+      entries.push(slot);
+      byIdentity.set(identity, entries);
+    }
+    for (const duplicates of byIdentity.values()) {
+      if (duplicates.length < 2) continue;
+      violations.push({
+        code: "duplicateCharacter",
+        count: duplicates.length,
+        max: 1,
+        name: duplicates[0]!.player!.name,
+      });
+    }
+  }
+
+  const notices: RuleNotice[] = [];
+  if (ruleset.requiredSeasonalStarters != null) {
+    notices.push({ code: "seasonalNotModelled", required: ruleset.requiredSeasonalStarters });
+  }
   return {
     violations,
+    notices,
     rarities: tally(resolved.starters.map((s) => s.rarity)).map(([rarity, count]) => ({
       rarity,
       count,

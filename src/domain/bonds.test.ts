@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { detectBonds } from "./bonds";
+import { detectBonds, resolveEquippedSynergies } from "./bonds";
 import type { BondSynergy } from "./types";
 import type { ResolvedSlot, ResolvedTeam } from "./team";
 
@@ -27,7 +27,17 @@ function mockResolved(playerIds: number[]): ResolvedTeam {
   );
 
   return {
-    team: { name: "", formationId: "4-4-2-diamond", tacticIds: [], slots: {} },
+    team: {
+      name: "",
+      formationId: "4-4-2-diamond",
+      rulesetId: "standard",
+      offensiveSynergyId: null,
+      defensiveSynergyId: null,
+      teamBuildType: null,
+      buildRank: 0,
+      tacticIds: [],
+      slots: {},
+    },
     formation: { id: "4-4-2-diamond", name: "4-4-2 Diamond", slots: [] },
     slots,
     starters: slots,
@@ -37,6 +47,7 @@ function mockResolved(playerIds: number[]): ResolvedTeam {
 const CATALOGUE: BondSynergy[] = [
   {
     id: "sf01000010",
+    kind: "offensive",
     name: "Prince des neiges",
     names: { fr: "Prince des neiges" },
     description: "",
@@ -46,6 +57,7 @@ const CATALOGUE: BondSynergy[] = [
   },
   {
     id: "trio",
+    kind: "defensive",
     name: "Trio",
     names: { en: "Trio" },
     description: "",
@@ -55,6 +67,7 @@ const CATALOGUE: BondSynergy[] = [
   },
   {
     id: "unrelated",
+    kind: "defensive",
     name: "Unrelated",
     names: { en: "Unrelated" },
     description: "",
@@ -90,5 +103,25 @@ describe("detectBonds", () => {
     expect(hits.map((h) => h.synergy.id)).toEqual(["sf01000010", "trio"]);
     expect(hits[0]!.status).toBe("active");
     expect(hits[1]!.status).toBe("partial");
+  });
+});
+
+describe("resolveEquippedSynergies", () => {
+  test("resolves one attachment of each kind and calculates activation", () => {
+    const resolved = mockResolved([1, 10, 2]);
+    resolved.team.offensiveSynergyId = "sf01000010";
+    resolved.team.defensiveSynergyId = "trio";
+
+    const equipped = resolveEquippedSynergies(resolved, CATALOGUE);
+
+    expect(equipped.offensive?.status).toBe("active");
+    expect(equipped.defensive?.status).toBe("partial");
+    expect(equipped.defensive?.missing).toEqual([3]);
+  });
+
+  test("rejects an attachment placed in the wrong category", () => {
+    const resolved = mockResolved([1, 10]);
+    resolved.team.defensiveSynergyId = "sf01000010";
+    expect(resolveEquippedSynergies(resolved, CATALOGUE).defensive).toBeNull();
   });
 });

@@ -77,7 +77,7 @@ export interface RarityScale {
  *
  * Hero and Basara fall back to these ratios only when a character has no real
  * table row. The ratios (~1.206× / ~1.444×) are the mean of every stat on every
- * character that *does* have a real row in build 6.00.23.00; stdev is <0.02 so
+ * character that *does* have a real row in content build 6.00.23.00; stdev is <0.02 so
  * they are a tight fit, not the old 1.67 guess that applied to a different
  * (community-scrape) reference line.
  */
@@ -153,8 +153,10 @@ export interface Player {
   names: LocalizedNames;
   /** Game's "show original names" field (e.g. Endo Mamoru). */
   nameOriginal: string;
-  /** Same as nameOriginal when it differs from name; otherwise empty. */
+  /** Fallback short name printed on the pitch by the game (e.g. Evans, Axel). */
   nickname: string;
+  /** Localised short names printed on the pitch by the game. */
+  nicknames?: LocalizedNames;
   /** Path under the Inazugle CDN (`imageBase`); empty when no portrait joined. */
   image: string;
   /** Series label from the game (`Inazuma Eleven`, `… Victory Road`, …). */
@@ -439,6 +441,8 @@ export type PassiveEffect =
       stat: PassiveStat;
       direction: "increase" | "decrease";
       conditions: PassiveCondition[];
+      /** Team Build required by rank-scaled passives. */
+      requiredBuildType?: BuildType;
     }
   | {
       mode: "flat";
@@ -499,6 +503,8 @@ export interface Tactic {
  */
 export interface BondSynergy {
   id: string;
+  /** `sf` = offensive Synergy Flag; `sp` = defensive Synergy Pillar. */
+  kind: "offensive" | "defensive";
   /** Fallback name in the build language. Prefer `names[locale]`. */
   name: string;
   names: LocalizedNames;
@@ -521,6 +527,8 @@ export interface Dataset {
   games: string[];
   imageBase: string;
   generatedAt: string;
+  /** Catalogue totals from meta.json, including shards not loaded on this route. */
+  counts?: Record<string, number>;
 }
 
 /** How many tactics a squad can prepare. */

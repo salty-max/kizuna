@@ -72,24 +72,56 @@ describe("team sharing", () => {
     expect(decodeTeam("4~4-4-2-diamond~Test~1")).toBeNull();
   });
 
+  test("rejects a v5 link, which had no ruleset field", () => {
+    expect(decodeTeam("5~4-4-2-diamond~Test~~1")).toBeNull();
+  });
+
+  test("rejects a v6 link, which had no synergy attachments", () => {
+    expect(decodeTeam("6~4-4-2-diamond~Test~standard~~1")).toBeNull();
+  });
+
+  test("rejects a v7 link, which had no Build Rank scenario", () => {
+    expect(decodeTeam("7~4-4-2-diamond~Test~standard~~~~1")).toBeNull();
+  });
+
   test("round-trips prepared tactics", () => {
     const team = createTeam();
     team.tacticIds = ["wht10080", "wht20010"];
     expect(decodeTeam(encodeTeam(team))).toEqual(team);
   });
 
+  test("round-trips the tournament ruleset", () => {
+    const team = createTeam();
+    team.rulesetId = "tournament";
+    expect(decodeTeam(encodeTeam(team))).toEqual(team);
+  });
+
+  test("round-trips offensive and defensive synergy attachments", () => {
+    const team = createTeam();
+    team.offensiveSynergyId = "sf01000010";
+    team.defensiveSynergyId = "sp05001";
+    expect(decodeTeam(encodeTeam(team))).toEqual(team);
+  });
+
+  test("round-trips a Build Rank scenario", () => {
+    const team = createTeam();
+    team.teamBuildType = "justice";
+    team.buildRank = 4;
+    expect(decodeTeam(encodeTeam(team))).toEqual(team);
+  });
+
   test("rejects malformed input", () => {
     expect(decodeTeam("")).toBeNull();
     expect(decodeTeam("garbage")).toBeNull();
-    expect(decodeTeam("5~4-4-2-diamond")).toBeNull();
+    expect(decodeTeam("8~4-4-2-diamond")).toBeNull();
   });
 
   test("tolerates a truncated slot list", () => {
     const team = createTeam("4-4-2-diamond");
     team.slots.gk!.playerId = 1;
 
-    // v5: formation~name~tactics~slots
-    const decoded = decodeTeam("5~4-4-2-diamond~Test~~1")!;
+    // v8: formation~name~ruleset~tactics~offensive~defensive~build~rank~slots
+    const decoded = decodeTeam("8~4-4-2-diamond~Test~standard~~~~~0~1")!;
 
     expect(decoded.slots.gk!.playerId).toBe(1);
     expect(decoded.slots.df1!.playerId).toBeNull();
@@ -117,7 +149,9 @@ describe("team sharing", () => {
   });
 
   test("keeps a link produced without the archetype field readable", () => {
-    const decoded = decodeTeam("5~4-4-2-diamond~Test~~1,4,eq_sh071101,,,,ps10001*1.5")!;
+    const decoded = decodeTeam(
+      "8~4-4-2-diamond~Test~standard~~~~~0~1,4,eq_sh071101,,,,ps10001*1.5",
+    )!;
 
     expect(decoded.slots.gk!.playerId).toBe(1);
     expect(decoded.slots.gk!.rarity).toBe("legendary");
@@ -142,8 +176,8 @@ describe("team sharing", () => {
     const team = createTeam();
     team.slots.gk!.playerId = 1;
 
-    // empty name + empty tactics leave two consecutive separators
-    expect(encodeTeam(team)).toBe("5~4-4-2-diamond~~~1");
+    // Empty name, tactics, attachments and build remain explicit around the ruleset.
+    expect(encodeTeam(team)).toBe("8~4-4-2-diamond~~standard~~~~~0~1");
   });
 
   test("keeps rarity and equipment on separate fields", () => {

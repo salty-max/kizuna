@@ -199,6 +199,48 @@ describe("fillBestEmptySlots", () => {
     expect(Object.values(filled.slots).some((slot) => slot.playerId === alternative.id)).toBe(true);
   });
 
+  test("avoids duplicate character variants between bench and staff", () => {
+    const bench = player(10, "FW", { kick: 100 }, { nameOriginal: "Afuro Terumi" });
+    const staffVariant = player(11, "MF", { technique: 999 }, { nameOriginal: "Afuro Terumi" });
+    const distinctStaff = player(12, "MF", { technique: 90 }, { nameOriginal: "Saryu Evan" });
+    const team = createTeam();
+    team.slots.bench1!.playerId = bench.id;
+
+    const filled = fillBestEmptySlots(team, tinyDataset([bench, staffVariant, distinctStaff]), {
+      includePlayers: false,
+    });
+
+    expect(Object.values(filled.slots).some((slot) => slot.playerId === staffVariant.id)).toBe(
+      false,
+    );
+    expect(Object.values(filled.slots).some((slot) => slot.playerId === distinctStaff.id)).toBe(
+      true,
+    );
+  });
+
+  test("never generates two staff variants of the same character", () => {
+    const firstVariant = player(20, "MF", { technique: 999 }, { nameOriginal: "Saryu Evan" });
+    const secondVariant = player(21, "FW", { kick: 998 }, { nameOriginal: "Saryu Evan" });
+    const distinctStaff = player(22, "MF", { technique: 90 }, { nameOriginal: "Garsha Wolfein" });
+
+    const filled = fillBestEmptySlots(
+      createTeam(),
+      tinyDataset([firstVariant, secondVariant, distinctStaff]),
+      { includePlayers: false },
+    );
+    const staffIds = [
+      filled.slots.coach?.playerId,
+      filled.slots.manager1?.playerId,
+      filled.slots.manager2?.playerId,
+      filled.slots.manager3?.playerId,
+    ];
+
+    expect(staffIds.filter((id) => id === firstVariant.id || id === secondVariant.id)).toHaveLength(
+      1,
+    );
+    expect(staffIds).toContain(distinctStaff.id);
+  });
+
   test("prioritises members of an equipped synergy", () => {
     const required = player(20, "GK", { pressure: 20, physical: 20 });
     const stronger = player(21, "GK", { pressure: 100, physical: 100 });

@@ -18,6 +18,41 @@ export interface DetectedBond {
   missing: number[];
 }
 
+export interface EquippedSynergies {
+  offensive: DetectedBond | null;
+  defensive: DetectedBond | null;
+}
+
+function evaluateBond(resolved: ResolvedTeam, synergy: BondSynergy): DetectedBond {
+  const roster = new Set(resolved.slots.flatMap((slot) => (slot.player ? [slot.player.id] : [])));
+  const present = synergy.members.filter((id) => roster.has(id));
+  const missing = synergy.members.filter((id) => !roster.has(id));
+  return {
+    synergy,
+    status: missing.length === 0 ? "active" : "partial",
+    present,
+    missing,
+  };
+}
+
+/** Resolve only the two attachments selected in the Team Dock. */
+export function resolveEquippedSynergies(
+  resolved: ResolvedTeam,
+  synergies: readonly BondSynergy[],
+): EquippedSynergies {
+  const byId = new Map(synergies.map((synergy) => [synergy.id, synergy]));
+  const resolve = (id: string | null, kind: BondSynergy["kind"]): DetectedBond | null => {
+    if (!id) return null;
+    const synergy = byId.get(id);
+    return synergy?.kind === kind ? evaluateBond(resolved, synergy) : null;
+  };
+
+  return {
+    offensive: resolve(resolved.team.offensiveSynergyId, "offensive"),
+    defensive: resolve(resolved.team.defensiveSynergyId, "defensive"),
+  };
+}
+
 /**
  * Score every bond against the current squad.
  *
@@ -29,27 +64,10 @@ export function detectBonds(
   resolved: ResolvedTeam,
   synergies: readonly BondSynergy[],
 ): DetectedBond[] {
-  const roster = new Set<number>();
-  for (const slot of resolved.slots) {
-    if (slot.player) roster.add(slot.player.id);
-  }
-
   const out: DetectedBond[] = [];
   for (const synergy of synergies) {
-    const present: number[] = [];
-    const missing: number[] = [];
-    for (const id of synergy.members) {
-      if (roster.has(id)) present.push(id);
-      else missing.push(id);
-    }
-    if (present.length === 0) continue;
-
-    out.push({
-      synergy,
-      status: missing.length === 0 ? "active" : "partial",
-      present,
-      missing,
-    });
+    const detected = evaluateBond(resolved, synergy);
+    if (detected.present.length > 0) out.push(detected);
   }
 
   // Active first, then closest partials (fewest missing, then most present).

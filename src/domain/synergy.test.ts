@@ -130,9 +130,23 @@ const dataset: Dataset = {
     passive("conditional", [
       effect({ scope: "team", stat: "shotAT", conditions: ["tensionAt100"] }),
     ]),
+    passive("fullTensionShot", [
+      effect({ scope: "team", stat: "shotAT", conditions: ["tensionAt100"] }),
+    ]),
     passive("allPower", [effect({ scope: "team", stat: "all" })]),
+    passive("justiceRank", [
+      effect({
+        scope: "team",
+        stat: "all",
+        conditions: ["perBuildChargeRank"],
+        requiredBuildType: "justice",
+      }),
+    ]),
     passive("breachGauge", [effect({ scope: "team", stat: "breachRate" })]),
     passive("foulDown", [effect({ scope: "team", stat: "foulRate", direction: "decrease" })]),
+    passive("tacticCooldown", [
+      effect({ scope: "self", stat: "tacticCooldown", direction: "decrease" }),
+    ]),
     passive("nearby", [effect({ scope: "nearbyAllies", stat: "focus" })]),
     passive("subbed", [effect({ scope: "subbedOnPlayer", stat: "shotAT" })]),
     passive("coachTeam", [effect({ scope: "team", stat: "shotAT" })], "coach"),
@@ -441,6 +455,67 @@ describe("squad limits", () => {
   });
 });
 
+describe("rulesets", () => {
+  const duplicate: Player = {
+    ...player(7, "MF", "Mountain"),
+    name: "P1 variant",
+    nameOriginal: "P1",
+  };
+  const local: Dataset = { ...dataset, players: [...dataset.players, duplicate] };
+
+  test("standard play allows distinct database variants of one character", () => {
+    const team = teamWith([1]);
+    team.slots.bench1!.playerId = duplicate.id;
+
+    expect(squadShape(resolveTeam(team, local)).violations).toEqual([]);
+  });
+
+  test("tournament play rejects duplicate character identities", () => {
+    const team = teamWith([1]);
+    team.rulesetId = "tournament";
+    team.slots.bench1!.playerId = duplicate.id;
+
+    const shape = squadShape(resolveTeam(team, local));
+
+    expect(shape.violations).toContainEqual({
+      code: "duplicateCharacter",
+      count: 2,
+      max: 1,
+      name: "P1",
+    });
+    expect(shape.notices).toEqual([{ code: "seasonalNotModelled", required: 5 }]);
+  });
+
+  test("tournament power uses the level-50 stat tables", () => {
+    const ranked = player(8, "FW", "Fire");
+    ranked.statsLv50 = {
+      kick: 50,
+      control: 50,
+      technique: 50,
+      pressure: 50,
+      physical: 50,
+      agility: 50,
+      intelligence: 50,
+    };
+    ranked.heroStats = {
+      lv50: { ...ranked.statsLv50, kick: 75 },
+      lv99: { ...ranked.stats, kick: 175 },
+    };
+    const levelDataset = { ...dataset, players: [...dataset.players, ranked] };
+    const standard = teamWith([ranked.id]);
+    const tournament = teamWith([ranked.id]);
+    tournament.rulesetId = "tournament";
+
+    expect(resolveTeam(standard, levelDataset).starters[0]!.scaledStats.kick).toBe(100);
+    expect(resolveTeam(tournament, levelDataset).starters[0]!.scaledStats.kick).toBe(50);
+
+    standard.slots.gk!.rarity = "hero";
+    tournament.slots.gk!.rarity = "hero";
+    expect(resolveTeam(standard, levelDataset).starters[0]!.scaledStats.kick).toBe(175);
+    expect(resolveTeam(tournament, levelDataset).starters[0]!.scaledStats.kick).toBe(75);
+  });
+});
+
 /* ── Scope resolution ─────────────────────────────────────────────────────── */
 
 describe("scopes", () => {
@@ -580,6 +655,21 @@ describe("aggregation", () => {
     expect(result.potential.get("gk")!.shootAT).toBe(280); // 200 × 1.40
   });
 
+  test("Build Rank scales only passives matching the simulated Team Build", () => {
+    const team = teamWith([1], (draft) => {
+      draft.teamBuildType = "justice";
+      draft.buildRank = 4;
+    });
+    givePassive(team, "gk", "justiceRank", 2);
+
+    const matching = analyse(team).power.get("gk")!.shootAT;
+    expect(matching.guaranteed).toBe(0);
+    expect(matching.conditional).toBe(8);
+
+    team.teamBuildType = "tension";
+    expect(analyse(team).power.get("gk")!.shootAT.conditional).toBe(0);
+  });
+
   test("`all` spreads over every power stat except KP", () => {
     const team = teamWith([1]);
     givePassive(team, "gk", "allPower", 10);
@@ -650,6 +740,43 @@ describe("gauges", () => {
 
     expect(modifiers.shootAT.guaranteed).toBe(0);
     expect(modifiers.kp.guaranteed).toBe(0);
+  });
+
+  test("official negative caps stop accumulated cooldown reduction", () => {
+    const team = teamWith([1, 2]);
+    givePassive(team, "gk", "tacticCooldown", 30);
+    givePassive(team, "df1", "tacticCooldown", 30);
+
+    const modifier = analyse(team).gauges.tacticCooldown!;
+
+    expect(modifier.rawGuaranteed).toBe(-60);
+    expect(modifier.guaranteed).toBe(-50);
+    expect(modifier.caps).toEqual([
+      {
+        id: "tacticCooldown",
+        limit: -50,
+        raw: -60,
+        applied: -50,
+        certainty: "always",
+      },
+    ]);
+  });
+});
+
+describe("official passive caps", () => {
+  test("caps the full-tension shot family before calculating potential power", () => {
+    const team = teamWith([1, 2, 3]);
+    givePassive(team, "gk", "fullTensionShot", 100);
+    givePassive(team, "df1", "fullTensionShot", 100);
+    givePassive(team, "df2", "fullTensionShot", 100);
+
+    const result = analyse(team);
+    const modifier = result.power.get("gk")!.shootAT;
+
+    expect(modifier.rawConditional).toBe(300);
+    expect(modifier.conditional).toBe(200);
+    expect(modifier.caps[0]).toMatchObject({ id: "fullTensionShot", raw: 300, applied: 200 });
+    expect(result.potential.get("gk")!.shootAT).toBe(600);
   });
 });
 

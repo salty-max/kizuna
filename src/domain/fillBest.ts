@@ -81,11 +81,8 @@ function usedPlayerIds(team: Team): Set<number> {
 
 function usedCharacterIdentities(team: Team, dataset: Dataset): Set<string> {
   const playersById = new Map(dataset.players.map((player) => [player.id, player]));
-  const formation = findFormation(team.formationId);
-  const playerSlotIds = new Set([...formation.slots.map((slot) => slot.id), ...BENCH_SLOT_IDS]);
   const used = new Set<string>();
-  for (const [slotId, assignment] of Object.entries(team.slots)) {
-    if (!playerSlotIds.has(slotId)) continue;
+  for (const assignment of Object.values(team.slots)) {
     if (assignment.playerId == null) continue;
     const player = playersById.get(assignment.playerId);
     if (player) used.add(characterIdentity(player));
@@ -175,7 +172,7 @@ export type OptimizationReason =
   | "totalStats"
   | "staffRole";
 
-interface OptimizationDecision {
+export interface OptimizationDecision {
   slotId: string;
   slotKind: SlotKind;
   expectedPosition: Position | null;
@@ -186,7 +183,7 @@ interface OptimizationDecision {
 export interface OptimizationReport {
   decisions: OptimizationDecision[];
   rarity: typeof DEFAULT_FILLED_RARITY;
-  preservesExisting: true;
+  preservesExisting: boolean;
   uniqueCharacters: true;
 }
 
@@ -277,7 +274,7 @@ export function optimizeEmptySlots(
         pool,
         used,
         usedIdentities,
-        target.kind === "pitch" || target.kind === "bench",
+        true,
         target.kind,
         target.position,
         requireMatch,
@@ -285,14 +282,7 @@ export function optimizeEmptySlots(
         requiredSynergyMembers,
       );
       if (!player) continue;
-      assignPlayer(
-        slots,
-        used,
-        usedIdentities,
-        target.kind === "pitch" || target.kind === "bench",
-        target.id,
-        player,
-      );
+      assignPlayer(slots, used, usedIdentities, true, target.id, player);
       decisions.push({
         slotId: target.id,
         slotKind: target.kind,

@@ -21,11 +21,16 @@ const layoutOpts = {
   gap: GAP,
 };
 
-function aabbOverlaps(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
+function aabbOverlaps(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  playableW = PLAYABLE_W,
+  playableH = PLAYABLE_H,
+): boolean {
   const minDx = CARD_W + SHEAR_EXTRA + GAP;
   const minDy = CARD_H + GAP;
-  const dx = (Math.abs(a.x - b.x) / 100) * PLAYABLE_W;
-  const dy = (Math.abs(a.y - b.y) / 100) * PLAYABLE_H;
+  const dx = (Math.abs(a.x - b.x) / 100) * playableW;
+  const dy = (Math.abs(a.y - b.y) / 100) * playableH;
   return dx < minDx && dy < minDy;
 }
 
@@ -57,6 +62,32 @@ describe("layoutPitchSlots", () => {
           const a = laid[i]!;
           const b = laid[j]!;
           if (aabbOverlaps(a, b)) collisions.push(`${a.id}↔${b.id}`);
+        }
+      }
+      expect({ formation: formation.name, collisions }).toEqual({
+        formation: formation.name,
+        collisions: [],
+      });
+    }
+  });
+
+  test("clears every formation in the 640×420 cockpit", () => {
+    const cockpitW = 640 - CARD_W;
+    const cockpitH = 420 - CARD_H - 24;
+    const cockpitOpts = {
+      ...layoutOpts,
+      playableW: cockpitW,
+      playableH: cockpitH,
+    };
+
+    for (const formation of FORMATIONS) {
+      const laid = layoutPitchSlots(formation.slots, cockpitOpts);
+      const collisions: string[] = [];
+      for (let i = 0; i < laid.length; i++) {
+        for (let j = i + 1; j < laid.length; j++) {
+          const a = laid[i]!;
+          const b = laid[j]!;
+          if (aabbOverlaps(a, b, cockpitW, cockpitH)) collisions.push(`${a.id}↔${b.id}`);
         }
       }
       expect({ formation: formation.name, collisions }).toEqual({

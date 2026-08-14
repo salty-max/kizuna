@@ -16,6 +16,8 @@ import {
   RARITIES,
   type EquipmentSlot,
 } from "@/domain/types";
+import { findRuleset } from "@/domain/rules";
+import { isBuildType, normalizeBuildRank } from "@/domain/buildRank";
 
 /**
  * Compact, hand-rolled encoding of a team for the URL hash.
@@ -25,7 +27,7 @@ import {
  * handle comfortably in a URL. This gets a filled 4-4-2 down to roughly 400
  * characters, and stays readable enough to debug by eye.
  *
- *   4~<formation>~<name>~<slot>|<slot>|…
+ *   8~<formation>~<name>~<ruleset>~<tactics>~<offensive>~<defensive>~<build>~<rank>~<slots>
  *
  * Slots appear in `allSlotIds()` order, so their ids never need encoding.
  * Each slot is `playerId,rarity,b,p,c,m,pa0,…,pa5,buildType` — the rarity's
@@ -36,9 +38,9 @@ import {
  * The version prefix is load-bearing: bump it when the layout changes so old
  * links fail cleanly instead of decoding into a wrong squad.
  * v1 pre-rarity · v2 community ids · v3 dataminer players · v4 dataminer passives
- * · v5 team tactics.
+ * · v5 team tactics · v6 match ruleset · v7 synergy attachments · v8 Build Rank.
  */
-const VERSION = "5";
+const VERSION = "8";
 
 function encodeSlot(assignment: SlotAssignment): string {
   const rarityIndex = RARITIES.indexOf(assignment.rarity ?? "common");
@@ -127,12 +129,24 @@ export function encodeTeam(team: Team): string {
   // Tactic string ids are already URL-safe (`wht10080`); comma-join, no encode.
   const tactics = team.tacticIds.filter(Boolean).slice(0, MAX_TEAM_TACTICS).join(",");
 
-  return [VERSION, formation.id, name, tactics, slots].join("~");
+  const ruleset = findRuleset(team.rulesetId).id;
+  return [
+    VERSION,
+    formation.id,
+    name,
+    ruleset,
+    tactics,
+    team.offensiveSynergyId ?? "",
+    team.defensiveSynergyId ?? "",
+    team.teamBuildType ?? "",
+    String(team.buildRank),
+    slots,
+  ].join("~");
 }
 
 export function decodeTeam(encoded: string): Team | null {
   const parts = encoded.split("~");
-  if (parts.length < 5 || parts[0] !== VERSION) return null;
+  if (parts.length < 10 || parts[0] !== VERSION) return null;
 
   const formation = findFormation(parts[1]!);
   // findFormation falls back to the default, which would silently reshape a
@@ -146,13 +160,21 @@ export function decodeTeam(encoded: string): Team | null {
     return null;
   }
 
-  const tacticIds = parts[3]!
+  const rulesetId = findRuleset(parts[3]).id;
+  // Fail closed instead of silently turning a future/unknown ruleset into standard.
+  if (rulesetId !== parts[3]) return null;
+
+  const tacticIds = parts[4]!
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean)
     .slice(0, MAX_TEAM_TACTICS);
 
-  const encodedSlots = parts.slice(4).join("~").split("|");
+  const offensiveSynergyId = parts[5] || null;
+  const defensiveSynergyId = parts[6] || null;
+  const teamBuildType = isBuildType(parts[7]) ? parts[7] : null;
+  const buildRank = normalizeBuildRank(Number(parts[8]));
+  const encodedSlots = parts.slice(9).join("~").split("|");
   const ids = allSlotIds(formation);
   const slots: Record<string, SlotAssignment> = {};
 
@@ -161,7 +183,17 @@ export function decodeTeam(encoded: string): Team | null {
   });
 
   // Empty name is fine — the UI substitutes a locale-aware default on display.
-  return normalizeTeam({ name, formationId: formation.id, tacticIds, slots });
+  return normalizeTeam({
+    name,
+    formationId: formation.id,
+    rulesetId,
+    offensiveSynergyId,
+    defensiveSynergyId,
+    teamBuildType,
+    buildRank,
+    tacticIds,
+    slots,
+  });
 }
 
 /**

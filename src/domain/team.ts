@@ -16,6 +16,7 @@ import {
   type PowerStats,
 } from "./stats";
 import {
+  BUILD_TYPES,
   MAX_BASARA_IN_SQUAD,
   MAX_HERO_STARTERS,
   MAX_TEAM_TACTICS,
@@ -32,6 +33,8 @@ import {
   type Rarity,
   type RarityScale,
 } from "./types";
+import { findRuleset, type RulesetId } from "./rules";
+import { normalizeBuildRank, type BuildRank } from "./buildRank";
 
 /** Five preset slots plus one custom passive, matching the in-game limit. */
 export const MAX_SLOT_PASSIVES = 6;
@@ -81,6 +84,14 @@ export interface SlotAssignment {
 export interface Team {
   name: string;
   formationId: string;
+  /** Match context used for legality checks; defaults to ordinary play. */
+  rulesetId: RulesetId;
+  /** One Synergy Flag and one Synergy Pillar, matching the Team Dock. */
+  offensiveSynergyId: string | null;
+  defensiveSynergyId: string | null;
+  /** In-match Build Rank scenario selected for conditional power projection. */
+  teamBuildType: BuildType | null;
+  buildRank: BuildRank;
   /**
    * Prepared tactics (string ids, max `MAX_TEAM_TACTICS`). Order is the loadout
    * order; empty slots are omitted rather than stored as nulls.
@@ -113,6 +124,66 @@ export function filledAssignment(
     ...extras,
     playerId,
     rarity: extras.rarity ?? DEFAULT_FILLED_RARITY,
+  };
+}
+
+/**
+ * Put an assignment in one slot while keeping a concrete player entry unique
+ * across pitch, bench and staff. Selecting an already rostered entry moves it:
+ * the destination keeps the build currently configured there and the former
+ * slot is reset completely.
+ *
+ * Distinct database entries for the same character remain valid here. Their
+ * broader identity is a ruleset concern (the tournament rejects them later).
+ */
+export function updateSlotAssignment(team: Team, slotId: string, next: SlotAssignment): Team {
+  const slots = { ...team.slots };
+  if (next.playerId != null) {
+    for (const [otherSlotId, assignment] of Object.entries(slots)) {
+      if (otherSlotId !== slotId && assignment.playerId === next.playerId) {
+        slots[otherSlotId] = emptyAssignment();
+      }
+    }
+  }
+  slots[slotId] = next;
+  return { ...team, slots };
+}
+
+function slotMoveGroup(kind: SlotKind): "player" | "coach" | "manager" {
+  return kind === "pitch" || kind === "bench" ? "player" : kind;
+}
+
+/** Player/passive loadouts may only move between slots backed by the same catalogue. */
+export function canMoveSlotAssignment(
+  team: Team,
+  sourceSlotId: string,
+  targetSlotId: string,
+): boolean {
+  const formation = findFormation(team.formationId);
+  return (
+    sourceSlotId !== targetSlotId &&
+    sourceSlotId in team.slots &&
+    targetSlotId in team.slots &&
+    team.slots[sourceSlotId]?.playerId != null &&
+    slotMoveGroup(slotKind(sourceSlotId, formation)) ===
+      slotMoveGroup(slotKind(targetSlotId, formation))
+  );
+}
+
+/** Move a complete compatible character build, swapping when occupied. */
+export function moveSlotAssignment(team: Team, sourceSlotId: string, targetSlotId: string): Team {
+  if (!canMoveSlotAssignment(team, sourceSlotId, targetSlotId)) return team;
+  const source = team.slots[sourceSlotId];
+  const target = team.slots[targetSlotId];
+  if (!source || !target) return team;
+
+  return {
+    ...team,
+    slots: {
+      ...team.slots,
+      [sourceSlotId]: target,
+      [targetSlotId]: source,
+    },
   };
 }
 
@@ -186,7 +257,31 @@ export function createTeam(formationId: string = DEFAULT_FORMATION.id): Team {
   const slots: Record<string, SlotAssignment> = {};
   for (const id of allSlotIds(formation)) slots[id] = emptyAssignment();
   // Name is filled by the UI with a locale-aware default when empty.
-  return { name: "", formationId: formation.id, tacticIds: [], slots };
+  return {
+    name: "",
+    formationId: formation.id,
+    rulesetId: "standard",
+    offensiveSynergyId: null,
+    defensiveSynergyId: null,
+    teamBuildType: null,
+    buildRank: 0,
+    tacticIds: [],
+    slots,
+  };
+}
+
+/**
+ * Remove the whole roster while preserving the user's team setup.
+ *
+ * A global "clear" action should not silently reset the team name, formation,
+ * match rules or tactical plan. Rebuilding the roster is a different intent
+ * from creating a brand-new team.
+ */
+export function clearTeamAssignments(team: Team): Team {
+  const formation = findFormation(team.formationId);
+  const slots: Record<string, SlotAssignment> = {};
+  for (const id of allSlotIds(formation)) slots[id] = emptyAssignment();
+  return { ...team, slots };
 }
 
 /**
@@ -196,12 +291,26 @@ export function createTeam(formationId: string = DEFAULT_FORMATION.id): Team {
 export function normalizeTeam(team: Team): Team {
   const formation = findFormation(team.formationId);
   const slots: Record<string, SlotAssignment> = {};
+  const usedPlayerIds = new Set<number>();
   for (const id of allSlotIds(formation)) {
-    slots[id] = team.slots[id] ?? emptyAssignment();
+    const assignment = team.slots[id] ?? emptyAssignment();
+    if (assignment.playerId != null && usedPlayerIds.has(assignment.playerId)) {
+      slots[id] = emptyAssignment();
+      continue;
+    }
+    slots[id] = assignment;
+    if (assignment.playerId != null) usedPlayerIds.add(assignment.playerId);
   }
   return {
     name: team.name ?? "",
     formationId: formation.id,
+    rulesetId: findRuleset(team.rulesetId).id,
+    offensiveSynergyId: team.offensiveSynergyId || null,
+    defensiveSynergyId: team.defensiveSynergyId || null,
+    teamBuildType: BUILD_TYPES.includes(team.teamBuildType as BuildType)
+      ? team.teamBuildType
+      : null,
+    buildRank: normalizeBuildRank(team.buildRank),
     tacticIds: (team.tacticIds ?? []).filter(Boolean).slice(0, MAX_TEAM_TACTICS),
     slots,
   };
@@ -286,7 +395,11 @@ export function slotKind(slotId: string, formation: Formation): SlotKind {
  * the rest onto whatever new pitch slots are free — so switching 4-4-2 → 3-5-2
  * costs you a rebuild of one line, not the whole squad.
  */
-export function applyFormation(team: Team, formationId: string): Team {
+export function applyFormation(
+  team: Team,
+  formationId: string,
+  players: readonly Player[] = [],
+): Team {
   const next = findFormation(formationId);
   const previous = findFormation(team.formationId);
   if (next.id === previous.id) return team;
@@ -301,9 +414,23 @@ export function applyFormation(team: Team, formationId: string): Team {
     if (!nextIds.includes(id) && assignment.playerId !== null) orphans.push(assignment);
   }
 
+  const playersById = new Map(players.map((player) => [player.id, player]));
+
   for (const orphan of orphans) {
-    const free = next.slots.find((s) => slots[s.id]?.playerId == null);
-    const target = free?.id ?? BENCH_SLOT_IDS.find((id) => slots[id]?.playerId == null);
+    const player = orphan.playerId == null ? null : (playersById.get(orphan.playerId) ?? null);
+    const compatible = player
+      ? next.slots.find(
+          (slot) =>
+            slots[slot.id]?.playerId == null &&
+            (player.position === slot.position || player.altPosition === slot.position),
+        )
+      : null;
+    // A formation change must not silently manufacture a warning. When no
+    // compatible pitch slot remains, keep the player available on the bench.
+    const target =
+      compatible?.id ??
+      BENCH_SLOT_IDS.find((id) => slots[id]?.playerId == null) ??
+      next.slots.find((slot) => slots[slot.id]?.playerId == null)?.id;
     if (target) slots[target] = orphan;
   }
 
@@ -325,16 +452,17 @@ function scaleStats(stats: BaseStats, scale: RarityScale): BaseStats {
  * Pick the character's own stat line for this rarity.
  *
  * Common / Rising / Advanced / Top / Legendary all start from the Common
- * table (lv99); the intermediate tiers then apply `RARITY_SCALES`.
+ * table at the active ruleset's level; intermediate tiers then apply
+ * `RARITY_SCALES`.
  * Hero and Basara prefer the real datamined tables when the character has one,
  * and only fall back to the ratio estimate when they do not.
  */
-function statsForRarity(player: Player, rarity: Rarity): BaseStats {
-  if (rarity === "hero" && player.heroStats) return { ...player.heroStats.lv99 };
-  if (rarity === "basara" && player.basaraStats) return { ...player.basaraStats.lv99 };
+function statsForRarity(player: Player, rarity: Rarity, level: 50 | 99): BaseStats {
+  if (rarity === "hero" && player.heroStats) return { ...player.heroStats[`lv${level}`] };
+  if (rarity === "basara" && player.basaraStats) return { ...player.basaraStats[`lv${level}`] };
 
   const scale = RARITY_SCALES[rarity];
-  return scaleStats(player.stats, scale);
+  return scaleStats(level === 50 ? player.statsLv50 : player.stats, scale);
 }
 
 /** Une technique du personnage, résolue contre le catalogue. */
@@ -424,6 +552,7 @@ function resolveSkills(
 
 export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
   const formation = findFormation(team.formationId);
+  const level = findRuleset(team.rulesetId).levelCap === 50 ? 50 : 99;
   const playersById = new Map(dataset.players.map((p) => [p.id, p]));
   const equipmentById = new Map(dataset.equipment.map((e) => [e.id, e]));
   const passivesById = new Map(dataset.passives.map((p) => [p.id, p]));
@@ -451,7 +580,7 @@ export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
     // Prefer real Hero/Basara tables; otherwise scale Common. Equipment is a
     // flat bonus on top and must never be multiplied by the rarity factor.
     const rarity = assignment.rarity ?? "common";
-    const scaledStats = player ? statsForRarity(player, rarity) : emptyBaseStats();
+    const scaledStats = player ? statsForRarity(player, rarity, level) : emptyBaseStats();
 
     let stats = equipment.reduce((acc, item) => addBaseStats(acc, item.stats), scaledStats);
 
@@ -481,7 +610,10 @@ export function resolveTeam(team: Team, dataset: Dataset): ResolvedTeam {
       total: totalOf(stats),
       power: computePower(stats),
       positionMatch:
-        player == null || expectedPosition == null || player.position === expectedPosition,
+        player == null ||
+        expectedPosition == null ||
+        player.position === expectedPosition ||
+        player.altPosition === expectedPosition,
     };
   });
 

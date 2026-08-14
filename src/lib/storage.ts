@@ -26,19 +26,26 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
-function write(key: string, value: unknown): void {
+function write(key: string, value: unknown): boolean {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
     // Private browsing or a full quota — losing autosave is not worth a crash.
+    return false;
   }
+}
+
+export interface StorageMutation<T> {
+  value: T;
+  persisted: boolean;
 }
 
 export function loadSavedTeams(): SavedTeam[] {
   return read<SavedTeam[]>(SAVED_KEY, []).filter((t) => typeof t?.encoded === "string");
 }
 
-export function saveTeam(team: Team): SavedTeam[] {
+export function saveTeam(team: Team): StorageMutation<SavedTeam[]> {
   const entry: SavedTeam = {
     id: crypto.randomUUID(),
     name: team.name,
@@ -49,22 +56,20 @@ export function saveTeam(team: Team): SavedTeam[] {
   // Saving under a name that already exists replaces it — the alternative is a
   // list that fills up with near-identical drafts.
   const next = [entry, ...loadSavedTeams().filter((t) => t.name !== team.name)];
-  write(SAVED_KEY, next);
-  return next;
+  return { value: next, persisted: write(SAVED_KEY, next) };
 }
 
-export function deleteSavedTeam(id: string): SavedTeam[] {
+export function deleteSavedTeam(id: string): StorageMutation<SavedTeam[]> {
   const next = loadSavedTeams().filter((t) => t.id !== id);
-  write(SAVED_KEY, next);
-  return next;
+  return { value: next, persisted: write(SAVED_KEY, next) };
 }
 
 export function restoreSavedTeam(entry: SavedTeam): Team | null {
   return decodeTeam(entry.encoded);
 }
 
-export function saveCurrentTeam(team: Team): void {
-  write(CURRENT_KEY, encodeTeam(team));
+export function saveCurrentTeam(team: Team): boolean {
+  return write(CURRENT_KEY, encodeTeam(team));
 }
 
 export function loadCurrentTeam(): Team | null {
