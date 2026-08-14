@@ -2,8 +2,14 @@ node_modules
 dist
 .DS_Store
 *.local
+.env
+.env.production
 .vite
+.vercel
 .eslintcache
+playwright-report
+test-results
+supabase/.temp
 
 # Régénéré par `bun run data` depuis data/raw — ne pas versionner d'artefacts.
 public/data
@@ -13,3 +19,5 @@ public/data
 
 # Régénéré par `bun run data` depuis data/raw/icons
 public/icons
+.env*
+!.env.example
