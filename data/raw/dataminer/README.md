@@ -49,7 +49,7 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
                   "members": [ characterId ], "member_names": [ "…" ] }],
   "equipment": [{ "id", "string_id", "name", "description", "slot",
                   "stats": { "kick", … } }],
-  "matches": [{ "string_id", "name" }]        // targets of characters[].found_in
+  "locations": [{ "string_id", "name", "kind" }]   // targets of characters[].found_in
 }
 ```
 
@@ -106,15 +106,23 @@ is rolled.
   wrong variant sometimes — not competing labels: each code has one dominant label and the six
   are disjoint. The same join reproduces the already-known `element` mapping at 99.5%, which is
   what makes the other two trustworthy.
-- **`found_in` names the matches whose spirit drop includes this character**, as string ids into
-  the new top-level `matches` array, which carries the localised title — `fbtl_cro02_050_010` is
-  "Alius Academy Attacks!". 244 characters and 111 heroes/basaras have one, across 40 matches, 39
-  of them named. The chain is `SOCCER_GAME_INFO` → `REF_DIFFICULTY` → `SOCCER_GAME_DIFFICULTY`
-  column 29 (44 on a few rows) → `m_spiritCharaTableList` → `m_spiritTableDataList` → a
-  `chara_base` row. The titles line up word for word with what the Inazugle scrape used to list
-  under "Chronicle Competition Route", which is the check that it is wired correctly.
-  It covers fewer characters than `spirit_drop` because the rest arrive through fixed rewards and
-  victory boxes, which are not matches and so have no place to point at.
+- **`found_in` says where a character's spirit can be had**, as string ids into the top-level
+  `locations` array, which carries the localised name and a `kind`. **4889 of the 5418
+  characters** have at least one, across 70 locations, 69 of them named.
+  - `kind: "match"` — 40 Chronicle battles, from `SOCCER_GAME_INFO` → `REF_DIFFICULTY` →
+    `SOCCER_GAME_DIFFICULTY` column 29 (44 on a few rows) → `m_spiritCharaTableList` →
+    `m_spiritTableDataList` → a **`chara_base`** row.
+  - `kind: "universe"` — the 30 Player Universe star signs, from `m_starSignInfoList` →
+    `m_starSignCharaSetDataList` → `m_starSignRarityRateInfoList` → `m_starSignCharaInfoList`,
+    whose ids are **`chara_param`** rows, not `chara_base` ones. That difference is the whole
+    trick; joining them the same way silently yields nothing.
+
+  Checked against the Inazugle scrape, which listed acquisition in prose: Mark Evans came out as
+  Handora, Diamantis and Instructus Notara, and the Terracotta Warriors as Genii — the same names,
+  from a source that was never consulted while building the join.
+
+  This supersedes `spirit_drop` as the answer to "can I get this player": that flag only ever
+  covered the match tables, which is why it read 396.
 - **There is no equivalent for techniques or tactics**, and it is not for want of looking. The
   item side of the match drop config, `m_itemDropDataList`, holds only `(rarity, rate)` pairs — it
   never names an item — and the 113 entries in `win_treasure_lot_table_config` resolve to neither
