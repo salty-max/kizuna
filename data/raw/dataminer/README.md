@@ -48,7 +48,8 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "synergies": [{ "id", "string_id", "name", "description",
                   "members": [ characterId ], "member_names": [ "…" ] }],
   "equipment": [{ "id", "string_id", "name", "description", "slot",
-                  "stats": { "kick", … } }]
+                  "stats": { "kick", … } }],
+  "matches": [{ "string_id", "name" }]        // targets of characters[].found_in
 }
 ```
 
@@ -105,6 +106,19 @@ is rolled.
   wrong variant sometimes — not competing labels: each code has one dominant label and the six
   are disjoint. The same join reproduces the already-known `element` mapping at 99.5%, which is
   what makes the other two trustworthy.
+- **`found_in` names the matches whose spirit drop includes this character**, as string ids into
+  the new top-level `matches` array, which carries the localised title — `fbtl_cro02_050_010` is
+  "Alius Academy Attacks!". 244 characters and 111 heroes/basaras have one, across 40 matches, 39
+  of them named. The chain is `SOCCER_GAME_INFO` → `REF_DIFFICULTY` → `SOCCER_GAME_DIFFICULTY`
+  column 29 (44 on a few rows) → `m_spiritCharaTableList` → `m_spiritTableDataList` → a
+  `chara_base` row. The titles line up word for word with what the Inazugle scrape used to list
+  under "Chronicle Competition Route", which is the check that it is wired correctly.
+  It covers fewer characters than `spirit_drop` because the rest arrive through fixed rewards and
+  victory boxes, which are not matches and so have no place to point at.
+- **There is no equivalent for techniques or tactics**, and it is not for want of looking. The
+  item side of the match drop config, `m_itemDropDataList`, holds only `(rarity, rate)` pairs — it
+  never names an item — and the 113 entries in `win_treasure_lot_table_config` resolve to neither
+  `tactics` nor `equipment`. Nothing in the files says which match yields a given move or tactic.
 - **`spirit_drop` says the game's drop tables hand you this character's spirit**: 396 of the 5418
   characters, 92 of 147 heroes, 46 of 72 basaras. It is the union of `m_spiritTableDataList` in
   `soccer_drop_config` with the fixed-reward and victory-box tables. It is **not** the same as
