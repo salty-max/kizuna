@@ -1,10 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
-import { DATA_SHARDS, datasetShardsForPath } from "./load";
+import { BUILDER_SHARDS, DATA_SHARDS, datasetShardsForPath } from "./load";
 
 describe("datasetShardsForPath", () => {
-  test("loads every catalogue for the builder", () => {
-    expect(datasetShardsForPath("/")).toEqual(DATA_SHARDS);
+  test("loads every catalogue the builder can put on the pitch", () => {
+    expect(datasetShardsForPath("/")).toEqual(BUILDER_SHARDS);
+  });
+
+  test("spares the builder the catalogues only a wiki page reads", () => {
+    expect(BUILDER_SHARDS).not.toContain("locations");
+    expect(DATA_SHARDS).toContain("locations");
   });
 
   test("loads metadata only for the wiki landing page", () => {
@@ -22,6 +27,6 @@ describe("datasetShardsForPath", () => {
     expect(datasetShardsForPath("/wiki/bonds")).toEqual(["players", "synergies"]);
     expect(datasetShardsForPath("/wiki/bonds/sf01001")).toEqual(["players", "synergies"]);
     expect(datasetShardsForPath("/wiki/players")).toEqual(["players"]);
-    expect(datasetShardsForPath("/wiki/players/1")).toEqual(["players", "abilities"]);
+    expect(datasetShardsForPath("/wiki/players/1")).toEqual(["players", "abilities", "locations"]);
   });
 });

@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { parsePassiveEffectsFromEn } from "../src/domain/passiveParse";
 import {
   AURA_TYPES,
+  LOCATION_KINDS,
   type Ability,
   type AbilityKind,
   type AuraType,
@@ -24,8 +25,10 @@ import {
   type Element,
   type Equipment,
   type EquipmentSlot,
+  type GameLocation,
   type Gender,
   type LocalizedNames,
+  type LocationKind,
   type Passive,
   type PassiveSource,
   type Player,
@@ -193,6 +196,8 @@ interface RawCharacter {
   emblem_era?: string;
   /** Character can appear as a spirit drop. */
   spirit_drop?: boolean;
+  /** String ids into the bundle's top-level `locations`. */
+  found_in?: string[];
   stats_lv50: RawStats;
   stats_lv99: RawStats;
   /** `[niveau, idTechnique]` — six slots du tronc commun. */
@@ -263,6 +268,13 @@ interface RawTactic {
   tp_cost: number;
 }
 
+/** Target of `characters[].found_in`. `kind` is `match` or `universe`. */
+interface RawLocation {
+  string_id: string;
+  name: string | null;
+  kind: string;
+}
+
 interface Bundle {
   lang: string;
   game_version: string;
@@ -281,6 +293,7 @@ interface Bundle {
   tactics: RawTactic[];
   synergies: RawSynergy[];
   equipment: RawEquipment[];
+  locations?: RawLocation[];
 }
 
 /** Collapse the name noise the dump / Inazugle occasionally leave behind. */
@@ -604,6 +617,7 @@ async function buildPlayers(
   en: Bundle,
   locales: Record<"fr" | "en" | "ja", Bundle>,
   knownAbilityIds: Set<string>,
+  knownLocationIds: Set<string>,
 ) {
   const enNameById = new Map(
     en.characters.map((c) => [c.id, c.name.replace(/\s+/g, " ").trim()] as const),
@@ -681,6 +695,9 @@ async function buildPlayers(
     if (modelStem) modelsMatched++;
     const gender = mapGender(base.gender, `${where}.gender`);
     const spiritDrop = base.spirit_drop === true;
+    // Hero and Basara rows carry the same `found_in` as their character row
+    // (145/145 identical), so reading it off `base` covers every form.
+    const foundIn = mapFoundIn(base.found_in, knownLocationIds, where);
 
     const teamId = typeof base.team_id === "number" ? base.team_id : null;
     const teamNames: LocalizedNames =
@@ -713,6 +730,7 @@ async function buildPlayers(
       role: "Player",
       gender,
       spiritDrop,
+      foundIn,
       ageGroup: "Unknown",
       year: "-",
       stats: statsLv99,
@@ -740,7 +758,6 @@ async function buildPlayers(
       id,
       description: pickLangText(descriptions, descriptionFromBase),
       descriptions,
-      howToObtain: "",
       inazugleLink: "",
     });
   }
@@ -748,6 +765,8 @@ async function buildPlayers(
   const finalized = finalizePlayers(players);
   const keepIds = new Set(finalized.players.map((p) => p.id));
   const keptDetails = details.filter((d) => keepIds.has(d.id));
+  // Counted after clones and junk are dropped, so it describes the shipped roster.
+  const obtainable = finalized.players.filter((p) => p.foundIn.length > 0).length;
 
   const buckets = new Map<number, PlayerDetails[]>();
   for (const d of keptDetails) {
@@ -766,6 +785,7 @@ async function buildPlayers(
     players: finalized.players,
     games,
     imageBase: IMAGE_BASE,
+    obtainable,
     portraitsMatched,
     modelsMatched,
     droppedClones: finalized.droppedClones,
@@ -1151,6 +1171,84 @@ async function buildTactics(display: Bundle, locales: Record<LocaleKey, Bundle>)
   });
 }
 
+/* ── Locations (where a character's spirit drops) ─────────────────────────── */
+
+/** The two kinds are closed: a third must fail the build, not be shown blank. */
+function mapLocationKind(raw: string, where: string): LocationKind | null {
+  if ((LOCATION_KINDS as readonly string[]).includes(raw)) return raw as LocationKind;
+  problems.push(`${where}: unknown location kind ${JSON.stringify(raw)}`);
+  return null;
+}
+
+/**
+ * The 70 places the drop tables hand out a character: 40 Chronicle battles and
+ * the 30 Player Universe star signs. Ids and kinds are identical across the
+ * three bundles, so only the name is merged per locale.
+ */
+function buildLocations(display: Bundle, locales: Record<LocaleKey, Bundle>) {
+  if (!display.locations) {
+    problems.push("bundle.locations absent — le dump ne dit plus où trouver les personnages");
+    return { locations: [] as GameLocation[], unresolvedNameTags: [] as string[] };
+  }
+
+  const namesById = new Map<string, LocalizedNames>();
+  for (const locale of LOCALES) {
+    for (const row of locales[locale].locations ?? []) {
+      setLocalized(namesById, row.string_id, locale, cleanText(row.name));
+    }
+  }
+
+  const out: GameLocation[] = [];
+  const seen = new Set<string>();
+  const unresolvedNameTags: string[] = [];
+  for (const row of display.locations) {
+    const where = `location ${row.string_id}`;
+    if (seen.has(row.string_id)) {
+      problems.push(`${where}: duplicate string_id`);
+      continue;
+    }
+    seen.add(row.string_id);
+    const kind = mapLocationKind(row.kind, where);
+    if (!kind) continue;
+
+    const names = { ...(namesById.get(row.string_id) ?? {}) };
+    // The dataminer resolves `<FUL:KOMEI2>`-style name tags at export, but the
+    // locations table is not on that path yet, so a few names still arrive with
+    // the tag and `cleanText` strips them to "La forteresse de !". Counted and
+    // reported rather than fatal: the text is upstream's to finish, and a
+    // blocked build helps nobody.
+    if (/<[A-Z]{2,4}:[^>]+>/.test(row.name ?? "")) unresolvedNameTags.push(row.string_id);
+
+    out.push({
+      id: row.string_id,
+      kind,
+      // One event match is unnamed in all three bundles. Ship the blank rather
+      // than inventing a label; the UI says the game does not name it.
+      name: pickLangText(names),
+      names,
+    });
+  }
+
+  out.sort((a, b) => a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id));
+  return { locations: out, unresolvedNameTags };
+}
+
+/** `found_in` ids, deduplicated and refused outright when unknown. */
+function mapFoundIn(raw: string[] | undefined, known: Set<string>, where: string): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const id of raw ?? []) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    if (!known.has(id)) {
+      problems.push(`${where}: found_in ${id} absent du catalogue des lieux`);
+      continue;
+    }
+    out.push(id);
+  }
+  return out;
+}
+
 /* ── Icons ────────────────────────────────────────────────────────────────── */
 
 async function copyIcons() {
@@ -1236,10 +1334,16 @@ for (const [code, name] of Object.entries(display.legend.element)) {
 const abilities = await buildAbilities(display, { fr, en, ja });
 const knownAbilityIds = new Set(abilities.map((a) => a.id));
 
+// Same rule as the ability catalogue: build the lookup first so a `found_in`
+// pointing nowhere fails the build instead of vanishing from a player's sheet.
+const { locations, unresolvedNameTags } = buildLocations(display, { fr, en, ja });
+const knownLocationIds = new Set(locations.map((l) => l.id));
+
 const {
   players,
   games,
   imageBase,
+  obtainable,
   portraitsMatched,
   modelsMatched,
   droppedClones,
@@ -1248,7 +1352,7 @@ const {
   contentVersion,
   portraitIndexSize,
   modelIndexSize,
-} = await buildPlayers(display, en, { fr, en, ja }, knownAbilityIds);
+} = await buildPlayers(display, en, { fr, en, ja }, knownAbilityIds, knownLocationIds);
 const passives = buildPassives(display, { fr, en, ja });
 const { equipment, matched: equipmentIcons } = await buildEquipment(display, { fr, en, ja });
 const synergies = await buildSynergies(display, { fr, en, ja });
@@ -1262,6 +1366,7 @@ const sizes = {
   "abilities.json": await write("abilities.json", abilities),
   "synergies.json": await write("synergies.json", synergies),
   "tactics.json": await write("tactics.json", tactics),
+  "locations.json": await write("locations.json", locations),
   "meta.json": await write("meta.json", {
     generatedAt: new Date().toISOString(),
     source: "dataminer",
@@ -1281,6 +1386,8 @@ const sizes = {
       abilities: abilities.length,
       synergies: synergies.length,
       tactics: tactics.length,
+      locations: locations.length,
+      obtainable,
       heroes: players.filter((p) => p.heroStats).length,
       basaras: players.filter((p) => p.basaraStats).length,
       portraits: portraitsMatched,
@@ -1317,6 +1424,22 @@ console.log(
 console.log(`abilities   ${String(abilities.length).padStart(5)}  ${kb(sizes["abilities.json"])}`);
 console.log(`synergies   ${String(synergies.length).padStart(5)}  ${kb(sizes["synergies.json"])}`);
 console.log(`tactics     ${String(tactics.length).padStart(5)}  ${kb(sizes["tactics.json"])}`);
+console.log(
+  `locations   ${String(locations.length).padStart(5)}  ${kb(sizes["locations.json"])}   ` +
+    `(${locations.filter((l) => l.kind === "match").length} matchs, ` +
+    `${locations.filter((l) => l.kind === "universe").length} signes ; ` +
+    `${locations.filter((l) => !l.name).length} sans nom)`,
+);
+if (unresolvedNameTags.length > 0) {
+  console.log(
+    `            ${unresolvedNameTags.length} nom(s) à substituant non résolu en amont : ` +
+      unresolvedNameTags.join(", "),
+  );
+}
+console.log(
+  `  obtenables${String(obtainable).padStart(5)}        ` +
+    `(${players.length - obtainable} joueurs qu'aucune table ne donne)`,
+);
 console.log(`icons              ${iconCount} files → public/icons/`);
 console.log(`details            ${buckets} bucket files (lazy)`);
 console.log(`games       ${games.length}`);

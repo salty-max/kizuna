@@ -49,7 +49,7 @@ export function WikiPlayersPage() {
   const [game, setGame] = useState("");
   const [team, setTeam] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
-  const [spiritOnly, setSpiritOnly] = useState(false);
+  const [obtainableOnly, setObtainableOnly] = useState(false);
   const [heroForm, setHeroForm] = useState(false);
   const [basaraForm, setBasaraForm] = useState(false);
   const deferredQuery = useDeferredValue(query);
@@ -76,7 +76,7 @@ export function WikiPlayersPage() {
         if (game && player.game !== game) return false;
         if (team && !matchesTeamFilter(player, team)) return false;
         if (gender && player.gender !== gender) return false;
-        if (spiritOnly && !player.spiritDrop) return false;
+        if (obtainableOnly && player.foundIn.length === 0) return false;
         if (heroForm && !player.heroStats) return false;
         if (basaraForm && !player.basaraStats) return false;
         if (!needle) return true;
@@ -101,7 +101,7 @@ export function WikiPlayersPage() {
     game,
     team,
     gender,
-    spiritOnly,
+    obtainableOnly,
     heroForm,
     basaraForm,
   ]);
@@ -227,11 +227,11 @@ export function WikiPlayersPage() {
 
         <div className="flex flex-wrap gap-1" role="group" aria-label={t("wiki.filterForms")}>
           <FilterChip
-            active={spiritOnly}
-            onClick={() => setSpiritOnly((v) => !v)}
-            title={t("wiki.spiritDropOnly")}
+            active={obtainableOnly}
+            onClick={() => setObtainableOnly((v) => !v)}
+            title={t("wiki.obtainableHint")}
           >
-            {t("wiki.spiritDropOnly")}
+            {t("wiki.obtainableOnly")}
           </FilterChip>
           <FilterChip
             active={heroForm}

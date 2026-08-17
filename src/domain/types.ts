@@ -190,9 +190,16 @@ export interface Player {
   /** From the dump (`male` / `female` / `other` → Neutral). */
   gender: Gender;
   /**
-   * Game flag: character can appear as a spirit drop. Independent of rarity.
+   * Game flag: the fixed-reward and victory-box tables list this character.
+   * A narrow slice of {@link foundIn} — 396 characters against 4856 — so it is
+   * not the answer to "can I get this player". Kept because it is a real flag.
    */
   spiritDrop: boolean;
+  /**
+   * Ids into the locations catalogue where this character's spirit drops.
+   * Empty for the ~10% of the roster no drop table hands out.
+   */
+  foundIn: string[];
   ageGroup: string;
   year: string;
   /** Common rarity, level 99 — the default build target. */
@@ -221,6 +228,30 @@ export interface Player {
   basaraSkills: SkillSet | null;
 }
 
+/**
+ * Where a character's spirit can be obtained.
+ *
+ * - `match` — a Chronicle battle, from the match drop tables.
+ * - `universe` — one of the Player Universe star signs.
+ *
+ * The two resolve through different game tables (`chara_base` rows for matches,
+ * `chara_param` rows for star signs); see the dataminer README.
+ */
+export const LOCATION_KINDS = ["match", "universe"] as const;
+export type LocationKind = (typeof LOCATION_KINDS)[number];
+
+export interface GameLocation {
+  /** Game string id (`fbtl_cro02_050_010`, `star_995432581`). */
+  id: string;
+  kind: LocationKind;
+  /**
+   * Fallback name in the build language. Empty when the dump names the location
+   * in no language at all — the UI says so rather than printing a blank chip.
+   */
+  name: string;
+  names: LocalizedNames;
+}
+
 /** Loaded on demand — descriptions sit in lazy buckets so boot stays light. */
 export interface PlayerDetails {
   id: number;
@@ -228,7 +259,6 @@ export interface PlayerDetails {
   description: string;
   /** Bio text per locale when the dump has it. */
   descriptions: LocalizedNames;
-  howToObtain: string;
   inazugleLink: string;
 }
 
@@ -534,6 +564,7 @@ export interface Dataset {
   abilities: Ability[];
   tactics: Tactic[];
   synergies: BondSynergy[];
+  locations: GameLocation[];
   games: string[];
   imageBase: string;
   generatedAt: string;

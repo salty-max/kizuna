@@ -23,6 +23,7 @@ const EMPTY_DATASET: Dataset = {
   equipment: [],
   abilities: [],
   synergies: [],
+  locations: [],
   tactics: [],
   games: [],
   imageBase: "",

@@ -11,17 +11,19 @@ import {
 } from "@/components/GameIcon";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatRadar } from "@/components/StatRadar";
-import { Callout, DataList, DataRow, Panel, Tab } from "@/components/ui";
+import { Callout, Chip, DataList, DataRow, Panel, Tab } from "@/components/ui";
 import { loadPlayerDetails } from "@/data/load";
 import { useDataset } from "@/data/useDataset";
+import { groupFoundIn, locationDisplayName } from "@/domain/locations";
 import { POWER_KEYS, STAT_KEYS, computePower, type BaseStats } from "@/domain/stats";
-import type { Ability, LearnedSkill, Player } from "@/domain/types";
+import type { Ability, GameLocation, LearnedSkill, LocationKind, Player } from "@/domain/types";
 import {
   abilityDisplayName,
   playerDetailDescription,
   playerDisplayName,
   teamDisplayName,
   useI18n,
+  type Locale,
 } from "@/i18n";
 import {
   abilityTypeLabel,
@@ -228,6 +230,8 @@ export function WikiPlayerDetailPage() {
             </>
           )}
         </Panel>
+
+        <FoundInPanel foundIn={player.foundIn} locations={dataset.locations} locale={locale} />
       </div>
 
       {modelOpen && (
@@ -240,6 +244,68 @@ export function WikiPlayerDetailPage() {
         />
       )}
     </div>
+  );
+}
+
+const FOUND_IN_GROUP_LABEL: Record<LocationKind, "wiki.foundIn.match" | "wiki.foundIn.universe"> = {
+  match: "wiki.foundIn.match",
+  universe: "wiki.foundIn.universe",
+};
+
+/** Where the game hands out this character's spirit. */
+function FoundInPanel({
+  foundIn,
+  locations,
+  locale,
+}: {
+  foundIn: string[];
+  locations: GameLocation[];
+  locale: Locale;
+}) {
+  const { t } = useI18n();
+  const grouped = useMemo(
+    () => groupFoundIn(foundIn, locations, locale),
+    [foundIn, locations, locale],
+  );
+
+  return (
+    <Panel title={t("wiki.foundIn.title")} bodyClassName="flex flex-col gap-3">
+      {grouped.groups.length === 0 && grouped.unresolved.length === 0 && (
+        <p className="text-sm text-ink-400">{t("wiki.foundIn.none")}</p>
+      )}
+
+      {grouped.groups.map((group) => (
+        <div key={group.kind} data-found-in-group={group.kind} className="flex flex-col gap-1.5">
+          <p className="label-display text-ink-500">
+            {t(FOUND_IN_GROUP_LABEL[group.kind])}
+            <span className="ml-2 normal-case text-ink-600">
+              {t("wiki.foundIn.count", { n: group.entries.length })}
+            </span>
+          </p>
+          <ul className="flex flex-wrap gap-1.5">
+            {group.entries.map((entry) => {
+              const name = locationDisplayName(entry.location, locale);
+              return (
+                <li key={entry.location.id}>
+                  <Chip
+                    title={entry.ids.join(" · ")}
+                    className={name ? undefined : "text-ink-500 italic"}
+                  >
+                    {name ?? t("wiki.foundIn.unnamed")}
+                  </Chip>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+
+      {grouped.unresolved.length > 0 && (
+        <Callout tone="warn">
+          {t("wiki.foundIn.unresolved", { n: grouped.unresolved.length })}
+        </Callout>
+      )}
+    </Panel>
   );
 }
 

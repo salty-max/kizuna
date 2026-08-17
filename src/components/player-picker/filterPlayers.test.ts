@@ -32,6 +32,7 @@ function player(overrides: Partial<Player> & Pick<Player, "id" | "name">): Playe
     role: "Player",
     gender: "Male",
     spiritDrop: false,
+    foundIn: [],
     ageGroup: "Middle school",
     year: "2",
     stats,
@@ -55,7 +56,7 @@ const defaults: PlayerFilters = {
   game: null,
   team: null,
   gender: null,
-  spiritOnly: false,
+  obtainableOnly: false,
   heroForm: false,
   basaraForm: false,
   sort: "total",
@@ -83,7 +84,7 @@ describe("filterAndSortPlayers", () => {
       name: "Eligible",
       position: "FW",
       element: "Fire",
-      spiritDrop: true,
+      foundIn: ["fbtl_a"],
       heroStats: { lv50: stats, lv99: stats },
     });
     const wrongPosition = player({
@@ -91,7 +92,7 @@ describe("filterAndSortPlayers", () => {
       name: "Wrong position",
       position: "DF",
       element: "Fire",
-      spiritDrop: true,
+      foundIn: ["fbtl_a"],
       heroStats: { lv50: stats, lv99: stats },
     });
 
@@ -100,8 +101,27 @@ describe("filterAndSortPlayers", () => {
         ...defaults,
         position: "FW",
         element: "Fire",
-        spiritOnly: true,
+        obtainableOnly: true,
         heroForm: true,
+      }).map(({ id }) => id),
+    ).toEqual([1]);
+  });
+
+  test("obtainable keeps whoever a drop table lists, not the narrower spirit flag", () => {
+    // 396 characters carry `spiritDrop`; 4856 have a location. Filtering on the
+    // flag hid the other 4460 from anyone asking "who can I actually get?".
+    const dropTableOnly = player({
+      id: 1,
+      name: "Rollable",
+      spiritDrop: false,
+      foundIn: ["star_1"],
+    });
+    const unobtainable = player({ id: 2, name: "Unobtainable", spiritDrop: true, foundIn: [] });
+
+    expect(
+      filterAndSortPlayers([dropTableOnly, unobtainable], {
+        ...defaults,
+        obtainableOnly: true,
       }).map(({ id }) => id),
     ).toEqual([1]);
   });

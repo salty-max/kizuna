@@ -25,7 +25,7 @@ export function PlayerPicker({ dataset, suggestedPosition, onPick, onClose }: Pr
     game: null,
     team: null,
     gender: null,
-    spiritOnly: false,
+    obtainableOnly: false,
     heroForm: false,
     basaraForm: false,
     sort: "total",

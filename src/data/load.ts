@@ -3,6 +3,7 @@ import type {
   BondSynergy,
   Dataset,
   Equipment,
+  GameLocation,
   Passive,
   Player,
   PlayerDetails,
@@ -25,8 +26,18 @@ export const DATA_SHARDS = [
   "abilities",
   "tactics",
   "synergies",
+  "locations",
 ] as const;
 export type DataShard = (typeof DATA_SHARDS)[number];
+
+/**
+ * Every catalogue the builder can put on the pitch. Locations answer "where do
+ * I get this character", which only a player sheet asks — no reason to spend a
+ * request on it before the first kick-off.
+ */
+export const BUILDER_SHARDS: readonly DataShard[] = DATA_SHARDS.filter(
+  (shard) => shard !== "locations",
+);
 
 const WIKI_SHARDS: Record<string, readonly DataShard[]> = {
   abilities: ["abilities"],
@@ -36,12 +47,12 @@ const WIKI_SHARDS: Record<string, readonly DataShard[]> = {
   bonds: ["players", "synergies"],
 };
 
-/** Smallest catalogue set that can render a route. The builder needs everything. */
+/** Smallest catalogue set that can render a route. */
 export function datasetShardsForPath(pathname: string): readonly DataShard[] {
-  if (pathname === "/" || !pathname.startsWith("/wiki")) return DATA_SHARDS;
+  if (pathname === "/" || !pathname.startsWith("/wiki")) return BUILDER_SHARDS;
   const [, , section, id] = pathname.split("/");
   if (!section) return [];
-  if (section === "players") return id ? ["players", "abilities"] : ["players"];
+  if (section === "players") return id ? ["players", "abilities", "locations"] : ["players"];
   return WIKI_SHARDS[section] ?? [];
 }
 
@@ -68,6 +79,7 @@ interface ShardContents {
   abilities: Ability[];
   tactics: Tactic[];
   synergies: BondSynergy[];
+  locations: GameLocation[];
 }
 
 const SHARD_FILES: { [K in DataShard]: string } = {
@@ -77,6 +89,7 @@ const SHARD_FILES: { [K in DataShard]: string } = {
   abilities: "abilities.json",
   tactics: "tactics.json",
   synergies: "synergies.json",
+  locations: "locations.json",
 };
 
 let metaCache: Promise<Meta> | null = null;
@@ -111,15 +124,17 @@ function loadShard<K extends DataShard>(shard: K): Promise<ShardContents[K]> {
 export async function loadDataset(shards: readonly DataShard[] = DATA_SHARDS): Promise<Dataset> {
   const requested = new Set(shards);
   const empty = <T>() => Promise.resolve([] as T[]);
-  const [meta, players, passives, equipment, abilities, tactics, synergies] = await Promise.all([
-    loadMeta(),
-    requested.has("players") ? loadShard("players") : empty<Player>(),
-    requested.has("passives") ? loadShard("passives") : empty<Passive>(),
-    requested.has("equipment") ? loadShard("equipment") : empty<Equipment>(),
-    requested.has("abilities") ? loadShard("abilities") : empty<Ability>(),
-    requested.has("tactics") ? loadShard("tactics") : empty<Tactic>(),
-    requested.has("synergies") ? loadShard("synergies") : empty<BondSynergy>(),
-  ]);
+  const [meta, players, passives, equipment, abilities, tactics, synergies, locations] =
+    await Promise.all([
+      loadMeta(),
+      requested.has("players") ? loadShard("players") : empty<Player>(),
+      requested.has("passives") ? loadShard("passives") : empty<Passive>(),
+      requested.has("equipment") ? loadShard("equipment") : empty<Equipment>(),
+      requested.has("abilities") ? loadShard("abilities") : empty<Ability>(),
+      requested.has("tactics") ? loadShard("tactics") : empty<Tactic>(),
+      requested.has("synergies") ? loadShard("synergies") : empty<BondSynergy>(),
+      requested.has("locations") ? loadShard("locations") : empty<GameLocation>(),
+    ]);
 
   detailBucketSize = meta.detailBucketSize;
 
@@ -130,6 +145,7 @@ export async function loadDataset(shards: readonly DataShard[] = DATA_SHARDS): P
     abilities,
     tactics: tactics.filter(isRealTactic),
     synergies,
+    locations,
     games: meta.games,
     imageBase: meta.imageBase,
     generatedAt: meta.generatedAt,

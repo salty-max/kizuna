@@ -30,6 +30,7 @@ const dataset: Dataset = {
   passives: [],
   tactics: [],
   synergies: [],
+  locations: [],
   games: [],
   imageBase: "",
   generatedAt: "2026-08-13T00:00:00.000Z",

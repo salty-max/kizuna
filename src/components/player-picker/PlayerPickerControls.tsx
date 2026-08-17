@@ -87,11 +87,12 @@ export function PlayerPickerControls({ dataset, filters, inputRef, onChange, onC
         <Divider />
         <span className="flex flex-wrap gap-1" role="group" aria-label={t("wiki.filterForms")}>
           <FilterChip
-            active={filters.spiritOnly}
-            onClick={() => onChange({ spiritOnly: !filters.spiritOnly })}
-            aria-label={t("picker.spiritDrop")}
+            active={filters.obtainableOnly}
+            onClick={() => onChange({ obtainableOnly: !filters.obtainableOnly })}
+            aria-label={t("picker.obtainable")}
+            title={t("picker.obtainableHint")}
           >
-            {t("picker.spiritDrop")}
+            {t("picker.obtainable")}
           </FilterChip>
           <FilterChip
             active={filters.heroForm}

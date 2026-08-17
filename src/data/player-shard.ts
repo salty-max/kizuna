@@ -13,7 +13,29 @@ import type {
 } from "@/domain/types";
 
 /** Versioned wire format. The domain keeps readable objects; only transport is compact. */
-const PLAYER_SHARD_VERSION = 3 as const;
+const PLAYER_SHARD_VERSION = 4 as const;
+
+/**
+ * Inazugle fans out its turntable stems into a fixed directory tree built from
+ * the stem's own first two characters — `qluc-tlklmm` lives at
+ * `1/k/q/l/qluc-tlklmm`, on all 5419 stems in the index. Shipping the prefix
+ * would repeat 8 derivable bytes per player for nothing.
+ */
+const MODEL_STEM_ROOT = "1/k/";
+
+function encodeModelStem(stem: string): string {
+  if (!stem) return "";
+  const leaf = stem.slice(stem.lastIndexOf("/") + 1);
+  return decodeModelStem(leaf) === stem ? leaf : stem;
+}
+
+function decodeModelStem(leaf: string): string {
+  if (!leaf || leaf.includes("/")) return leaf;
+  // Too short to fan out — keep whatever the build shipped rather than
+  // fabricating a path out of missing characters.
+  if (leaf.length < 2) return leaf;
+  return `${MODEL_STEM_ROOT}${leaf[0]}/${leaf[1]}/${leaf}`;
+}
 
 type WireStats = [number, number, number, number, number, number, number];
 type WireSkill = [level: number, abilityId: string];
@@ -60,13 +82,18 @@ type WirePlayer = [
   nicknameEn: string | null,
   nicknameJa: string | null,
   characterId: string,
-  modelStem: string,
+  /** Turntable stem leaf; the directory prefix is derived at decode. */
+  modelStemLeaf: string,
+  /** Indices into the shard's `l` dictionary — where this spirit drops. */
+  foundIn: number[],
 ];
 
-export interface PlayerShardV3 {
+export interface PlayerShardV4 {
   v: typeof PLAYER_SHARD_VERSION;
   g: string[];
   t: WireTeam[];
+  /** Location ids, interned: 70 values stand in for ~5700 references. */
+  l: string[];
   p: WirePlayer[];
 }
 
@@ -128,12 +155,23 @@ function localizedNames(fr: string | null, en: string | null, ja: string | null)
   return names;
 }
 
-/** Deduplicate series and teams, then encode repeated objects as positional tuples. */
-export function encodePlayerShard(players: Player[]): PlayerShardV3 {
+/** Deduplicate series, teams and locations, then encode rows as positional tuples. */
+export function encodePlayerShard(players: Player[]): PlayerShardV4 {
   const games = [...new Set(players.map((player) => player.game))];
   const gameIndexes = new Map(games.map((game, index) => [game, index]));
   const teams: WireTeam[] = [];
   const teamIndexes = new Map<string, number>();
+  const locations: string[] = [];
+  const locationIndexes = new Map<string, number>();
+
+  const locationIndex = (id: string): number => {
+    const existing = locationIndexes.get(id);
+    if (existing !== undefined) return existing;
+    const next = locations.length;
+    locations.push(id);
+    locationIndexes.set(id, next);
+    return next;
+  };
 
   const teamIndex = (player: Player): number => {
     const key = JSON.stringify([player.teamId, player.team, player.teamNames]);
@@ -151,46 +189,46 @@ export function encodePlayerShard(players: Player[]): PlayerShardV3 {
     return next;
   };
 
-  return {
-    v: PLAYER_SHARD_VERSION,
-    g: games,
-    t: teams,
-    p: players.map((player): WirePlayer => [
-      player.id,
-      player.name,
-      player.names.fr ?? null,
-      player.names.en ?? null,
-      player.names.ja ?? null,
-      player.nameOriginal,
-      player.image,
-      gameIndexes.get(player.game) ?? 0,
-      teamIndex(player),
-      player.position,
-      player.altPosition,
-      player.element,
-      player.buildType,
-      player.role,
-      player.gender,
-      player.spiritDrop ? 1 : 0,
-      player.ageGroup,
-      player.year,
-      encodeStats(player.stats),
-      encodeStats(player.statsLv50),
-      player.total,
-      encodeSkills(player.skills),
-      encodeSkills(player.skillsAlt),
-      encodeSkillSet(player.heroSkills),
-      encodeSkillSet(player.basaraSkills),
-      encodeRarityStats(player.heroStats),
-      encodeRarityStats(player.basaraStats),
-      player.nickname,
-      player.nicknames?.fr ?? null,
-      player.nicknames?.en ?? null,
-      player.nicknames?.ja ?? null,
-      player.characterId,
-      player.modelStem,
-    ]),
-  };
+  const rows = players.map((player): WirePlayer => [
+    player.id,
+    player.name,
+    player.names.fr ?? null,
+    player.names.en ?? null,
+    player.names.ja ?? null,
+    player.nameOriginal,
+    player.image,
+    gameIndexes.get(player.game) ?? 0,
+    teamIndex(player),
+    player.position,
+    player.altPosition,
+    player.element,
+    player.buildType,
+    player.role,
+    player.gender,
+    player.spiritDrop ? 1 : 0,
+    player.ageGroup,
+    player.year,
+    encodeStats(player.stats),
+    encodeStats(player.statsLv50),
+    player.total,
+    encodeSkills(player.skills),
+    encodeSkills(player.skillsAlt),
+    encodeSkillSet(player.heroSkills),
+    encodeSkillSet(player.basaraSkills),
+    encodeRarityStats(player.heroStats),
+    encodeRarityStats(player.basaraStats),
+    player.nickname,
+    player.nicknames?.fr ?? null,
+    player.nicknames?.en ?? null,
+    player.nicknames?.ja ?? null,
+    player.characterId,
+    encodeModelStem(player.modelStem),
+    player.foundIn.map(locationIndex),
+  ]);
+
+  // `locations` fills while the rows encode, so the dictionary is only complete
+  // once every player has been walked.
+  return { v: PLAYER_SHARD_VERSION, g: games, t: teams, l: locations, p: rows };
 }
 
 /** Restore the readable domain model and reject incompatible cached artifacts. */
@@ -198,8 +236,13 @@ export function decodePlayerShard(input: unknown): Player[] {
   if (!input || typeof input !== "object" || !("v" in input) || input.v !== PLAYER_SHARD_VERSION) {
     throw new Error("players.json: unsupported player shard version");
   }
-  const shard = input as PlayerShardV3;
-  if (!Array.isArray(shard.g) || !Array.isArray(shard.t) || !Array.isArray(shard.p)) {
+  const shard = input as PlayerShardV4;
+  if (
+    !Array.isArray(shard.g) ||
+    !Array.isArray(shard.t) ||
+    !Array.isArray(shard.l) ||
+    !Array.isArray(shard.p)
+  ) {
     throw new Error("players.json: malformed player shard");
   }
 
@@ -209,6 +252,13 @@ export function decodePlayerShard(input: unknown): Player[] {
       throw new Error(`players.json: invalid dictionary reference for player ${row[0]}`);
     }
     const names = localizedNames(row[2], row[3], row[4]);
+    const foundIn = (row[33] ?? []).map((index) => {
+      const id = shard.l[index];
+      if (id === undefined) {
+        throw new Error(`players.json: invalid location reference for player ${row[0]}`);
+      }
+      return id;
+    });
     return {
       id: row[0],
       name: row[1],
@@ -218,7 +268,8 @@ export function decodePlayerShard(input: unknown): Player[] {
       nicknames: localizedNames(row[28], row[29], row[30]),
       image: row[6],
       characterId: row[31] ?? "",
-      modelStem: row[32] ?? "",
+      modelStem: decodeModelStem(row[32] ?? ""),
+      foundIn,
       game: shard.g[row[7]]!,
       team: team[1],
       teamId: team[0],

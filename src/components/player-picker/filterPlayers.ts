@@ -12,7 +12,8 @@ export interface PlayerFilters {
   game: string | null;
   team: string | null;
   gender: Gender | null;
-  spiritOnly: boolean;
+  /** Keep only characters some drop table actually hands out. */
+  obtainableOnly: boolean;
   heroForm: boolean;
   basaraForm: boolean;
   sort: PlayerSortKey;
@@ -34,7 +35,7 @@ export function filterAndSortPlayers(players: Player[], filters: PlayerFilters) 
     if (filters.game && player.game !== filters.game) return false;
     if (filters.team && !matchesTeamFilter(player, filters.team)) return false;
     if (filters.gender && player.gender !== filters.gender) return false;
-    if (filters.spiritOnly && !player.spiritDrop) return false;
+    if (filters.obtainableOnly && player.foundIn.length === 0) return false;
     if (filters.heroForm && !player.heroStats) return false;
     if (filters.basaraForm && !player.basaraStats) return false;
     if (!needle) return true;
