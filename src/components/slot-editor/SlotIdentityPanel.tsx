@@ -22,7 +22,7 @@ import { playerDisplayName, useI18n } from "@/i18n";
 import { buildTypeLabel, rarityDisplayLabel } from "@/i18n/labels";
 import { cn, rarityStyle } from "@/lib/ui";
 import { CharacterModelButton, CharacterModelViewer } from "../CharacterModelViewer";
-import { ElementBadge, PositionBadge, StaffIcon, StyleBadge } from "../GameIcon";
+import { ElementBadge, GenderBadge, PositionBadge, StaffIcon, StyleBadge } from "../GameIcon";
 import { PlayerAvatar } from "../PlayerAvatar";
 import { Button, Callout, IconButton, Panel, Select } from "../ui";
 
@@ -69,8 +69,12 @@ export function SlotIdentityPanel({
             </div>
 
             <div className="min-w-0 flex-1">
-              <h2 className="truncate font-display text-base font-bold uppercase italic">
-                {displayName}
+              <h2
+                data-slot-player-name
+                className="flex items-center gap-2 font-display text-base font-bold uppercase italic"
+              >
+                <span className="truncate">{displayName}</span>
+                <GenderBadge gender={slot.player.gender} variant="compact" size={14} />
               </h2>
               <p className="truncate text-xs text-ink-500">
                 {showOriginalNames &&

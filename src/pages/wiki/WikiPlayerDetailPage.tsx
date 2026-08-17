@@ -119,7 +119,10 @@ export function WikiPlayerDetailPage() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-xl font-bold uppercase italic">{displayName}</h2>
+            <h2 className="flex items-center gap-2 font-display text-xl font-bold uppercase italic">
+              <span className="min-w-0">{displayName}</span>
+              <GenderBadge gender={player.gender} variant="compact" size={16} />
+            </h2>
             {player.nameOriginal && player.nameOriginal !== localName && (
               <p className="text-sm text-ink-400">
                 {showOriginalNames ? localName : player.nameOriginal}

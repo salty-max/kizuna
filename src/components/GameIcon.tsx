@@ -109,8 +109,15 @@ export function ElementBadge({ element, variant = "full", size = 18, className }
 
 interface GenderProps extends IconProps {
   gender: Gender;
-  /** `icon` alone (male/female); `full` adds the localised label. */
-  variant?: "icon" | "full";
+  /**
+   * `icon` alone (male/female); `full` adds the localised label.
+   *
+   * `compact` is for sitting beside a name: the glyph when the game ships one,
+   * the word when it does not. The game only draws male and female, so the
+   * `icon` fallback is a `?` — correct for `Unknown`, but a lie for the 36
+   * characters the dump explicitly calls `other`.
+   */
+  variant?: "icon" | "full" | "compact";
 }
 
 export function GenderBadge({ gender, variant = "icon", size = 16, className }: GenderProps) {
@@ -139,7 +146,7 @@ export function GenderBadge({ gender, variant = "icon", size = 16, className }: 
   }
 
   const glyph = <Glyph src={iconUrl(path)} alt={label} size={size} className={className} />;
-  if (variant === "icon") return glyph;
+  if (variant === "icon" || variant === "compact") return glyph;
 
   return (
     <span className={cn("inline-flex shrink-0 items-center gap-1", className)}>

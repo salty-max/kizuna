@@ -18,6 +18,8 @@ everything below makes up the first.
   every choice;
 - automatic selection of Hero and Basara forms within the game's limits;
 - rarity budget, filters by position, gender, obtainability and available forms;
+- gender shown beside the name on the player sheet and in the slot editor, spelled
+  out for the characters the game draws no glyph for;
 - moving cards by drag-and-drop or from the keyboard.
 
 #### Calculations and data
