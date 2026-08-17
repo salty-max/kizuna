@@ -4,12 +4,11 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/ui";
 
 /**
- * Encadrés d'avertissement.
+ * Warning callouts.
  *
- * Le ton porte l'icône : une violation de règle du jeu et une estimation
- * incertaine ne doivent pas se ressembler, et ce choix ne doit pas se refaire
- * à chaque appel — c'est comme ça qu'un ⚠️ finit par annoncer une bonne
- * nouvelle quelque part dans l'app.
+ * The tone carries the icon: a broken game rule and an uncertain estimate
+ * must not look alike, and that choice must not be remade at every call site —
+ * that is how a ⚠️ ends up announcing good news somewhere in the app.
  */
 
 type Tone = "bad" | "warn" | "info";

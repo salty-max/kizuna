@@ -3,12 +3,12 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "reac
 import { cn } from "@/lib/ui";
 
 /**
- * Boutons.
+ * Buttons.
  *
- * La profondeur ne vient pas d'ici : `.pressable` porte l'ombre et le geste
- * d'appui, un utilitaire de teinte dit sa couleur. C'est la même composition
- * que les cartes joueur, donc les deux s'enfoncent exactement pareil sans
- * partager de code — ce qui est tout l'intérêt.
+ * The depth does not come from here: `.pressable` carries the shadow and the
+ * press gesture, a tint utility says its colour. It is the same composition as
+ * the player cards, so the two depress exactly alike without sharing any code —
+ * which is the whole point.
  */
 
 type Variant = "default" | "primary" | "ghost" | "danger";
@@ -16,7 +16,7 @@ type Variant = "default" | "primary" | "ghost" | "danger";
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: "sm" | "md";
-  /** Icône avant le libellé. Seule, préférer `IconButton`. */
+  /** Icon before the label. On its own, prefer `IconButton`. */
   icon?: ReactNode;
 }
 
@@ -55,9 +55,9 @@ export function Button({
 }
 
 /**
- * Un lien qui doit ressembler à un bouton. C'est bien un `<a>` : il navigue,
- * donc il doit s'ouvrir dans un onglet, se copier, s'annoncer comme un lien.
- * Seule l'apparence est empruntée.
+ * A link that has to look like a button. It really is an `<a>`: it navigates,
+ * so it must open in a tab, be copyable, announce itself as a link. Only the
+ * appearance is borrowed.
  */
 export function LinkButton({
   variant = "default",
@@ -89,7 +89,7 @@ export function LinkButton({
 }
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** Obligatoire : un bouton sans texte doit se nommer pour l'accessibilité. */
+  /** Required: a button with no text must name itself for accessibility. */
   "aria-label": string;
   children: ReactNode;
   tone?: "default" | "danger";
@@ -117,7 +117,7 @@ export function IconButton({
   );
 }
 
-/** Onglet segmenté. Même voix que les boutons, sans la profondeur. */
+/** Segmented tab. Same voice as the buttons, without the depth. */
 export function Tab({
   active,
   children,

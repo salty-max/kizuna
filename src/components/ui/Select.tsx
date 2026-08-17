@@ -7,24 +7,24 @@ import { useMemo } from "react";
 import { cn } from "@/lib/ui";
 
 /**
- * Select / Combobox du design system, branché sur Base UI.
+ * Design-system Select / Combobox, wired onto Base UI.
  *
- * L'API publique reste la même qu'avant le refactor (value string + options) :
- * les call sites (formation, rareté, équipements, passifs…) ne bougent pas.
+ * The public API is unchanged from before the refactor (string value +
+ * options): the call sites (formation, rarity, equipment, passives…) stay put.
  *
- * - `searchable` → Combobox (listes longues : bottes, passifs)
- * - sinon → Select (listes courtes : formation, rareté, langue)
+ * - `searchable` → Combobox (long lists: boots, passives)
+ * - otherwise → Select (short lists: formation, rarity, language)
  *
- * La popup est portalisée hors de `Panel` (`overflow-hidden`) et du rail qui
- * défile. `modal={false}` laisse le reste de la page scrollable pendant
- * qu'on parcourt une liste d'équipement.
+ * The popup is portalled out of `Panel` (`overflow-hidden`) and out of the rail
+ * that scrolls. `modal={false}` keeps the rest of the page scrollable while an
+ * equipment list is being browsed.
  */
 
 export interface SelectOption<T extends string = string> {
   value: T;
-  /** Affiché dans le déclencheur, et ce sur quoi porte la recherche. */
+  /** Shown in the trigger, and what the search runs against. */
   label: string;
-  /** Rendu enrichi dans la liste (icône, description). À défaut, `label`. */
+  /** Richer rendering in the list (icon, description). Falls back to `label`. */
   render?: ReactNode;
   disabled?: boolean;
 }
@@ -33,11 +33,11 @@ interface Props<T extends string> {
   value: T;
   options: SelectOption<T>[];
   onChange: (value: T) => void;
-  /** Champ de recherche dans le déclencheur. Pour les listes longues seulement. */
+  /** Search field in the trigger. For long lists only. */
   searchable?: boolean;
-  /** Placeholder du champ de recherche une fois ouvert. */
+  /** Placeholder for the search field once open. */
   searchPlaceholder?: string;
-  /** Affiché quand aucune option ne correspond à `value`. */
+  /** Shown when no option matches `value`. */
   placeholder?: string;
   emptyLabel?: string;
   "aria-label"?: string;
@@ -50,8 +50,8 @@ interface Props<T extends string> {
 const LIST_MAX_HEIGHT = 288;
 
 /**
- * Comparaison sans casse ni accents : sur un catalogue français, chercher
- * « etrangers » doit trouver « Étrangers », sinon la recherche est un piège.
+ * Case- and accent-insensitive comparison: in a French catalogue, searching
+ * "etrangers" must find "Étrangers", or the search is a trap.
  */
 function fold(value: string): string {
   return value

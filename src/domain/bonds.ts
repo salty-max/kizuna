@@ -2,8 +2,8 @@ import type { ResolvedTeam } from "./team";
 import type { BondSynergy } from "./types";
 
 /**
- * Bond / kizuna detection — the game's named character pairings (Prince des
- * neiges, Un lien éternel…). Distinct from passive-stat synergy: these are
+ * Bond / kizuna detection — the game's named character pairings (Snow Prince,
+ * An Eternal Bond…). Distinct from passive-stat synergy: these are
  * roster-shaped unlocks, not percentage modifiers.
  */
 

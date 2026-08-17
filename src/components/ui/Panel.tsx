@@ -3,26 +3,26 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/ui";
 
 /**
- * La boîte de base de l'app.
+ * The app's base box.
  *
- * Avant extraction, 27 panneaux étaient écrits à la main et improvisaient tous
- * leur corps : `p-3` ici, `px-3 pt-3 pb-2` là, `panel-body` deux fois sur
- * onze. Le titre vermillon doit être à fleur de bordure, ce qui oblige à
- * séparer l'en-tête du corps padé — c'est exactement le genre de détail qu'on
- * oublie une fois sur trois quand chaque appel le réinvente.
+ * Before it was extracted, 27 panels were hand-written and each improvised its
+ * own body: `p-3` here, `px-3 pt-3 pb-2` there, `panel-body` twice out of
+ * eleven. The vermilion title has to sit flush with the border, which forces
+ * the header apart from the padded body — exactly the kind of detail that gets
+ * forgotten one time in three when every call site reinvents it.
  */
 
 interface PanelProps {
-  /** Barre de titre vermillon. Omise, le panneau n'a pas d'en-tête. */
+  /** Vermilion title bar. Omitted, the panel has no header. */
   title?: ReactNode;
-  /** Aligné à droite dans la barre de titre — compteur, action discrète. */
+  /** Right-aligned in the title bar — a counter, a quiet action. */
   action?: ReactNode;
-  /** Niveau du titre, pour que la hiérarchie du document reste juste. */
+  /** Heading level, so the document outline stays correct. */
   as?: "h2" | "h3";
   children: ReactNode;
-  /** `false` quand le contenu gère lui-même ses marges (tableau, liste scrollable). */
+  /** `false` when the content handles its own margins (table, scrollable list). */
   padded?: boolean;
-  /** Ombre portée. `false` pour un panneau imbriqué, qui n'a rien à survoler. */
+  /** Drop shadow. `false` for a nested panel, which has nothing to hover over. */
   raised?: boolean;
   className?: string;
   bodyClassName?: string;
@@ -53,16 +53,16 @@ export function Panel({
 }
 
 /**
- * La ligne d'explication sous un titre de panneau.
+ * The explanatory line under a panel title.
  *
- * Il y en avait deux variantes concurrentes — `text-[11px] text-ink-500` et
- * `label-display` — pour le même rôle. Une seule désormais.
+ * There were two competing variants — `text-[11px] text-ink-500` and
+ * `label-display` — for the same role. One from now on.
  */
 export function PanelHint({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cn("mb-2 text-[11px] leading-snug text-ink-500", className)}>{children}</p>;
 }
 
-/** Compteur discret pour le coin droit d'une barre de titre. */
+/** Quiet counter for the right-hand corner of a title bar. */
 export function PanelMeta({ children }: { children: ReactNode }) {
   return <span className="muted tnum shrink-0">{children}</span>;
 }

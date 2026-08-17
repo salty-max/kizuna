@@ -74,14 +74,14 @@ export const GENDER_ICON: Partial<Record<Gender, string>> = {
 };
 
 /**
- * Badges d'aura, par mécanique.
+ * Aura badges, by mechanic.
  *
- * Les huit mécaniques viennent des préfixes d'id du jeu et sont sûres ; c'est
- * l'attribution des badges qui est inférée, avec une confiance graduée dans
- * `data/raw/icons/aura/_aura_types.csv` — forte pour mixi max / armed / keshin,
- * faible pour totem et mode change. `awakening_change` (une seule aura) n'a
- * aucun badge restant, d'où l'absence d'entrée : le composant n'affiche alors
- * rien plutôt que d'emprunter le glyphe d'une autre mécanique.
+ * The eight mechanics come from the game's id prefixes and are certain; it is
+ * the badge assignment that is inferred, with graded confidence recorded in
+ * `data/raw/icons/aura/_aura_types.csv` — strong for mixi max / armed / keshin,
+ * weak for totem and mode change. `awakening_change` (a single aura) has no
+ * badge left, hence the missing entry: the component then renders nothing
+ * rather than borrowing another mechanic's glyph.
  */
 export const AURA_ICON: Partial<Record<AuraType, string>> = {
   keshin: "aura/icon_aura_keshin.png",

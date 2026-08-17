@@ -3,11 +3,11 @@ import type { InputHTMLAttributes, ReactNode, Ref } from "react";
 import { cn } from "@/lib/ui";
 
 /**
- * Contrôles de formulaire.
+ * Form controls.
  *
- * `Field` porte la mise en page label + contrôle, que le SlotEditor répétait à
- * la main avec une largeur de label différente à chaque section. Le label a une
- * largeur fixe pour que les contrôles s'alignent verticalement dans un panneau.
+ * `Field` carries the label + control layout, which the SlotEditor repeated by
+ * hand with a different label width in every section. The label has a fixed
+ * width so controls line up vertically within a panel.
  */
 
 export function Field({
@@ -34,7 +34,7 @@ export function Field({
   );
 }
 
-/** `ref` est une prop ordinaire depuis React 19 — pas besoin de `forwardRef`. */
+/** `ref` is an ordinary prop as of React 19 — no `forwardRef` needed. */
 export function TextInput({
   className,
   ref,
@@ -43,7 +43,7 @@ export function TextInput({
   return <input ref={ref} className={cn("field", className)} {...rest} />;
 }
 
-/** Saisie numérique alignée à droite, en chiffres tabulaires. */
+/** Right-aligned numeric input, in tabular figures. */
 export function NumberInput({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input type="number" className={cn("field text-right tnum", className)} {...rest} />;
 }

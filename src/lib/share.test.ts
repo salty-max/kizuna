@@ -6,7 +6,7 @@ import { decodeShareInput, decodeTeam, encodeShareCode, encodeTeam } from "./sha
 
 function filledTeam(): Team {
   const team = createTeam("4-3-3-triangle");
-  team.name = "Raimon — écran de fumée";
+  team.name = "Raimon — smoke screen";
 
   const formation = findFormation("4-3-3-triangle");
   formation.slots.forEach((slot, index) => {

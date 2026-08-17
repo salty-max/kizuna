@@ -1,10 +1,10 @@
 /**
- * Les primitives de l'UI.
+ * The UI primitives.
  *
- * Elles parlent toutes la même grammaire, celle de la carte joueur : coins
- * durs, bordure 2 px, ombre pleine sans flou, capitales condensées italiques.
- * Rien ici ne connaît le domaine — pas de joueur, pas de rareté, pas de
- * synergie : ces composants savent seulement à quoi ressemble l'app.
+ * They all speak the same grammar, the player card's: hard corners, 2px
+ * border, solid shadow with no blur, condensed italic capitals. Nothing here
+ * knows the domain — no player, no rarity, no synergy: these components only
+ * know what the app looks like.
  */
 
 export { Button, IconButton, LinkButton, Tab } from "./Button";

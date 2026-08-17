@@ -6,12 +6,12 @@ import { cn } from "@/lib/ui";
  * Bascule.
  *
  * Un `<input type="checkbox">` a beau accepter `accent-color`, sa case reste
- * dessinée par l'OS : coins arrondis sur macOS, taille non réglable, et une
- * coche qui n'a rien à voir avec le reste. Ici la piste est carrée et le curseur
- * saute d'un bord à l'autre — même grammaire que les cartes.
+ * drawn by the OS: rounded corners on macOS, no adjustable size, and a
+ * checkmark unrelated to everything else. Here the track is square and the knob
+ * jumps from edge to edge — the same grammar as the cards.
  *
- * C'est bien un `role="switch"` et pas une case à cocher : l'état s'applique
- * immédiatement, il n'attend pas la validation d'un formulaire.
+ * It really is a `role="switch"` and not a checkbox: the state applies
+ * immediately, it does not wait on a form submission.
  */
 
 export function Toggle({

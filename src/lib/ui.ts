@@ -81,11 +81,11 @@ export interface RarityStyle {
   /** Border alone — how a squad card carries its tier. */
   border: string;
   /**
-   * Teinte de l'ombre dure, pas l'ombre elle-même : la classe redéfinit
-   * `--shadow-hard-color` et laisse `.pressable` composer le `box-shadow`.
-   * C'est ce qui permet à une carte de s'enfoncer exactement comme un bouton
-   * tout en gardant la couleur de sa rareté. La rareté se lit deux fois sur
-   * une carte — le bord et l'ombre — ce qui rend le terrain lisible sans texte.
+   * Tint of the hard shadow, not the shadow itself: the class redefines
+   * `--shadow-hard-color` and lets `.pressable` compose the `box-shadow`.
+   * This is what lets a card depress exactly like a button while keeping its
+   * rarity colour. Rarity reads twice on a card — the border and the shadow —
+   * which makes the pitch legible without text.
    */
   shadow: string;
 }

@@ -68,8 +68,8 @@ function encodeSlot(assignment: SlotAssignment): string {
   const buildTypeIndex = assignment.buildType ? BUILD_TYPES.indexOf(assignment.buildType) + 1 : 0;
   fields.push(buildTypeIndex > 0 ? String(buildTypeIndex) : "");
 
-  // Ajouté en fin de champs, donc rétrocompatible : un lien antérieur décode
-  // sans branche alternative, ce qui est bien la valeur par défaut.
+  // Appended at the end of the fields, so backwards compatible: an older link
+  // decodes with no alternative branch, which is exactly the default.
   fields.push(assignment.altBranch ? "1" : "");
 
   // Trailing empties carry no information.

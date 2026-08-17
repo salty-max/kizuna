@@ -71,10 +71,10 @@ export interface SlotAssignment {
    */
   buildType: BuildType | null;
   /**
-   * Bascule sur la seconde branche de techniques (niveaux 30/38/43).
+   * Switches to the second move branch (levels 30/38/43).
    *
-   * C'est le seul choix de build sur les techniques : les six premières sont
-   * apprises d'office, seule la queue se remplace. `false` = tronc commun.
+   * This is the only build choice on moves: the first six are learned
+   * regardless, only the tail is replaced. `false` = common branch.
    */
   altBranch: boolean;
   equipment: Partial<Record<EquipmentSlot, string>>;
@@ -465,11 +465,11 @@ function statsForRarity(player: Player, rarity: Rarity, level: 50 | 99): BaseSta
   return scaleStats(level === 50 ? player.statsLv50 : player.stats, scale);
 }
 
-/** Une technique du personnage, résolue contre le catalogue. */
+/** One of the character's moves, resolved against the catalogue. */
 export interface ResolvedSkill {
   level: number;
   ability: Ability;
-  /** Vrai quand ce slot vient de la branche alternative. */
+  /** True when this slot comes from the alternative branch. */
   fromAltBranch: boolean;
 }
 
@@ -487,7 +487,7 @@ export interface ResolvedSlot {
   rarity: Rarity;
   /** The archetype in force: the slot's override, else the dataset's value. */
   buildType: BuildType | null;
-  /** Les techniques effectivement apprises, branche choisie appliquée. */
+  /** The moves actually learned, with the chosen branch applied. */
   skills: ResolvedSkill[];
   equipment: Equipment[];
   passives: ResolvedPassive[];
@@ -511,11 +511,11 @@ export interface ResolvedTeam {
 }
 
 /**
- * Applique la branche choisie.
+ * Applies the chosen branch.
  *
- * `skillsAlt` n'ajoute pas de slots : ses trois entrées remplacent celles de
- * `skills` aux mêmes niveaux (30/38/43). Concaténer les deux listes donnerait
- * neuf techniques à un personnage qui en a six.
+ * `skillsAlt` adds no slots: its three entries replace those of `skills` at
+ * the same levels (30/38/43). Concatenating the two lists would give nine moves
+ * to a character who has six.
  */
 function resolveSkills(
   player: Player | null,
@@ -525,8 +525,8 @@ function resolveSkills(
 ): ResolvedSkill[] {
   if (!player) return [];
 
-  // La forme choisie a ses propres techniques, comme elle a ses propres stats.
-  // Un Hero n'a par ailleurs jamais de branche alternative.
+  // The chosen form has its own moves, just as it has its own stats. A Hero
+  // also never has an alternative branch.
   const set = (rarity === "hero" && player.heroSkills) ||
     (rarity === "basara" && player.basaraSkills) || {
       skills: player.skills,
@@ -543,9 +543,9 @@ function resolveSkills(
     .sort((a, b) => a.level - b.level)
     .flatMap(({ level, abilityId, alt }) => {
       const ability = abilitiesById.get(abilityId);
-      // Une référence inconnue est impossible — build-data refuse de produire
-      // un joueur dont une technique ne résout pas — mais un dataset servi
-      // depuis un cache périmé le pourrait.
+      // An unknown reference is impossible — build-data refuses to emit a
+      // player whose move does not resolve — but a dataset served from a stale
+      // cache could still carry one.
       return ability ? [{ level, ability, fromAltBranch: alt }] : [];
     });
 }

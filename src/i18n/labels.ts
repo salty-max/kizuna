@@ -58,7 +58,7 @@ export function abilityTypeLabel(t: Translator["t"], type: string): string {
   return label.startsWith("editor.abilityTypes.") ? type : label;
 }
 
-/** Mécanique d'aura : keshin, armed, mixi max… */
+/** Aura mechanic: keshin, armed, mixi max… */
 export function auraTypeLabel(t: Translator["t"], type: AuraType): string {
   return t(`editor.auraTypes.${type}` as MessageKey);
 }

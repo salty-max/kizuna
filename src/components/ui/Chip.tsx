@@ -3,12 +3,11 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/ui";
 
 /**
- * Pastilles.
+ * Chips.
  *
- * Deux usages qu'il faut distinguer : un filtre se clique (`FilterChip`, donc
- * un `<button>` avec un état pressé), une répartition ne se clique pas
- * (`Chip`, donc un `<span>`). Les rendre identiques rendrait la moitié des
- * pastilles de l'app faussement interactives.
+ * Two uses worth keeping apart: a filter is clicked (`FilterChip`, so a
+ * `<button>` with a pressed state), a breakdown is not (`Chip`, so a `<span>`).
+ * Making them identical would leave half the app's chips falsely interactive.
  */
 
 export function Chip({
@@ -18,8 +17,8 @@ export function Chip({
   ...rest
 }: HTMLAttributes<HTMLSpanElement> & { icon?: ReactNode }) {
   return (
-    // `pointer-events-none` sur le contenu seulement : le `title` doit rester
-    // survolable, sinon l'infobulle qui donne le décompte exact ne s'ouvre pas.
+    // `pointer-events-none` on the content only: the `title` must stay
+    // hoverable, or the tooltip carrying the exact count never opens.
     <span className={cn("chip", className)} {...rest}>
       {icon}
       {children}
@@ -48,7 +47,7 @@ export function FilterChip({
   );
 }
 
-/** Petit compteur en chiffres tabulaires, pour un libellé de bouton. */
+/** Small tabular-figures counter, for a button label. */
 export function CountBadge({ children }: { children: ReactNode }) {
   return <span className="badge-count">{children}</span>;
 }

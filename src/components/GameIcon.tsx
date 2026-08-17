@@ -262,11 +262,10 @@ export function HissatsuIcon({
 }
 
 /**
- * Le badge d'une technique : catégorie pour un hissatsu, mécanique pour une
- * aura. Les deux occupent la même case parce qu'ils répondent à la même
- * question — « c'est quoi, ce truc ». `awakening_change` n'a aucun badge
- * attribué (une seule aura, aucun glyphe restant) : on n'affiche rien plutôt
- * que d'emprunter celui d'une autre mécanique.
+ * A move's badge: category for a hissatsu, mechanic for an aura. Both occupy
+ * the same slot because they answer the same question — "what is this thing".
+ * `awakening_change` has no badge assigned (a single aura, no glyph left): we
+ * render nothing rather than borrowing another mechanic's.
  */
 export function AbilityIcon({
   ability,
@@ -295,12 +294,12 @@ export function AbilityIcon({
 /* ── Staff ────────────────────────────────────────────────────────────────── */
 
 /**
- * Icône d'un slot de staff.
+ * A staff slot's icon.
  *
- * Les noms de slot suivent ceux du jeu (Coach + Managers), donc les fichiers
- * extraits se mappent directement : mégaphone pour le coach, trousse de secours
- * pour les managers. C'est l'ancien nommage — « Manager + Coordinateurs » — qui
- * donnait deux icônes inversées.
+ * Slot names follow the game's (Coach + Managers), so the extracted files map
+ * straight across: megaphone for the coach, first-aid kit for the managers. It
+ * was the old naming — "Manager + Coordinators" — that produced two swapped
+ * icons.
  */
 export function StaffIcon({
   kind,

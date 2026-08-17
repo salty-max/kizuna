@@ -23,7 +23,7 @@ describe("cloud teams", () => {
     expect(
       restoreCloudTeam({
         id: crypto.randomUUID(),
-        name: "Cassée",
+        name: "Broken",
         slug: "b".repeat(32),
         visibility: "private",
         payload: "KZ1.invalid",

@@ -2,7 +2,7 @@ import { LOCALES, LOCALE_LABELS, useI18n, type Locale } from "@/i18n";
 import { cn } from "@/lib/ui";
 import { Select, Toggle } from "./ui";
 
-/** Choix de langue et bascule des noms d'origine — même chrome que le reste. */
+/** Language picker and original-names toggle — same chrome as the rest. */
 export function LanguageSwitch({ className }: { className?: string }) {
   const { locale, setLocale, showOriginalNames, setShowOriginalNames, t } = useI18n();
 

@@ -3,12 +3,12 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/ui";
 
 /**
- * Lignes clé/valeur.
+ * Key/value rows.
  *
- * Le motif « libellé à gauche, nombre à droite, filet entre les deux » revenait
- * dans les stats, les puissances, les jauges et les totaux, avec un filet
- * différent à chaque fois. Les nombres sont en chiffres tabulaires partout :
- * c'est ce qui permet de comparer une colonne d'un coup d'œil.
+ * The "label left, number right, rule between" pattern recurred across stats,
+ * powers, gauges and totals, with a different rule every time. Numbers use
+ * tabular figures throughout: that is what lets a column be compared at a
+ * glance.
  */
 
 export function DataRow({
@@ -19,7 +19,7 @@ export function DataRow({
 }: {
   label: ReactNode;
   value: ReactNode;
-  /** Valeur secondaire — plafond conditionnel, appoint d'équipement. */
+  /** Secondary value — conditional cap, equipment top-up. */
   extra?: ReactNode;
   className?: string;
 }) {
@@ -39,7 +39,7 @@ export function DataRow({
   );
 }
 
-/** Groupe de `DataRow`, pour que le filet supérieur tombe au bon endroit. */
+/** A group of `DataRow`s, so the top rule lands in the right place. */
 export function DataList({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("flex flex-col", className)}>{children}</div>;
 }

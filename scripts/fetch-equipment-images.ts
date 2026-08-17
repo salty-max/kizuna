@@ -78,7 +78,7 @@ for (const [slot, category] of Object.entries(CATEGORIES)) {
   }
 
   output[slot] = [...seen].map(([name, image]) => ({ name, image }));
-  console.log(`${slot.padEnd(9)} ${String(output[slot]!.length).padStart(4)} icônes`);
+  console.log(`${slot.padEnd(9)} ${String(output[slot]!.length).padStart(4)} icons`);
 }
 
 await Bun.write(
@@ -87,4 +87,4 @@ await Bun.write(
 );
 
 const total = Object.values(output).reduce((sum, items) => sum + items.length, 0);
-console.log(`\n${total} icônes écrites dans data/raw/equipment-images.json`);
+console.log(`\n${total} icons written to data/raw/equipment-images.json`);

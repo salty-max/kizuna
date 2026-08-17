@@ -153,7 +153,9 @@ async function prerender() {
   if (siteUrl) {
     await writeFile(join(outputDirectory, "sitemap.xml"), sitemapXml(siteUrl));
   } else {
-    console.warn("prerender: deployment URL absent — canonical relatives; sitemap.xml non généré");
+    console.warn(
+      "prerender: deployment URL missing — relative canonicals; sitemap.xml not generated",
+    );
   }
 
   console.log(

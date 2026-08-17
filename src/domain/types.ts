@@ -212,19 +212,19 @@ export interface Player {
   /** Real Basara table when the character has a Basara form; else null. */
   basaraStats: RarityStats | null;
   /**
-   * Les six techniques du tronc commun, apprises aux niveaux 1/13/20/30/38/43.
-   * Elles ne se choisissent pas : le personnage les apprend.
+   * The six common-branch moves, learned at levels 1/13/20/30/38/43. They are
+   * not chosen: the character simply learns them.
    */
   skills: LearnedSkill[];
   /**
-   * La seconde branche — trois techniques aux mêmes niveaux 30/38/43 que la
-   * queue de `skills`. Ce ne sont pas des slots en plus : c'est l'alternative.
-   * Le seul vrai choix de build sur les techniques.
+   * The second branch — three moves at the same levels 30/38/43 as the tail of
+   * `skills`. These are not extra slots: they are the alternative. The only real
+   * build choice there is on moves.
    */
   skillsAlt: LearnedSkill[];
-  /** Techniques de la forme Hero, quand elle existe. Sans branche alternative. */
+  /** Hero-form moves, when that form exists. No alternative branch. */
   heroSkills: SkillSet | null;
-  /** Techniques de la forme Basara, quand elle existe. */
+  /** Basara-form moves, when that form exists. */
   basaraSkills: SkillSet | null;
 }
 
@@ -297,19 +297,19 @@ export const ABILITY_TYPES = ["Shoot", "Dribble", "Block", "Catch", "Skill"] as 
 export type AbilityType = string;
 
 /**
- * D'où vient une technique. Le jeu la range dans trois tables distinctes, et
- * un slot de personnage peut pointer vers n'importe laquelle : deux tiers sont
- * des `hissatsu`, le reste des aura-hissatsu et surtout des **auras** (22 % à
- * elles seules). Ne lire que `hissatsu` perd un slot sur trois, en silence.
+ * Where a move comes from. The game files it in three separate tables, and a
+ * character slot may point at any of them: two thirds are `hissatsu`, the rest
+ * aura-hissatsu and above all **auras** (22% on their own). Reading only
+ * `hissatsu` loses one slot in three, silently.
  */
 export const ABILITY_KINDS = ["hissatsu", "auraHissatsu", "aura"] as const;
 export type AbilityKind = (typeof ABILITY_KINDS)[number];
 
 /**
- * Mécanique d'une aura, lue du préfixe de son `string_id` (`wk*` keshin,
+ * An aura's mechanic, read off its `string_id` prefix (`wk*` keshin,
  * `wa*` armed, `wmm*` mixi max, `ws*` totem, `wkt*` bond transform,
- * `wap*` awakening power). Les huit types sont certains ; c'est l'attribution
- * des badges qui est inférée — voir `data/raw/icons/aura/_aura_types.csv`.
+ * `wap*` awakening power). The eight types are certain; it is the badge
+ * assignment that is inferred — see `data/raw/icons/aura/_aura_types.csv`.
  */
 export const AURA_TYPES = [
   "keshin",
@@ -343,7 +343,7 @@ export interface Ability {
    * entries (no category code in the game data).
    */
   type: AbilityType;
-  /** Mécanique de l'aura ; `null` pour tout ce qui n'est pas une aura. */
+  /** The aura's mechanic; `null` for anything that is not an aura. */
   auraType: AuraType | null;
   element: Element | null;
   power: number;
@@ -352,19 +352,19 @@ export interface Ability {
   shop: string;
 }
 
-/** Une technique apprise à un niveau donné. */
+/** A move learned at a given level. */
 export interface LearnedSkill {
   level: number;
   abilityId: string;
 }
 
 /**
- * Le jeu de techniques d'une forme donnée.
+ * The move set of a given form.
  *
- * Les techniques dépendent de la rareté, exactement comme les stats : sur les
- * 72 personnages présents à la fois dans `characters` et `heroes`, les 72 ont
- * des listes différentes. Un Hero n'a par ailleurs jamais de branche
- * alternative (147/147), là où personnages et Basaras en ont toujours une.
+ * Moves depend on rarity, exactly as stats do: of the 72 characters present in
+ * both `characters` and `heroes`, all 72 have different lists. A Hero also
+ * never has an alternative branch (147/147), where characters and Basaras
+ * always do.
  */
 export interface SkillSet {
   skills: LearnedSkill[];

@@ -1,28 +1,27 @@
 import type { Position } from "./types";
 
 /**
- * Les huit formations de Victory Road, avec leurs positions officielles.
+ * The eight Victory Road formations, with their official positions.
  *
- * Les coordonnées ne sont pas dessinées à la main : elles sont extraites des
- * marqueurs de https://zukan.inazuma.jp/en/soccer_formation/, où chaque poste
- * est un `left: x%; top: y%`. Deux transformations ont été appliquées à la
- * génération :
+ * The coordinates are not hand-drawn: they are extracted from the markers on
+ * https://zukan.inazuma.jp/en/soccer_formation/, where each position is a
+ * `left: x%; top: y%`. Two transforms were applied when generating them:
  *
- *  - l'axe vertical est retourné, pour que `y = 0` soit son propre but ;
- *  - `y` est renormalisé sur 0–100, parce que le site n'occupe que la moitié
+ *  - the vertical axis is flipped, so that `y = 0` is your own goal;
+ *  - `y` is renormalised onto 0–100, because the site only uses half
  *    basse de son terrain et laisse 40 % de vide au-dessus.
  *
- * `position` est l'intention de la formation, déduite de son nom (4-4-2 → 4 DF,
- * 4 MF, 2 FW) : Victory Road laisse aligner n'importe qui n'importe où, donc le
- * builder signale un joueur hors poste sans jamais le refuser.
+ * `position` is the formation's intent, inferred from its name (4-4-2 → 4 DF,
+ * 4 MF, 2 FW): Victory Road lets anyone line up anywhere, so the builder flags
+ * an out-of-position player without ever refusing them.
  */
 
 export interface FormationSlot {
   id: string;
   position: Position;
-  /** 0 côté gauche … 100 côté droit. */
+  /** 0 at the left touchline … 100 at the right. */
   x: number;
-  /** 0 à son propre but … 100 au but adverse. */
+  /** 0 at your own goal … 100 at the opponent's. */
   y: number;
 }
 
@@ -180,13 +179,13 @@ export function findFormation(id: string): Formation {
 /**
  * Slots hors formation.
  *
- * Le staff suit la terminologie du jeu : un **Coach** (監督, celui qui dirige)
- * et trois **Managers** (マネージャー, l'intendance). Kizuna les appelait
- * « Manager » et « Coordinateurs », ce qui inversait aussi bien les icônes que
- * le catalogue de passifs branché sur chaque slot.
+ * Staff follows the game's terminology: one **Coach** (監督, the one who
+ * directs) and three **Managers** (マネージャー, the support staff). Kizuna used
+ * to call them "Manager" and "Coordinators", which inverted both the icons and
+ * the passive catalogue wired to each slot.
  *
- * L'ordre de `allSlotIds()` est porteur : l'encodage de partage est positionnel,
- * donc coach puis managers, dans cet ordre, définitivement.
+ * The order of `allSlotIds()` is load-bearing: the share encoding is positional,
+ * so coach then managers, in that order, permanently.
  */
 export const BENCH_SIZE = 5;
 export const MANAGER_SIZE = 3;

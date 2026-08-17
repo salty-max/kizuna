@@ -200,9 +200,9 @@ interface RawCharacter {
   found_in?: string[];
   stats_lv50: RawStats;
   stats_lv99: RawStats;
-  /** `[niveau, idTechnique]` — six slots du tronc commun. */
+  /** `[level, moveId]` — the six common-branch slots. */
   skills?: [number, number][];
-  /** `[niveau, idTechnique]` — la branche alternative, trois slots. */
+  /** `[level, moveId]` — the alternative branch, three slots. */
   skills_alt?: [number, number][];
 }
 
@@ -239,14 +239,14 @@ interface RawHissatsu {
   is_longshot?: boolean;
 }
 
-/** Une aura n'a ni catégorie ni puissance — c'est un esprit, pas une technique. */
+/** An aura has neither category nor power — it is a spirit, not a move. */
 interface RawAura {
   id: number;
   name: string;
   description?: string | null;
   element: number;
   skill_id?: number;
-  /** Mécanique, dérivée du préfixe de `string_id` par le dataminer. */
+  /** Mechanic, derived from the `string_id` prefix by the dataminer. */
   type?: string;
   string_id?: string;
 }
@@ -332,7 +332,7 @@ async function loadCharacterModels(): Promise<Map<string, string>> {
   const file = Bun.file(new URL("character-models.json", RAW));
   if (!(await file.exists())) {
     problems.push(
-      "data/raw/character-models.json absent — lance `bun run data:character-models` (viewer sans modèles)",
+      "data/raw/character-models.json missing — run `bun run data:character-models` (viewer without models)",
     );
     return new Map();
   }
@@ -738,9 +738,9 @@ async function buildPlayers(
       total: totalOf(statsLv99),
       skills: mapSkills(base.skills, knownAbilityIds, `${where}.skills`),
       skillsAlt: mapSkills(base.skills_alt, knownAbilityIds, `${where}.skills_alt`),
-      // Les techniques dépendent de la forme, pas seulement des stats : sur les
-      // 72 personnages présents dans `characters` et `heroes`, les 72 ont des
-      // listes différentes. On les embarque donc séparément, comme les stats.
+      // Moves depend on the form, not just the stats: of the 72 characters
+      // present in both `characters` and `heroes`, all 72 have different lists.
+      // So we carry them separately, exactly as we do the stats.
       heroSkills: hero ? skillSetOf(hero, knownAbilityIds, `${where}.hero`) : null,
       basaraSkills: basara ? skillSetOf(basara, knownAbilityIds, `${where}.basara`) : null,
       heroStats: hero
@@ -974,15 +974,15 @@ async function buildEquipment(display: Bundle, locales: Record<LocaleKey, Bundle
 /* ── Hissatsu (abilities) ─────────────────────────────────────────────────── */
 
 /**
- * Le catalogue des techniques, fusionné depuis les **trois** tables du jeu.
+ * The move catalogue, merged from the game's **three** tables.
  *
- * Les slots d'un personnage pointent indifféremment vers `hissatsu`,
+ * A character's slots point indifferently at `hissatsu`,
  * `aura_hissatsu` ou `auras`, et les ids ne se chevauchent pas — une seule Map
- * suffit donc. Mais n'en lire qu'une perd un slot sur trois sans rien signaler :
- * `auras` pèse à elle seule 22 % des références. D'où la validation en aval,
- * qui fait échouer le build plutôt que d'afficher des trous.
+ * is therefore enough. But reading only one loses a slot in three without a
+ * word: `auras` alone accounts for 22% of the references. Hence the downstream
+ * validation, which fails the build rather than displaying holes.
  *
- * Les noms sont multi-langue : on fusionne fr / en / ja par id pour que le
+ * Names are multilingual: fr / en / ja are merged by id so that the
  * switch de locale UI renomme vraiment les techniques (sinon tout reste en
  * LANG de build).
  */
@@ -1021,7 +1021,7 @@ async function buildAbilities(display: Bundle, locales: Record<LocaleKey, Bundle
       seen.add(id);
 
       const where = `${kind} ${r.id}`;
-      // Une aura n'a ni catégorie ni puissance : c'est un esprit, pas un tir.
+      // An aura has neither category nor power: it is a spirit, not a shot.
       const isAura = kind === "aura";
       const category = isAura ? "Aura" : HISSATSU_CATEGORY[(r as RawHissatsu).category];
       if (!category) problems.push(`${where}: unknown category ${(r as RawHissatsu).category}`);
@@ -1072,10 +1072,10 @@ function skillSetOf(
   };
 }
 
-/** Les huit mécaniques sont fermées : une neuvième doit faire échouer le build. */
+/** The eight mechanics are closed: a ninth must fail the build. */
 function mapAuraType(raw: string | undefined, where: string): AuraType | null {
   if (!raw) {
-    problems.push(`${where}: aura sans type`);
+    problems.push(`${where}: aura with no type`);
     return null;
   }
   if ((AURA_TYPES as readonly string[]).includes(raw)) return raw as AuraType;
@@ -1083,7 +1083,7 @@ function mapAuraType(raw: string | undefined, where: string): AuraType | null {
   return null;
 }
 
-/** `[niveau, id]` → forme nommée, en refusant tout id inconnu du catalogue. */
+/** `[level, id]` → named form, refusing any id the catalogue does not know. */
 function mapSkills(
   raw: [number, number][] | undefined,
   known: Set<string>,
@@ -1094,7 +1094,7 @@ function mapSkills(
     const [level, id] = pair;
     const abilityId = String(id);
     if (!known.has(abilityId)) {
-      problems.push(`${where}: skill ${abilityId} absent des trois tables de techniques`);
+      problems.push(`${where}: skill ${abilityId} absent from all three move tables`);
       continue;
     }
     out.push({ level: num(level), abilityId });
@@ -1329,8 +1329,8 @@ for (const [code, name] of Object.entries(display.legend.element)) {
   }
 }
 
-// Le catalogue passe avant les joueurs : c'est lui qui rend une référence de
-// technique vérifiable, donc une référence inconnue échoue au lieu de passer.
+// The catalogue comes before the players: it is what makes a move reference
+// checkable, so an unknown reference fails instead of slipping through.
 const abilities = await buildAbilities(display, { fr, en, ja });
 const knownAbilityIds = new Set(abilities.map((a) => a.id));
 
@@ -1419,7 +1419,7 @@ console.log(
 );
 console.log(
   `equipment   ${String(equipment.length).padStart(5)}  ${kb(sizes["equipment.json"])}   ` +
-    `(${equipmentIcons} icônes, ${equipment.length - equipmentIcons} sans)`,
+    `(${equipmentIcons} icons, ${equipment.length - equipmentIcons} without)`,
 );
 console.log(`abilities   ${String(abilities.length).padStart(5)}  ${kb(sizes["abilities.json"])}`);
 console.log(`synergies   ${String(synergies.length).padStart(5)}  ${kb(sizes["synergies.json"])}`);
