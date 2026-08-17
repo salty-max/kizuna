@@ -134,8 +134,9 @@ export function WikiPlayerDetailPage() {
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <PositionBadge position={player.position} variant="badge" size={20} />
               {player.altPosition && player.altPosition !== player.position && (
-                <span className="text-[11px] text-ink-500">
-                  {t("wiki.altPosition")}: {player.altPosition}
+                <span className="flex items-center gap-1.5 text-[11px] text-ink-500">
+                  {t("wiki.altPosition")}
+                  <PositionBadge position={player.altPosition} variant="badge" size={20} />
                 </span>
               )}
               <ElementBadge element={player.element} variant="full" size={16} />

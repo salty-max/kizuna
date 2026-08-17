@@ -482,6 +482,19 @@
     transform: translate(var(--press-travel), var(--press-travel));
   }
 
+  /*
+   * The primary button is the one saturated fill in the app, and a hard shadow
+   * under it read as a second border rather than as depth. It keeps the press
+   * travel, so the gesture survives without the drop.
+   *
+   * Two classes on purpose: `.pressable` lives in this same layer, so relying
+   * on source order would make this rule silently reversible.
+   */
+  .btn-primary.pressable,
+  .btn-primary.pressable:active:not(:disabled):not([aria-disabled="true"]) {
+    box-shadow: none;
+  }
+
   /* Le pitch penche ses cartes : l'appui doit composer avec le shear. */
   .shear.pressable:active:not(:disabled) {
     transform: skewX(-9deg) translate(var(--press-travel), var(--press-travel));

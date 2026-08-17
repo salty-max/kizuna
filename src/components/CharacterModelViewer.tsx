@@ -18,7 +18,7 @@ import {
 } from "@/lib/inazugleModel";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/ui";
-import { Button, IconButton, Panel, Tab } from "@/components/ui";
+import { IconButton, Panel, Tab } from "@/components/ui";
 import { useDialogFocus } from "./useDialogFocus";
 
 const DRAG_THRESHOLD_PX = 14;
@@ -302,21 +302,12 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 border-t-2 border-ink-800 pt-2.5">
-            <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-ink-500">
-              {t("viewer.hint")}
-            </p>
-            <Button onClick={onClose} icon={<X className="size-4" />}>
-              {t("viewer.close")}
-            </Button>
-          </div>
-
           {externalUrl && (
             <a
               href={externalUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="text-xs text-bolt-400 no-underline hover:underline"
+              className="border-t-2 border-ink-800 pt-2.5 text-xs text-bolt-400 no-underline hover:underline"
             >
               {t("viewer.openInazugle")}
             </a>

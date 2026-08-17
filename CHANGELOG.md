@@ -93,7 +93,11 @@ everything below makes up the first.
   carries zoom controls;
 - button sizes made consistent: sign-in is primary and no longer shorter than the
   toolbar beside it, the slot editor's actions match the rest of the app, and the
-  model viewer's controls share one height and one icon-only style.
+  model viewer's controls share one height and one icon-only style;
+- the hard shadow removed from the primary button, where it read as a second
+  border rather than depth;
+- a secondary position now reads as a position badge, like the primary one, instead
+  of a bare letter code in small grey text.
 
 ### Known gaps
 

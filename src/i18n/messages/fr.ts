@@ -471,7 +471,6 @@ export const fr = {
     zoomOut: "Zoom arrière",
     zoomLevel: "{n} %",
     frame: "{n} / {total}",
-    hint: "Glisse horizontalement ou utilise les flèches pour tourner.",
     openInazugle: "Ouvrir sur Inazugle",
   },
   editor: {

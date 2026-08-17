@@ -463,7 +463,6 @@ export const ja = {
     zoomOut: "縮小",
     zoomLevel: "{n}%",
     frame: "{n} / {total}",
-    hint: "左右にドラッグ、または矢印キーで回転。",
     openInazugle: "イナズグルで開く",
   },
   editor: {

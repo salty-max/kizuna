@@ -464,7 +464,6 @@ export const en = {
     zoomOut: "Zoom out",
     zoomLevel: "{n}%",
     frame: "{n} / {total}",
-    hint: "Drag horizontally or use arrow keys to rotate.",
     openInazugle: "Open on Inazugle",
   },
   editor: {
