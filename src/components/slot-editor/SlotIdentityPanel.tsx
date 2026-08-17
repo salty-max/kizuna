@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 import {
   isRarityAllowed,
@@ -24,7 +24,7 @@ import { cn, rarityStyle } from "@/lib/ui";
 import { CharacterModelButton, CharacterModelViewer } from "../CharacterModelViewer";
 import { ElementBadge, GenderBadge, PositionBadge, StaffIcon, StyleBadge } from "../GameIcon";
 import { PlayerAvatar } from "../PlayerAvatar";
-import { Button, Callout, IconButton, Panel, Select } from "../ui";
+import { Button, Callout, Panel, Select } from "../ui";
 
 interface Props {
   slot: ResolvedSlot;
@@ -230,19 +230,6 @@ export function SlotIdentityPanel({
                   })}
                 </Callout>
               )}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <Button id={`slot-player-action-${slot.slotId}`} onClick={onOpenPicker}>
-                {t("editor.change")}
-              </Button>
-              <IconButton
-                tone="danger"
-                onClick={() => onChange({ ...assignment, playerId: null })}
-                aria-label={t("editor.clear")}
-              >
-                <Trash2 className="size-3.5" />
-              </IconButton>
             </div>
           </div>
         ) : staffOnly ? (

@@ -25,7 +25,7 @@ import { OptimizationReportPanel } from "@/components/OptimizationReportPanel";
 import { TeamGenerationWizard } from "@/components/TeamGenerationWizard";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TeamToolbar } from "@/components/TeamToolbar";
-import { IconButton, Panel } from "@/components/ui";
+import { Button, IconButton, Panel } from "@/components/ui";
 import { Pitch } from "@/components/Pitch";
 import { PlayerPicker } from "@/components/PlayerPicker";
 import { SlotEditor } from "@/components/SlotEditor";
@@ -503,6 +503,33 @@ export function BuilderPage() {
                   : selectedSlot.kind === "bench"
                     ? t("pitch.bench")
                     : null
+          }
+          actions={
+            selectedSlot.player ? (
+              <>
+                <Button
+                  id={`slot-player-action-${selectedSlot.slotId}`}
+                  onClick={() => {
+                    setPickerOrigin("editor");
+                    setPickerOpen(true);
+                  }}
+                >
+                  {t("editor.change")}
+                </Button>
+                <IconButton
+                  tone="danger"
+                  onClick={() =>
+                    updateAssignment(selectedSlot.slotId, {
+                      ...(team.slots[selectedSlot.slotId] ?? emptyAssignment()),
+                      playerId: null,
+                    })
+                  }
+                  aria-label={t("editor.clear")}
+                >
+                  <Trash2 className="size-4" />
+                </IconButton>
+              </>
+            ) : null
           }
           onClose={closeSlotSheet}
         >

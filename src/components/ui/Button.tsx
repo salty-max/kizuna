@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 import { cn } from "@/lib/ui";
 
@@ -101,6 +101,8 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   "aria-label": string;
   children: ReactNode;
   tone?: "default" | "danger";
+  /** An ordinary prop as of React 19 — no `forwardRef` needed. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export function IconButton({
@@ -108,10 +110,12 @@ export function IconButton({
   className,
   tone = "default",
   type = "button",
+  ref,
   ...rest
 }: IconButtonProps) {
   return (
     <button
+      ref={ref}
       type={type}
       className={cn(
         "btn-icon",

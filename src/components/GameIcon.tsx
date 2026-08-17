@@ -90,17 +90,21 @@ export function ElementBadge({ element, variant = "full", size = 18, className }
     return <Glyph src={src} alt={label} size={size} className={className} />;
   }
 
+  // Same chrome and typography as `StyleBadge`: the two sat side by side on
+  // every player, one tinted with a plain label and one dark with a display
+  // one, and read as two unrelated kinds of fact. The element's colour lives in
+  // its glyph, which is why the frame no longer needs to carry it.
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 border border-current/20 px-1.5 py-0.5",
-        style.bg,
-        style.text,
+        "inline-flex shrink-0 items-center gap-1 border-2 border-ink-700 bg-ink-850 px-1.5 py-0.5 text-ink-200",
         className,
       )}
     >
       <Glyph src={src} alt="" size={size * 0.9} title={label} />
-      {label}
+      <span className="font-display text-[11px] font-bold tracking-wide uppercase italic">
+        {label}
+      </span>
     </span>
   );
 }

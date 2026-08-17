@@ -121,3 +121,38 @@ test("player cards can be swapped with the keyboard", async ({ page }) => {
   await expect(source).toHaveText(targetName ?? "");
   await expect(target).toHaveText(sourceName ?? "");
 });
+
+test("the slot editor keeps its actions reachable from anywhere in the sheet", async ({ page }) => {
+  await page.goto("/");
+  await generateSampleTeam(page);
+  await page.locator('[data-slot-id="gk"]').click();
+
+  const drawer = page.locator(".drawer-panel");
+  const change = drawer.getByRole("button", { name: "Changer" });
+  const clear = drawer.getByRole("button", { name: "Vider le slot" });
+  await expect(change).toBeInViewport();
+  await expect(clear).toBeInViewport();
+
+  // The editor is several panels tall; swapping or clearing the player must not
+  // require scrolling back up to find the control.
+  const body = drawer.locator(".scroll-slim.overflow-y-auto");
+  await body.evaluate((node) => node.scrollTo({ top: node.scrollHeight }));
+  await expect(body).not.toHaveJSProperty("scrollTop", 0);
+  await expect(change).toBeInViewport();
+  await expect(clear).toBeInViewport();
+});
+
+test("the sheet header states the slot for assistive tech without repeating it on screen", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await generateSampleTeam(page);
+  await page.locator('[data-slot-id="gk"]').click();
+
+  const drawer = page.locator(".drawer-panel");
+  // The dialog is still named, so the heading has to exist — just not take up
+  // the first third of the sheet with what the panel below already shows.
+  const heading = drawer.getByRole("heading", { level: 2 }).first();
+  await expect(heading).toHaveClass(/sr-only/);
+  await expect(drawer).toHaveAttribute("aria-labelledby", /.+/);
+});

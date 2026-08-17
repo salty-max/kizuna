@@ -97,7 +97,12 @@ everything below makes up the first.
 - the hard shadow removed from the primary button, where it read as a second
   border rather than depth;
 - a secondary position now reads as a position badge, like the primary one, instead
-  of a bare letter code in small grey text.
+  of a bare letter code in small grey text;
+- the slot editor's header stopped repeating the name, position and club shown
+  immediately below it, and carries the change and clear actions instead, which
+  used to scroll out of reach in a sheet several panels tall;
+- element badges aligned on the style badges: the two sat side by side on every
+  player and read as two unrelated kinds of fact.
 
 ### Known gaps
 

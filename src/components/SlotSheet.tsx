@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useRef,
   useState,
   type ReactNode,
   type TransitionEvent,
@@ -24,11 +25,19 @@ type DrawerState = "opening" | "open" | "closing";
 export function SlotSheet({
   title,
   subtitle,
+  actions,
   onClose,
   children,
 }: {
+  /** Names the dialog for assistive tech; the body already shows it. */
   title: string;
   subtitle?: string | null;
+  /**
+   * Controls that must survive scrolling. The editor is several panels tall,
+   * and swapping or clearing the player is the one thing a reader reaches for
+   * from anywhere in it.
+   */
+  actions?: ReactNode;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -37,7 +46,11 @@ export function SlotSheet({
   const subtitleId = useId();
   const [drawerState, setDrawerState] = useState<DrawerState>("opening");
   const requestClose = useCallback(() => setDrawerState("closing"), []);
-  const dialogRef = useDialogFocus<HTMLDivElement>(requestClose);
+  // Explicitly the close button, not merely the first focusable one: the header
+  // now leads with `Changer`, and landing there would make Enter open the player
+  // picker the instant the sheet appears.
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useDialogFocus<HTMLDivElement>(requestClose, closeRef);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setDrawerState("open"));
@@ -84,21 +97,27 @@ export function SlotSheet({
         data-state={drawerState}
         onTransitionEnd={finishClosing}
       >
-        <header className="flex shrink-0 items-start gap-2 border-b-2 border-ink-800 p-3">
-          <div className="min-w-0 flex-1">
-            <h2
-              id={titleId}
-              className="truncate font-display text-base font-bold tracking-wide text-ink-100 uppercase italic"
-            >
-              {title}
-            </h2>
-            {subtitle ? (
-              <p id={subtitleId} className="mt-0.5 truncate text-xs text-ink-500">
-                {subtitle}
-              </p>
-            ) : null}
-          </div>
-          <IconButton onClick={requestClose} aria-label={t("app.importClose")}>
+        {/*
+          The heading is read, not shown: the identity panel right below already
+          gives the name, the position and the club, so printing them again cost
+          a third of the sheet's first screen.
+        */}
+        <header className="flex shrink-0 items-center gap-2 border-b-2 border-ink-800 p-3">
+          <h2 id={titleId} className="sr-only">
+            {title}
+          </h2>
+          {subtitle ? (
+            <p id={subtitleId} className="sr-only">
+              {subtitle}
+            </p>
+          ) : null}
+          {actions}
+          <IconButton
+            ref={closeRef}
+            onClick={requestClose}
+            aria-label={t("app.importClose")}
+            className="ml-auto"
+          >
             <X className="size-4" />
           </IconButton>
         </header>
