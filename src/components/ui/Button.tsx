@@ -15,6 +15,14 @@ type Variant = "default" | "primary" | "ghost" | "danger";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
+  /**
+   * `md` everywhere; nothing in the app currently needs anything else.
+   *
+   * `sm` is 8px shorter, so a row mixing it with an `IconButton` — which is
+   * always `md` — comes out visibly ragged. That is what made the top bar, the
+   * slot editor and the model viewer read as three different apps. Before
+   * reaching for it, check that every control beside it is also `sm`.
+   */
   size?: "sm" | "md";
   /** Icon before the label. On its own, prefer `IconButton`. */
   icon?: ReactNode;

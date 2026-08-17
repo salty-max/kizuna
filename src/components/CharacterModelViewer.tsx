@@ -8,7 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { Box, RotateCcw, X } from "lucide-react";
+import { Box, ChevronLeft, ChevronRight, Minus, Plus, RotateCcw, X } from "lucide-react";
 
 import {
   MODEL_FRAME_COUNT,
@@ -22,6 +22,31 @@ import { Button, IconButton, Panel, Tab } from "@/components/ui";
 import { useDialogFocus } from "./useDialogFocus";
 
 const DRAG_THRESHOLD_PX = 14;
+
+/**
+ * Inazugle renders both poses with a lot of empty margin: measured across six
+ * characters, the subject fills 32–66% of a bust frame's width and 23–51% of a
+ * full-body one. Shown untouched, the character sat at about a third of the
+ * viewer. These bases lift the typical character to roughly two thirds of the
+ * frame while still leaving the widest sampled one uncropped — the rest is the
+ * reader's to adjust, which is what the zoom buttons are for.
+ */
+const POSE_BASE_SCALE: Record<ModelPose, number> = { bust: 1.5, full: 1.25 };
+
+/**
+ * The subject's vertical centre sits at 54–70% of the frame, never above it, so
+ * every pose carries more dead space overhead than underfoot. Nudging the image
+ * up re-centres the character instead of the transparent padding.
+ */
+const VERTICAL_BIAS = "-6%";
+
+const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+
+function clampZoom(value: number): number {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 100) / 100));
+}
 
 interface Props {
   name: string;
@@ -59,6 +84,9 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
   const [pose, setPose] = useState<ModelPose>("bust");
   const [frame, setFrame] = useState(0);
   const [ring, setRing] = useState<"loading" | "ready" | "error">("loading");
+  // A multiplier on the pose base, not an absolute scale: switching pose then
+  // keeps whatever the reader chose instead of snapping back.
+  const [zoom, setZoom] = useState(1);
   const drag = useRef<{ active: boolean; startX: number; origin: number } | null>(null);
 
   const hasModel = modelStem.length > 0;
@@ -122,6 +150,7 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
 
   const ready = ring === "ready";
   const currentSrc = ready ? frameUrls[frame] : "";
+  const scale = POSE_BASE_SCALE[pose] * zoom;
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
@@ -182,7 +211,9 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
           <div
             className={cn(
               "relative mx-auto w-full max-w-[15.5rem] overflow-hidden border-2 border-ink-800 bg-ink-950",
-              "aspect-[3/4]",
+              // Square, because the full-body frames are square and the bust
+              // ones landscape: a portrait box letterboxed both of them.
+              "aspect-square",
               ready && "cursor-grab active:cursor-grabbing touch-none",
             )}
             onPointerDown={onPointerDown}
@@ -207,38 +238,67 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
                 draggable={false}
                 decoding="async"
                 data-inazugle-image="model"
-                className="absolute inset-0 m-auto max-h-full max-w-full select-none object-contain"
+                style={{ transform: `translateY(${VERTICAL_BIAS}) scale(${scale})` }}
+                className="absolute inset-0 m-auto max-h-full max-w-full origin-center select-none object-contain"
               />
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => step(1)}
-              disabled={!ready}
-              aria-label={t("viewer.rotateLeft")}
-            >
-              ‹
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => step(-1)}
-              disabled={!ready}
-              aria-label={t("viewer.rotateRight")}
-            >
-              ›
-            </Button>
-            <Button
-              size="sm"
-              icon={<RotateCcw className="size-3.5" />}
-              onClick={() => setFrame(0)}
-              disabled={!ready || frame === 0}
-            >
-              {t("viewer.reset")}
-            </Button>
-            <span className="ml-auto font-display text-[11px] font-bold tracking-wide text-ink-500 uppercase italic tnum">
-              {ready ? t("viewer.frame", { n: frame + 1, total: MODEL_FRAME_COUNT }) : null}
+          {/* One row, one control height. Icon-only throughout: the display font
+              is uppercase italic, which turned a `<` into a leaning glyph and
+              made the cluster read as two unrelated toolbars. */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <IconButton
+                onClick={() => step(1)}
+                disabled={!ready}
+                aria-label={t("viewer.rotateLeft")}
+              >
+                <ChevronLeft className="size-4" />
+              </IconButton>
+              <IconButton
+                onClick={() => step(-1)}
+                disabled={!ready}
+                aria-label={t("viewer.rotateRight")}
+              >
+                <ChevronRight className="size-4" />
+              </IconButton>
+              <IconButton
+                onClick={() => {
+                  setFrame(0);
+                  setZoom(1);
+                }}
+                disabled={!ready || (frame === 0 && zoom === 1)}
+                aria-label={t("viewer.reset")}
+              >
+                <RotateCcw className="size-4" />
+              </IconButton>
+            </div>
+
+            <div className="flex items-center gap-1 border-l-2 border-ink-800 pl-2">
+              <IconButton
+                onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
+                disabled={!ready || zoom <= ZOOM_MIN}
+                aria-label={t("viewer.zoomOut")}
+              >
+                <Minus className="size-4" />
+              </IconButton>
+              <IconButton
+                onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
+                disabled={!ready || zoom >= ZOOM_MAX}
+                aria-label={t("viewer.zoomIn")}
+              >
+                <Plus className="size-4" />
+              </IconButton>
+            </div>
+
+            <span className="ml-auto text-right font-display text-[11px] font-bold tracking-wide text-ink-500 uppercase italic tnum">
+              <span className="block">
+                {ready ? t("viewer.frame", { n: frame + 1, total: MODEL_FRAME_COUNT }) : null}
+              </span>
+              <span data-model-zoom className="block">
+                {ready ? t("viewer.zoomLevel", { n: Math.round(zoom * 100) }) : null}
+              </span>
             </span>
           </div>
 
@@ -246,7 +306,7 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
             <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-ink-500">
               {t("viewer.hint")}
             </p>
-            <Button size="sm" onClick={onClose} icon={<X className="size-3.5" />}>
+            <Button onClick={onClose} icon={<X className="size-4" />}>
               {t("viewer.close")}
             </Button>
           </div>

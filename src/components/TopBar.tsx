@@ -69,8 +69,7 @@ export function TopBar({ className }: { className?: string }) {
         <LanguageSwitch />
         {configured && !loading && (
           <Button
-            size="sm"
-            variant={user ? "primary" : "default"}
+            variant="primary"
             icon={user ? <Cloud className="size-3.5" /> : <UserRound className="size-3.5" />}
             onClick={() => setAuthOpen(true)}
           >

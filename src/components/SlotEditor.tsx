@@ -84,8 +84,7 @@ export function SlotEditor({
           href="https://zukan.inazuma.jp/en/"
           target="_blank"
           rel="noreferrer noopener"
-          size="sm"
-          icon={<ExternalLink className="size-3.5" />}
+          icon={<ExternalLink className="size-4" />}
         >
           {t("editor.viewInazugle")}
         </LinkButton>

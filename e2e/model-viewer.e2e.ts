@@ -192,3 +192,96 @@ test("the builder opens the same turntable from a squad slot", async ({ page }) 
   // The slot sheet stays open behind the viewer — Escape closes one layer only.
   await expect(openButton).toBeVisible();
 });
+
+test("the turntable opens zoomed in, and the zoom is adjustable within bounds", async ({
+  page,
+}) => {
+  await stubInazugleCdn(page);
+  await openViewerFromWiki(page);
+
+  const image = frameImage(page);
+  await expect(image).toBeVisible();
+
+  // Inazugle's frames carry so much empty margin that the character sat at a
+  // third of the viewer at scale 1. The default lifts it without cropping.
+  const scaleOf = async () => {
+    const transform = await image.evaluate((node) => getComputedStyle(node).transform);
+    return Number(transform.match(/matrix\(([\d.]+)/)?.[1] ?? 0);
+  };
+  expect(await scaleOf()).toBeGreaterThan(1.2);
+
+  const readout = viewer(page).locator("[data-model-zoom]");
+  await expect(readout).toHaveText("100 %");
+
+  const zoomIn = viewer(page).getByRole("button", { name: "Zoom avant" });
+  const zoomOut = viewer(page).getByRole("button", { name: "Zoom arrière" });
+
+  const base = await scaleOf();
+  await zoomIn.click();
+  await expect(readout).toHaveText("125 %");
+  expect(await scaleOf()).toBeCloseTo(base * 1.25, 2);
+
+  // Both ends stop rather than running away.
+  for (let i = 0; i < 12; i++) {
+    if (await zoomIn.isDisabled()) break;
+    await zoomIn.click();
+  }
+  await expect(readout).toHaveText("300 %");
+  await expect(zoomIn).toBeDisabled();
+
+  for (let i = 0; i < 20; i++) {
+    if (await zoomOut.isDisabled()) break;
+    await zoomOut.click();
+  }
+  await expect(readout).toHaveText("50 %");
+  await expect(zoomOut).toBeDisabled();
+});
+
+test("switching pose keeps the reader's zoom but rescales for the framing", async ({ page }) => {
+  await stubInazugleCdn(page);
+  await openViewerFromWiki(page);
+  await expect(frameImage(page)).toBeVisible();
+
+  const scaleOf = async () => {
+    const transform = await frameImage(page).evaluate((node) => getComputedStyle(node).transform);
+    return Number(transform.match(/matrix\(([\d.]+)/)?.[1] ?? 0);
+  };
+
+  await viewer(page).getByRole("button", { name: "Zoom avant" }).click();
+  const bust = await scaleOf();
+
+  await viewer(page).getByRole("tab", { name: "Pied" }).click();
+  await expect(frameImage(page)).toHaveAttribute("src", /_fullbody\.webp$/);
+  // The multiplier survives; the base differs because the two poses are framed
+  // differently, so the number on screen stays put while the scale changes.
+  await expect(viewer(page).locator("[data-model-zoom]")).toHaveText("125 %");
+  expect(await scaleOf()).not.toBeCloseTo(bust, 2);
+});
+
+test("resetting returns both the angle and the zoom to their defaults", async ({ page }) => {
+  await stubInazugleCdn(page);
+  await openViewerFromWiki(page);
+  await expect(frameImage(page)).toBeVisible();
+
+  const reset = viewer(page).getByRole("button", { name: "Face" });
+  await expect(reset).toBeDisabled();
+
+  await viewer(page).getByRole("button", { name: "Zoom avant" }).click();
+  await expect(reset).toBeEnabled();
+  await reset.click();
+  await expect(viewer(page).locator("[data-model-zoom]")).toHaveText("100 %");
+  await expect(viewer(page).getByText("1 / 8")).toBeVisible();
+  await expect(reset).toBeDisabled();
+});
+
+test("every control in the viewer shares one height", async ({ page }) => {
+  await stubInazugleCdn(page);
+  await openViewerFromWiki(page);
+  await expect(frameImage(page)).toBeVisible();
+
+  const heights = await viewer(page)
+    .locator("button")
+    .evaluateAll((nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().height)));
+  expect(heights.length).toBeGreaterThan(6);
+  expect(new Set(heights).size).toBe(1);
+});

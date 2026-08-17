@@ -233,7 +233,7 @@ export function SlotIdentityPanel({
             </div>
 
             <div className="flex flex-col gap-1">
-              <Button id={`slot-player-action-${slot.slotId}`} size="sm" onClick={onOpenPicker}>
+              <Button id={`slot-player-action-${slot.slotId}`} onClick={onOpenPicker}>
                 {t("editor.change")}
               </Button>
               <IconButton
@@ -264,9 +264,8 @@ export function SlotIdentityPanel({
               <div className="mt-2">
                 <Button
                   id={`slot-player-action-${slot.slotId}`}
-                  size="sm"
                   onClick={onOpenPicker}
-                  icon={<UserPlus className="size-3.5" />}
+                  icon={<UserPlus className="size-4" />}
                 >
                   {t("editor.assign")}
                 </Button>

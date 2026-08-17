@@ -87,7 +87,13 @@ everything below makes up the first.
 - Japanese game terms corrected, the leftovers in Latin script having been replaced;
 - responsive controls that overlapped at intermediate widths;
 - model dialog made compact, close button made visible, and Inazugle images given a
-  loading state instead of a broken icon.
+  loading state instead of a broken icon;
+- the model viewer opened at roughly a third of the frame, because Inazugle's
+  renders carry wide empty margins; it now opens framed on the character and
+  carries zoom controls;
+- button sizes made consistent: sign-in is primary and no longer shorter than the
+  toolbar beside it, the slot editor's actions match the rest of the app, and the
+  model viewer's controls share one height and one icon-only style.
 
 ### Known gaps
 
