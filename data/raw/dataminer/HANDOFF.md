@@ -17,10 +17,11 @@ The icons README carries the one finding worth not rediscovering: **atlas cell o
 encode the game id**, and the way to label an atlas is to pixel-match it against an already-named
 set. Read it before touching `passives/` or the synergy icons.
 
-## Nothing in this repo regenerates the bundles
+## Regenerating the bundles
 
-`bun run data:fetch` refreshes the community scrape only. The bundles beside it were produced
-outside this repo and copied in. To rebuild them you need the extraction workspace:
+The runbook lives in [`tools/dataminer/`](../../../tools/dataminer/README.md), which carries our
+dataminer patch and the enrichment chain. Read that first; this section only covers where the
+working copy sits on the machine that produced the current bundles:
 
 ```
 C:\Users\maxim\Downloads\
@@ -41,6 +42,9 @@ cd /c/Users/maxim/Downloads && ./ievr_build/ievr_dataminer/target/release/ievr_d
 ./ievr_build/ievr_dataminer/target/release/merge_db.exe   output
 ./ievr_build/ievr_dataminer/target/release/export_json.exe output
 ```
+
+then `tools/dataminer/enrich.ps1`, which adds what the Rust does not emit and fails if any name
+placeholder survived.
 
 Add a language by editing the `LANGUAGES` const in `src/bin/export_json.rs`. `de`, `es`, `it`,
 `pt`, `zh_hans` and `zh_hant` all exist upstream and cost nothing but bundle size.
