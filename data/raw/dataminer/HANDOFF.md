@@ -1,8 +1,8 @@
 # Handoff — datamined bundles
 
-State of the extraction as of 2026-08-11, for whoever picks this up next. The bundles are
+State of the extraction as of 2026-08-17, for whoever picks this up next. The bundles are
 committed and described in [README.md](README.md); this file covers what is *not* in the repo:
-where the extraction lives, how to redo it, and what is still open.
+where the extraction lives now, what the data does and does not contain, and what is still open.
 
 ## Since the first pass
 
@@ -19,74 +19,25 @@ set. Read it before touching `passives/` or the synergy icons.
 
 ## Regenerating the bundles
 
-The runbook lives in [`tools/dataminer/`](../../../tools/dataminer/README.md), which carries our
-dataminer patch and the enrichment chain. Read that first; this section only covers where the
-working copy sits on the machine that produced the current bundles:
+**The extraction lives in its own repo: [salty-max/ievr-extract](https://github.com/salty-max/ievr-extract).**
+It used to sit in `tools/dataminer/` here; it was moved out because it is a pipeline over a game
+install, not part of the app, and it has to survive a game patch on its own terms.
 
-```
-C:\Users\maxim\Downloads\
-  extracted\                     game files, 193 MB, only the 2 archives that matter
-  output\
-    json\ievr.{en,fr,ja}.json    what was copied here
-    ievr.sqlite                  14.1 MB, all 9 languages, indexed
-  ievr_build\
-    mingw\                       msvcrt MinGW-w64, needed to build
-    ievr_dataminer\              patched clone of Telmo26/ievr_dataminer
+```powershell
+.\run.ps1              # unpack, mine, enrich, verify -> out\ievr.{en,fr,ja}.json
+.\run.ps1 -Stage clean # gives back ~1 GB of intermediates
 ```
 
-```bash
-export PATH="$HOME/.cargo/bin:/c/Users/maxim/Downloads/ievr_build/mingw/mingw64/bin:$PATH"
-cd /c/Users/maxim/Downloads/ievr_build/ievr_dataminer
-cargo build --release
-cd /c/Users/maxim/Downloads && ./ievr_build/ievr_dataminer/target/release/ievr_dataminer.exe
-./ievr_build/ievr_dataminer/target/release/merge_db.exe   output
-./ievr_build/ievr_dataminer/target/release/export_json.exe output
-```
+Copy `out\*.json` over this directory and rebuild. That repo's README carries everything that used
+to be in this section: the patch against `Telmo26/ievr_dataminer`, why the published release cannot
+produce these bundles, the name-placeholder system, and — the part that matters after a game
+update — that **column indices are pinned to build 6.00.23.00**, that a shifted one shows up as a
+*silently empty table* because `main.rs` joins its threads with `let _ = handle.join()`, and that
+the fastest way to find it again is the invariant that **every game id is the CRC32 of its string
+id** (`ps10001` → 975948532, 1716/1716).
 
-then `tools/dataminer/enrich.ps1`, which adds what the Rust does not emit and fails if any name
-placeholder survived.
-
-Add a language by editing the `LANGUAGES` const in `src/bin/export_json.rs`. `de`, `es`, `it`,
-`pt`, `zh_hans` and `zh_hant` all exist upstream and cost nothing but bundle size.
-
-## The published dataminer cannot produce this
-
-Release 1.1 is from 2026-02-06 and skill parsing landed on `main` ten days later, so the release
-binary writes an empty `skills.sqlite` and no passives at all. On top of that:
-
-- its extractor download URL 404s (the toolbox asset was renamed to `ievr_toolbox-cli-win64.exe`)
-  and the status is unchecked, so it prints "download complete" then panics;
-- it calls the toolbox with the pre-1.2 flat CLI, which no longer exists — the failure surfaces
-  only as `entity not found`;
-- `data\cpk_list.cfg.bin` does not decrypt on build 6.00.23.00, so the rules filter is dead. The
-  cipher is fine — every `.cpk` decrypts to a clean `CPK ` magic. Workaround was to scan each
-  archive's TOC for plaintext filenames; only two archives matter,
-  `672c0647c5ff4adf150dc88695184817.cpk` (gamedata) and `ef8937b0b455c4978123aab7acccdf13.cpk`
-  (text). 193 MB instead of 56.7 GB.
-
-Patches applied on top of `main`, all in the local clone:
-
-| Where | Why |
-| --- | --- |
-| `skills/hissatsu.rs` | `recastTime` moved to column 18 in this build; 19 is now a Byte, which panicked |
-| `skills/passive.rs` (new) | passives moved out of `m_skillInfoList` into `passive_skill_config` |
-| `text/text_database.rs` | `write_skill` never wrote `description`; channel widened to carry `(name_id, desc_id)` |
-| `common.rs` | `parse_number_value` — T2B stores round numbers as `Integer`, so numeric columns mix Float/Int |
-| `text/name_tags.rs` (new) | fills the `<FUL:ENDO>` placeholders fr/en still carry; aborts on any key it cannot resolve |
-| `bin/` | `export_json`, `merge_db`, plus `dump_schema` / `show_table` / `find_ids` / `dbstat` for analysis |
-
-Three symbols are registered with no usable target — `TANAKA` points at an id present in no
-text file, `SHIROYAMA` and `YAMADA` carry a target of 0 — and are hardcoded to their romaji.
-Every symbol key *is* the uppercase romaji of the name it stands for (`chara_base` column 5 read
-through `chara_text_roma`), and Japanese confirms each reading, so title-casing the key is a
-derivation. Six more zero-target symbols are locale grammar rather than names: `DE1` `DE2`
-`QUE1` `QUE2` in French, `ad_a` and `il_l'` in Italian, the Italian pair naming its own
-alternatives. German, English, Spanish and Portuguese use none.
-
-**Column indices are build-specific.** A game patch will shift them again and the failure is a
-panic in `parse_*_value`, swallowed by `let _ = thread.join()` in `main.rs` — so a silent empty
-table is the symptom. Useful invariant when re-checking: every game id is the CRC32 of its string
-id, verified on 1716/1716 passives (`ps10001` → 975948532).
+Adding a language costs nothing but bundle size: the `LANGUAGES` const in
+`src/bin/export_json.rs`. `de`, `es`, `it`, `pt`, `zh_hans` and `zh_hant` all exist upstream.
 
 ## Character → hissatsu is closed
 
