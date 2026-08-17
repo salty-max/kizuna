@@ -1,35 +1,33 @@
-# Politique de sécurité
+# Security policy
 
-## Versions prises en charge
+## Supported versions
 
-Kizuna évolue avant sa première version stable. Seule la dernière révision de `main`
-reçoit les correctifs de sécurité.
+Kizuna is still moving toward its first stable release. Only the latest revision of
+`main` receives security fixes.
 
-## Signaler une vulnérabilité
+## Reporting a vulnerability
 
-N’ouvrez pas d’issue publique contenant un secret, une preuve d’exploitation ou une
-donnée personnelle. Utilisez le signalement privé de vulnérabilité GitHub du dépôt.
-S’il n’est pas disponible, ouvrez une issue minimale demandant un canal privé, sans
-détail exploitable.
+Do not open a public issue containing a secret, a proof of exploitation or personal
+data. Use the repository's GitHub private vulnerability reporting. If that is
+unavailable, open a minimal issue asking for a private channel, with no exploitable
+detail.
 
-Indiquez la version concernée, l’impact, les étapes minimales de reproduction et, si
-possible, une proposition de correction.
+State the affected version, the impact, the minimal reproduction steps and, where
+possible, a proposed fix.
 
-## Périmètre
+## Scope
 
-L’interface est une application Vite statique. Les comptes Discord et sauvegardes
-cloud optionnelles utilisent Supabase Auth et PostgreSQL. Les équipes locales et les
-liens KZ1 ne nécessitent aucun compte.
+The interface is a static Vite application. Optional Discord accounts and cloud saves
+use Supabase Auth and PostgreSQL. Local teams and KZ1 links require no account.
 
-Les protections principales sont :
+The primary protections are:
 
-- aucune clé `service_role` ni secret OAuth dans le bundle navigateur ;
-- authentification vérifiée avant chaque opération cloud ;
-- Row Level Security sur les profils, équipes et versions ;
-- équipes privées par défaut ;
-- limites de format et de taille sur les payloads enregistrés ;
-- headers de sécurité définis dans `vercel.json`.
+- no `service_role` key and no OAuth secret in the browser bundle;
+- authentication verified before every cloud operation;
+- Row Level Security on profiles, teams and versions;
+- teams private by default;
+- format and size limits on saved payloads;
+- security headers defined in `vercel.json`.
 
-Les partages publics, la suppression de compte et le rate limiting ne doivent pas être
-présentés comme disponibles tant que leur parcours complet n’est pas implémenté et
-vérifié.
+Public sharing, account deletion and rate limiting must not be presented as available
+until their full journey is implemented and verified.
