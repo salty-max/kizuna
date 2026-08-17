@@ -30,7 +30,15 @@ const dataset: Dataset = {
   passives: [],
   tactics: [],
   synergies: [],
-  locations: [],
+  locations: [
+    {
+      id: "fbtl_cro02_050_010",
+      kind: "match",
+      name: "Alius Academy Attacks!",
+      names: { en: "Alius Academy Attacks!", fr: "L'Alius Academy attaque !" },
+      playerCount: 42,
+    },
+  ],
   games: [],
   imageBase: "",
   generatedAt: "2026-08-13T00:00:00.000Z",
@@ -58,6 +66,18 @@ describe("metadataForPath", () => {
     );
     expect(metadataForPath("/wiki/abilities/fire-tornado", dataset, t, "fr", false).title).toBe(
       "Tornade de feu · Moves — Kizuna",
+    );
+  });
+
+  test("names a drop location on its detail route, in the active locale", () => {
+    expect(
+      metadataForPath("/wiki/locations/fbtl_cro02_050_010", dataset, t, "fr", false).title,
+    ).toBe("L'Alius Academy attaque ! · Locations — Kizuna");
+  });
+
+  test("falls back to the section title when the location id is unknown", () => {
+    expect(metadataForPath("/wiki/locations/nope", dataset, t, "en", false).title).toBe(
+      "Locations — Kizuna",
     );
   });
 

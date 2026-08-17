@@ -113,3 +113,49 @@ test("the locations catalogue is fetched for a player sheet and not for the buil
   await expect(panel(page)).toBeVisible();
   expect(requested).toContain("locations.json");
 });
+
+test("the locations catalogue ranks by how many players a place hands out", async ({ page }) => {
+  await page.goto("/wiki/locations");
+  const rows = page.locator("li a[href^='/wiki/locations/']");
+  await expect(rows.first()).toBeVisible();
+
+  const counts = await page.locator("li a[href^='/wiki/locations/'] span.tnum").allTextContents();
+  const numbers = counts.map((text) => Number(text.replace(/\D/g, "")));
+  expect(numbers.length).toBeGreaterThan(10);
+  // Ranked, so the first screen answers "where do I get the most out of a run".
+  expect([...numbers].sort((a, b) => b - a)).toEqual(numbers);
+
+  // Scoped to the list: the kind filter itself carries both labels.
+  const list = page.locator("ul").filter({ has: rows.first() });
+  await page.getByRole("button", { name: "Matchs", exact: true }).click();
+  await expect(list.getByText("Matchs", { exact: true }).first()).toBeVisible();
+  await expect(list.getByText("Univers du joueur", { exact: true })).toHaveCount(0);
+});
+
+test("a location names the players it hands out, and they link back", async ({ page }) => {
+  await page.goto("/wiki/locations/tgs24_0001");
+
+  // The one match the game names in no language at all.
+  await expect(page.getByRole("heading", { name: "Match sans nom dans le jeu" })).toBeVisible();
+  await expect(
+    page.getByText("Le jeu ne nomme ce match dans aucune des trois langues."),
+  ).toBeVisible();
+
+  const players = page.locator("li a[href^='/wiki/players/']");
+  await expect(players).toHaveCount(6);
+  await expect(page.getByText("6 joueurs")).toBeVisible();
+
+  await players.first().click();
+  await expect(page).toHaveURL(/\/wiki\/players\/\d+$/);
+});
+
+test("a player sheet links out to each place that drops them", async ({ page }) => {
+  await page.goto("/wiki/players/1");
+  const chip = page.locator('[data-found-in-group="universe"] a').filter({ hasText: "Diamandis" });
+  await chip.click();
+
+  await expect(page).toHaveURL(/\/wiki\/locations\/star_/);
+  await expect(page.getByRole("heading", { name: "Diamandis" }).first()).toBeVisible();
+  // Round trip: the player we came from is listed here.
+  await expect(page.locator("li a[href='/wiki/players/1']")).toHaveCount(1);
+});

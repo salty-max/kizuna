@@ -53,6 +53,9 @@ export function datasetShardsForPath(pathname: string): readonly DataShard[] {
   const [, , section, id] = pathname.split("/");
   if (!section) return [];
   if (section === "players") return id ? ["players", "abilities", "locations"] : ["players"];
+  // The locations list ranks by a count baked into the catalogue, so it stays a
+  // 10 KB page; only naming the players a location drops pulls the roster in.
+  if (section === "locations") return id ? ["locations", "players"] : ["locations"];
   return WIKI_SHARDS[section] ?? [];
 }
 

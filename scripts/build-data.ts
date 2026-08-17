@@ -1226,11 +1226,28 @@ function buildLocations(display: Bundle, locales: Record<LocaleKey, Bundle>) {
       // than inventing a label; the UI says the game does not name it.
       name: pickLangText(names),
       names,
+      // Filled once the roster is final, since clones and junk are dropped after
+      // this runs and a count including them would overstate every location.
+      playerCount: 0,
     });
   }
 
   out.sort((a, b) => a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id));
   return { locations: out, unresolvedNameTags };
+}
+
+/**
+ * Count the shipped players each location hands out.
+ *
+ * Runs against the finalized roster, so a location whose only players were
+ * clones or junk honestly reads zero instead of inheriting their count.
+ */
+function countPlayersPerLocation(locations: GameLocation[], players: Player[]): void {
+  const counts = new Map<string, number>();
+  for (const player of players) {
+    for (const id of player.foundIn) counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  for (const location of locations) location.playerCount = counts.get(location.id) ?? 0;
 }
 
 /** `found_in` ids, deduplicated and refused outright when unknown. */
@@ -1353,6 +1370,7 @@ const {
   portraitIndexSize,
   modelIndexSize,
 } = await buildPlayers(display, en, { fr, en, ja }, knownAbilityIds, knownLocationIds);
+countPlayersPerLocation(locations, players);
 const passives = buildPassives(display, { fr, en, ja });
 const { equipment, matched: equipmentIcons } = await buildEquipment(display, { fr, en, ja });
 const synergies = await buildSynergies(display, { fr, en, ja });

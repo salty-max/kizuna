@@ -11,7 +11,7 @@ import {
 } from "@/components/GameIcon";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { StatRadar } from "@/components/StatRadar";
-import { Callout, Chip, DataList, DataRow, Panel, Tab } from "@/components/ui";
+import { Callout, DataList, DataRow, Panel, Tab } from "@/components/ui";
 import { loadPlayerDetails } from "@/data/load";
 import { useDataset } from "@/data/useDataset";
 import { groupFoundIn, locationDisplayName } from "@/domain/locations";
@@ -33,7 +33,7 @@ import {
   rarityDisplayLabel,
   statLabel,
 } from "@/i18n/labels";
-import { formatNumber } from "@/lib/ui";
+import { cn, formatNumber } from "@/lib/ui";
 
 type FormTab = "common" | "hero" | "basara";
 
@@ -287,12 +287,18 @@ function FoundInPanel({
               const name = locationDisplayName(entry.location, locale);
               return (
                 <li key={entry.location.id}>
-                  <Chip
+                  {/* Links the other way too: from "where do I get them" to
+                      "who else does this battle hand out". */}
+                  <Link
+                    to={`/wiki/locations/${encodeURIComponent(entry.location.id)}`}
                     title={entry.ids.join(" · ")}
-                    className={name ? undefined : "text-ink-500 italic"}
+                    className={cn(
+                      "chip chip-interactive no-underline",
+                      !name && "text-ink-500 italic",
+                    )}
                   >
                     {name ?? t("wiki.foundIn.unnamed")}
-                  </Chip>
+                  </Link>
                 </li>
               );
             })}

@@ -8,7 +8,7 @@ function location(
   kind: GameLocation["kind"],
   names: GameLocation["names"] = {},
 ): GameLocation {
-  return { id, kind, name: names.fr ?? names.en ?? "", names };
+  return { id, kind, name: names.fr ?? names.en ?? "", names, playerCount: 0 };
 }
 
 const CATALOGUE: GameLocation[] = [

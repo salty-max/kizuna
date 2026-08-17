@@ -1,3 +1,4 @@
+import { locationDisplayName } from "@/domain/locations";
 import type { Dataset } from "@/domain/types";
 import {
   abilityDisplayName,
@@ -22,6 +23,7 @@ const WIKI_SECTIONS = {
   tactics: ["wiki.tactics", "wiki.tacticsHint"],
   passives: ["wiki.passives", "wiki.passivesHint"],
   bonds: ["wiki.bonds", "wiki.bondsHint"],
+  locations: ["wiki.locations", "wiki.locationsHint"],
 } as const satisfies Record<string, readonly [MessageKey, MessageKey]>;
 
 function detailName(
@@ -56,6 +58,10 @@ function detailName(
     case "bonds": {
       const bond = dataset.synergies.find((entry) => entry.id === id);
       return bond ? bondDisplayName(bond, locale) : null;
+    }
+    case "locations": {
+      const location = dataset.locations.find((entry) => entry.id === id);
+      return location ? locationDisplayName(location, locale) : null;
     }
   }
 }

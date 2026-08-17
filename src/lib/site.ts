@@ -10,6 +10,7 @@ export const PUBLIC_ROUTE_PATHS = [
   "/wiki/tactics",
   "/wiki/passives",
   "/wiki/bonds",
+  "/wiki/locations",
 ] as const;
 
 /** Accept only deployable HTTP origins and preserve an optional application sub-path. */

@@ -39,6 +39,10 @@ everything below makes up the first.
 - drop locations on every character's sheet: the Chronicle battles and the Player
   Universe star signs that hand out their spirit, kept apart because a battle is
   replayed and a star sign is rolled. A character no table covers says so;
+- the same data read the other way: a locations catalogue ranked by how many
+  players each place hands out, and a sheet per location naming them. Both
+  directions link to each other, so "where do I get them" and "who does this
+  battle drop" are one click apart;
 - French, English and Japanese interface, with localized character names, pitch
   nicknames and club names, plus a toggle back to the original names.
 

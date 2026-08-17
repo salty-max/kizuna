@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { HeartHandshake, Map, Package, Shield, Sword, Users } from "lucide-react";
+import { HeartHandshake, Map, MapPin, Package, Shield, Sword, Users } from "lucide-react";
 
 import { Panel } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
@@ -43,6 +43,12 @@ const SECTIONS = [
     icon: HeartHandshake,
     countKey: "bonds" as const,
   },
+  {
+    to: "/wiki/locations",
+    labelKey: "wiki.locations" as const,
+    icon: MapPin,
+    countKey: "locations" as const,
+  },
 ] as const;
 
 /** Wiki landing — pick a catalogue to browse. */
@@ -57,6 +63,7 @@ export function WikiHomePage() {
     tactics: dataset.counts?.tactics ?? dataset.tactics.length,
     passives: dataset.counts?.passives ?? dataset.passives.length,
     bonds: dataset.counts?.synergies ?? dataset.synergies.length,
+    locations: dataset.counts?.locations ?? dataset.locations.length,
   };
 
   return (

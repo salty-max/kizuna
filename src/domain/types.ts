@@ -250,6 +250,12 @@ export interface GameLocation {
    */
   name: string;
   names: LocalizedNames;
+  /**
+   * How many shipped players this location hands out, counted at build.
+   * Precomputed so the catalogue list can rank and show it without pulling the
+   * whole player shard for a page that never names a player.
+   */
+  playerCount: number;
 }
 
 /** Loaded on demand — descriptions sit in lazy buckets so boot stays light. */

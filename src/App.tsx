@@ -26,6 +26,16 @@ const WikiBondDetailPage = lazy(() =>
 const WikiBondsPage = lazy(() =>
   import("@/pages/wiki/WikiBondsPage").then((module) => ({ default: module.WikiBondsPage })),
 );
+const WikiLocationDetailPage = lazy(() =>
+  import("@/pages/wiki/WikiLocationDetailPage").then((module) => ({
+    default: module.WikiLocationDetailPage,
+  })),
+);
+const WikiLocationsPage = lazy(() =>
+  import("@/pages/wiki/WikiLocationsPage").then((module) => ({
+    default: module.WikiLocationsPage,
+  })),
+);
 const WikiEquipmentDetailPage = lazy(() =>
   import("@/pages/wiki/WikiEquipmentDetailPage").then((module) => ({
     default: module.WikiEquipmentDetailPage,
@@ -149,6 +159,8 @@ function AppFrame() {
             <Route path="/wiki/passives/:id" element={<WikiPassiveDetailPage />} />
             <Route path="/wiki/bonds" element={<WikiBondsPage />} />
             <Route path="/wiki/bonds/:id" element={<WikiBondDetailPage />} />
+            <Route path="/wiki/locations" element={<WikiLocationsPage />} />
+            <Route path="/wiki/locations/:id" element={<WikiLocationDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

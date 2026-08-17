@@ -18,7 +18,7 @@ Production: [kizuna-green.vercel.app](https://kizuna-green.vercel.app)
 - compact versioned team links and PNG exports;
 - local saves, plus optional Discord authentication and private Supabase cloud saves;
 - player, equipment, technique, passive, tactic and bond catalogues;
-- where each character's spirit drops: Chronicle battles and Player Universe star signs;
+- where each character's spirit drops, and who each battle or star sign hands out;
 - French, English and Japanese interface.
 
 Seasonal-player eligibility and exact synergy buff values are not available in the
