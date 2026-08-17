@@ -13,9 +13,9 @@ One self-contained bundle per language, joins already resolved.
 
 | | Raw | gzip |
 | --- | --- | --- |
-| `ievr.en.json` | 4.79 MB | 0.72 MB |
-| `ievr.fr.json` | 4.91 MB | 0.74 MB |
-| `ievr.ja.json` | 7.55 MB | 1.24 MB |
+| `ievr.en.json` | 5.43 MB | 0.79 MB |
+| `ievr.fr.json` | 5.55 MB | 0.82 MB |
+| `ievr.ja.json` | 8.37 MB | 1.35 MB |
 
 Each holds 5418 characters, 147 heroes, 72 basaras, 852 hissatsu, 152 aura hissatsu, 443 auras,
 1716 passives, 86 tactics, 37 synergies and 468 pieces of equipment. `de`, `es`, `it`, `pt`,
@@ -77,6 +77,18 @@ is rolled.
 
 ## Reading the fields
 
+- **Name placeholders are resolved at export**, so no `<FUL:ENDO>` survives into the bundles —
+  the count is 0 in all three. The game fills them at runtime and only Japanese and the two
+  Chinese locales ship the literal text, which is why fr/en used to read "La forteresse de !".
+  Two config tables do it, both keyed by the **CRC32 of the ASCII key**:
+  `gamedata/character/chara_name_tag_*` → `m_charaNameTagConfigList` for the nine character
+  prefixes, and `gamedata/map/map_name_tag_*` → `m_mapNameTagConfigList` for `MNT`, which is
+  literally *map name tag* and covers clubs and places. The prefix picks a `chara_text` sub
+  entry: `FUL`/`FFC`/`LFC` the full name, `LST`/`FLC`/`FLA` the family name, `FST`/`FFS`/`LAF`
+  the given name. That grouping was measured against Japanese **and** Simplified Chinese over
+  ~700 placeholders, not assumed; within a group the prefixes differ only in Japanese ruby
+  typography, which no other locale renders. A key that does not resolve aborts the run with
+  the key and the line — see `src/text/name_tags.rs`.
 - **`name` vs `name_original`** is the game's own "show original Japanese player names" toggle,
   and it applies to **players only** — the game offers no equivalent for techniques, so do not
   build one. In `en`/`fr` that is `Mark Evans` ↔ `Endo Mamoru`; in `ja` and Chinese the two are

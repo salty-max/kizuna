@@ -68,7 +68,16 @@ Patches applied on top of `main`, all in the local clone:
 | `skills/passive.rs` (new) | passives moved out of `m_skillInfoList` into `passive_skill_config` |
 | `text/text_database.rs` | `write_skill` never wrote `description`; channel widened to carry `(name_id, desc_id)` |
 | `common.rs` | `parse_number_value` — T2B stores round numbers as `Integer`, so numeric columns mix Float/Int |
+| `text/name_tags.rs` (new) | fills the `<FUL:ENDO>` placeholders fr/en still carry; aborts on any key it cannot resolve |
 | `bin/` | `export_json`, `merge_db`, plus `dump_schema` / `show_table` / `find_ids` / `dbstat` for analysis |
+
+Three symbols are registered with no usable target — `TANAKA` points at an id present in no
+text file, `SHIROYAMA` and `YAMADA` carry a target of 0 — and are hardcoded to their romaji.
+Every symbol key *is* the uppercase romaji of the name it stands for (`chara_base` column 5 read
+through `chara_text_roma`), and Japanese confirms each reading, so title-casing the key is a
+derivation. Six more zero-target symbols are locale grammar rather than names: `DE1` `DE2`
+`QUE1` `QUE2` in French, `ad_a` and `il_l'` in Italian, the Italian pair naming its own
+alternatives. German, English, Spanish and Portuguese use none.
 
 **Column indices are build-specific.** A game patch will shift them again and the failure is a
 panic in `parse_*_value`, swallowed by `let _ = thread.join()` in `main.rs` — so a silent empty
