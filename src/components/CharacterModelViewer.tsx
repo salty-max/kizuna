@@ -284,7 +284,10 @@ export function CharacterModelButton({
       disabled={!hasModel}
       title={hasModel ? t("viewer.open") : t("viewer.unavailable")}
       aria-label={hasModel ? t("viewer.open") : t("viewer.unavailable")}
-      className={className}
+      // Every call site overlays this on a portrait, and `InazugleImage` raises
+      // its `<img>` to `z-[1]` — without a higher layer the image swallows the
+      // click across everything but the few pixels outside the avatar box.
+      className={cn("z-[2]", className)}
     >
       <Box className="size-4" />
     </IconButton>
