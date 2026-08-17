@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 /**
- * Direction « Hissatsu » — un seul langage pour toute l'UI.
+ * "Hissatsu" direction — one language for the whole UI.
  *
- * Les cartes joueur définissent la grammaire ; le reste de l'app doit la parler,
- * pas un second thème « material soft » en parallèle :
+ * The player cards define the grammar; the rest of the app has to speak it, not
+ * run a second "soft material" theme alongside:
  *
- *  - coins durs (0–2px), jamais de pill arrondi
- *  - bordure 2px + ombre portée pleine `5px 6px 0` (pas de blur)
- *  - `font-display` condensée italique caps pour titres, boutons, labels d'action
- *  - vermillon structurel (barres de panel), jaune éclair pour l'action seule
- *  - shear réservé aux cartes pitch (`.shear`), pas aux panels
+ *  - hard corners (0–2px), never a rounded pill
+ *  - 2px border + solid drop shadow `5px 6px 0` (no blur)
+ *  - condensed italic caps `font-display` for titles, buttons, action labels
+ *  - vermilion for structure (panel bars), bolt yellow for action alone
+ *  - shear reserved for pitch cards (`.shear`), not for panels
  */
 
 @theme {
   /**
-   * Sol quasi-noir à biais rouge, accordé au vermillon plutôt qu'à un gris
-   * neutre. La gamme est complète (100 → 950) : un trou dans l'échelle produit
-   * une classe silencieusement ignorée dans un composant et une erreur de build
-   * dans un `@apply` — deux façons de perdre du temps pour la même cause.
+   * Near-black ground with a red bias, tuned to the vermilion rather than to a
+   * neutral grey. The range is complete (100 → 950): a hole in the scale gives
+   * you a class silently ignored in a component and a build error in an
+   * `@apply` — two ways to lose time to the same cause.
    */
   --color-ink-950: #0f0b0d;
   --color-ink-900: #171114;
@@ -33,11 +33,11 @@
   --color-ink-200: #e8d9cd;
   --color-ink-100: #fff4e6;
 
-  /* Jaune éclair — seule couleur d'action. */
+  /* Bolt yellow — the only action colour. */
   --color-bolt-400: #fff100;
   --color-bolt-500: #ffd400;
 
-  /* Vermillon — structure : en-têtes, ombres, alertes. */
+  /* Vermilion — structure: headers, shadows, alerts. */
   --color-flare-500: #ff2e00;
   --color-flare-300: #ff8a5c;
 
@@ -52,35 +52,34 @@
   --font-display: "Avenir Next Condensed", "Avenir Next", "Arial Narrow", system-ui, sans-serif;
 
   /**
-   * Ombre manga : une seule géométrie (`5px 6px 0`, sans blur), un seul état
-   * enfoncé (`2px 2px 0`), une seule variable — la couleur.
+   * Manga shadow: one geometry (`5px 6px 0`, no blur), one pressed state
+   * (`2px 2px 0`), one variable — the colour.
    *
-   * Surtout pas de `--shadow-hard: 5px 6px 0 var(--shadow-hard-color)` ici :
-   * une propriété personnalisée déclarée sur `:root` résout ses `var()`
-   * internes *sur le root*. Les enfants hériteraient d'une chaîne déjà noire,
-   * et redéfinir la teinte plus bas dans l'arbre ne changerait rien. La
-   * géométrie est donc écrite là où l'ombre est posée, et la teinte reste la
-   * seule chose qui varie.
+   * Emphatically not `--shadow-hard: 5px 6px 0 var(--shadow-hard-color)` here:
+   * a custom property declared on `:root` resolves its inner `var()`s *at the
+   * root*. Children would inherit an already-black string, and redefining the
+   * tint further down the tree would change nothing. So the geometry is written
+   * where the shadow is laid down, and the tint stays the only thing that
+   * varies.
    */
   --shadow-hard-color: #000000a6;
   --press-travel: 3px;
 
   /**
-   * Hauteur des contrôles. Une seule mesure pour boutons, selects, champs,
-   * bascules et onglets : c'est ce qui fait qu'une barre d'outils s'aligne
-   * toute seule au lieu d'être rattrapée au pixel par des `py-*` différents.
-   * Les contrôles natifs ne peuvent pas la respecter — leur hauteur vient de
-   * l'OS — ce qui est la vraie raison pour laquelle select et bascule sont
-   * réimplémentés ici.
+   * Control height. One measure for buttons, selects, fields, toggles and tabs:
+   * that is what makes a toolbar line up on its own instead of being nudged
+   * into place by a different `py-*` on each control. Native controls cannot
+   * honour it — their height comes from the OS — which is the real reason the
+   * select and the toggle are reimplemented here.
    */
   --control-h: 34px;
   --control-h-sm: 26px;
 }
 
 /**
- * Déclarées avec `@utility` et non dans `@layer base` : une classe de `base`
- * n'est pas `@apply`-able, et `.badge-count` s'en sert. Le build échoue à la
- * compilation, pas au runtime — mais seulement le jour où on l'applique.
+ * Declared with `@utility` rather than in `@layer base`: a `base` class is not
+ * `@apply`-able, and `.badge-count` uses it. The build fails at compile time,
+ * not at runtime — but only on the day someone applies it.
  */
 @utility tnum {
   font-variant-numeric: tabular-nums;
@@ -127,8 +126,8 @@
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
 
   /**
-   * Panel = boîte manga carrée. Coins nuls, bordure 2px, ombre dure.
-   * Les titres de panel restent flush (pas de padding autour du vermillon).
+   * Panel = square manga box. Zero corners, 2px border, hard shadow.
+   * Panel titles stay flush (no padding around the vermilion).
    */
   .panel {
     @apply border-2 border-ink-800 bg-ink-900;
@@ -177,14 +176,14 @@
   /* ── Buttons ──────────────────────────────────────────────────────────── */
 
   /**
-   * Même grammaire que les cartes : bord 2px, ombre dure, display caps.
-   * Pas de shear ici — le shear est pour le pitch, pas pour la chrome.
+   * Same grammar as the cards: 2px edge, hard shadow, display caps.
+   * No shear here — shear is for the pitch, not for the chrome.
    */
   /**
-   * `.btn` ne décrit que la forme et la voix : la profondeur vient de
-   * `.pressable`, la couleur d'ombre d'un utilitaire de teinte. Les trois se
-   * composent, donc une carte joueur et un bouton s'enfoncent identiquement
-   * sans partager une ligne de code.
+   * `.btn` describes only the shape and the voice: the depth comes from
+   * `.pressable`, the shadow colour from a tint utility. The three compose, so
+   * a player card and a button depress identically without sharing a line of
+   * code.
    */
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 border-2 border-ink-700
@@ -251,9 +250,9 @@
   }
 
   /**
-   * `.chip` est muet : une répartition d'éléments ne se clique pas. Le hover
-   * est réservé à `.chip-interactive`, sinon la moitié des pastilles de l'app
-   * prétendent être des boutons.
+   * `.chip` is mute: a breakdown of elements is not clickable. Hover is
+   * reserved for `.chip-interactive`, or half the app's chips would claim to be
+   * buttons.
    */
   .chip {
     @apply inline-flex items-center gap-1 border-2 border-ink-800 bg-ink-850
@@ -414,7 +413,7 @@
       font-bold tracking-wide text-ink-300 uppercase italic tnum;
   }
 
-  /* Même grammaire que `.panel`, écrite en clair : une classe de `components`
+  /* Same grammar as `.panel`, spelled out: a `components` class
      n'est pas `@apply`-able depuis une autre. */
   .modal {
     @apply flex max-h-full w-full flex-col overflow-hidden border-2 border-ink-800 bg-ink-900;
@@ -451,8 +450,8 @@
 
 @layer utilities {
   /**
-   * Le geste central des cartes pitch. Conteneur penché, contenu redressé.
-   * Ne pas étendre aux panels / boutons — la chrome reste d'aplomb.
+   * The pitch cards' central gesture. Container tilted, content straightened.
+   * Do not extend it to panels or buttons — the chrome stays upright.
    */
   .shear {
     transform: skewX(-9deg);
@@ -463,9 +462,9 @@
   }
 
   /**
-   * Tout ce qui répond au clic partage ce geste : l'ombre se rétracte et
-   * l'élément descend d'exactement ce qu'elle a perdu, donc le coin bas-droit
-   * ne bouge pas. Boutons, onglets et cartes joueur, sans exception.
+   * Everything that answers a click shares this gesture: the shadow retracts
+   * and the element drops by exactly what it lost, so the bottom-right corner
+   * does not move. Buttons, tabs and player cards, without exception.
    */
   .pressable {
     box-shadow: 5px 6px 0 var(--shadow-hard-color);
@@ -495,7 +494,7 @@
     box-shadow: none;
   }
 
-  /* Le pitch penche ses cartes : l'appui doit composer avec le shear. */
+  /* The pitch tilts its cards: the press has to compose with the shear. */
   .shear.pressable:active:not(:disabled) {
     transform: skewX(-9deg) translate(var(--press-travel), var(--press-travel));
   }
@@ -517,9 +516,9 @@
   }
 
   /**
-   * Teintes d'ombre. Elles ne posent pas d'ombre, elles disent seulement de
-   * quelle couleur elle est : `.pressable.tone-bolt` suffit, et une carte
-   * injecte sa rareté via `--shadow-hard-color` en style inline.
+   * Shadow tints. They do not lay down a shadow, they only say what colour it
+   * is: `.pressable.tone-bolt` is enough, and a card injects its rarity through
+   * `--shadow-hard-color` as an inline style.
    */
   .tone-bolt {
     --shadow-hard-color: #7a6f00;
