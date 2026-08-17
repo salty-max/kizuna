@@ -1187,7 +1187,7 @@ function mapLocationKind(raw: string, where: string): LocationKind | null {
  */
 function buildLocations(display: Bundle, locales: Record<LocaleKey, Bundle>) {
   if (!display.locations) {
-    problems.push("bundle.locations absent — le dump ne dit plus où trouver les personnages");
+    problems.push("bundle.locations missing — the dump no longer says where characters are found");
     return { locations: [] as GameLocation[], unresolvedNameTags: [] as string[] };
   }
 
@@ -1241,7 +1241,7 @@ function mapFoundIn(raw: string[] | undefined, known: Set<string>, where: string
     if (!id || seen.has(id)) continue;
     seen.add(id);
     if (!known.has(id)) {
-      problems.push(`${where}: found_in ${id} absent du catalogue des lieux`);
+      problems.push(`${where}: found_in ${id} absent from the locations catalogue`);
       continue;
     }
     out.push(id);
@@ -1426,19 +1426,19 @@ console.log(`synergies   ${String(synergies.length).padStart(5)}  ${kb(sizes["sy
 console.log(`tactics     ${String(tactics.length).padStart(5)}  ${kb(sizes["tactics.json"])}`);
 console.log(
   `locations   ${String(locations.length).padStart(5)}  ${kb(sizes["locations.json"])}   ` +
-    `(${locations.filter((l) => l.kind === "match").length} matchs, ` +
-    `${locations.filter((l) => l.kind === "universe").length} signes ; ` +
-    `${locations.filter((l) => !l.name).length} sans nom)`,
+    `(${locations.filter((l) => l.kind === "match").length} matches, ` +
+    `${locations.filter((l) => l.kind === "universe").length} star signs; ` +
+    `${locations.filter((l) => !l.name).length} unnamed)`,
 );
 if (unresolvedNameTags.length > 0) {
   console.log(
-    `            ${unresolvedNameTags.length} nom(s) à substituant non résolu en amont : ` +
+    `            ${unresolvedNameTags.length} name(s) with an unresolved upstream tag: ` +
       unresolvedNameTags.join(", "),
   );
 }
 console.log(
-  `  obtenables${String(obtainable).padStart(5)}        ` +
-    `(${players.length - obtainable} joueurs qu'aucune table ne donne)`,
+  `  obtainable${String(obtainable).padStart(5)}        ` +
+    `(${players.length - obtainable} players no drop table hands out)`,
 );
 console.log(`icons              ${iconCount} files → public/icons/`);
 console.log(`details            ${buckets} bucket files (lazy)`);

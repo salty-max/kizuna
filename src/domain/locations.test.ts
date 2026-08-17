@@ -39,14 +39,17 @@ describe("groupFoundIn", () => {
     expect(groups[0]?.kind).toBe("universe");
   });
 
-  test("sorts each group by its name in the active locale", () => {
-    expect(names(groupFoundIn(["star_2", "star_1"], CATALOGUE, "fr"))).toEqual([
-      "star_1",
-      "star_2",
-    ]);
+  test("sorts each group by its name in the active locale, not by a fixed one", () => {
+    // These two invert between the catalogues: "Le prince des neiges" precedes
+    // "Le serment", while "The oath" precedes "The snow prince". A sort blind to
+    // the active locale gets one of the two orders wrong.
     expect(names(groupFoundIn(["fbtl_b", "fbtl_a"], CATALOGUE, "fr"))).toEqual([
       "fbtl_a",
       "fbtl_b",
+    ]);
+    expect(names(groupFoundIn(["fbtl_a", "fbtl_b"], CATALOGUE, "en"))).toEqual([
+      "fbtl_b",
+      "fbtl_a",
     ]);
   });
 
