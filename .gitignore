@@ -21,3 +21,6 @@ public/data
 public/icons
 .env*
 !.env.example
+
+# Intermediaire regenere par tools/dataminer/enrich/spirit_pool.ps1
+tools/dataminer/enrich/droppable_ids.txt
