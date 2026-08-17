@@ -1,4 +1,33 @@
+import type { Page } from "@playwright/test";
+
 import { expect, generateSampleTeam, test } from "./fixtures";
+
+declare global {
+  interface Window {
+    __drawerStates?: (string | null)[];
+  }
+}
+
+/**
+ * Watch `data-state` on the open drawer until it leaves the DOM.
+ *
+ * The observer holds its own reference to the node, so the last transition is
+ * still recorded even though the element is removed right after.
+ */
+async function recordDrawerStates(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const panel = document.querySelector(".drawer-panel");
+    if (!panel) throw new Error("no .drawer-panel to observe");
+    window.__drawerStates = [panel.getAttribute("data-state")];
+    new MutationObserver(() => {
+      window.__drawerStates?.push(panel.getAttribute("data-state"));
+    }).observe(panel, { attributes: true, attributeFilter: ["data-state"] });
+  });
+}
+
+function observedDrawerStates(page: Page): Promise<(string | null)[]> {
+  return page.evaluate(() => window.__drawerStates ?? []);
+}
 
 test("the app shell exposes a page heading, skip link and route focus", async ({ page }) => {
   await page.goto("/");
@@ -50,9 +79,14 @@ test("the slot editor behaves like an animated drawer and restores its trigger",
   await expect(drawer).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
   await expect(drawer.getByRole("button", { name: "Fermer" })).toBeFocused();
 
+  // The drawer must animate out rather than blink away, which means observing a
+  // state that is gone by the time any assertion could read it back. Recording
+  // the transitions up front turns that race into a fact: reading the attribute
+  // after the click sees `closing` or `null` depending on who wins.
+  await recordDrawerStates(page);
   await drawer.getByRole("button", { name: "Fermer" }).click();
-  expect(await drawer.getAttribute("data-state")).toBe("closing");
   await expect(drawer).toHaveCount(0);
+  expect(await observedDrawerStates(page)).toContain("closing");
   await expect(trigger).toBeFocused();
 
   await trigger.click();
