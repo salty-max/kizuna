@@ -13,9 +13,11 @@ every character now carries the moves they learn and at what level, and
 512×512 weighed 48 MB on their own, and nothing uses them yet. They are cut and named alongside
 the extraction if that changes.
 
-The icons README carries the one finding worth not rediscovering: **atlas cell order does not
-encode the game id**, and the way to label an atlas is to pixel-match it against an already-named
-set. Read it before touching `passives/` or the synergy icons.
+The icons README carries the two findings worth not rediscovering: **a `.g4tx` carries its own
+sprite-rectangle table**, so atlases should be cut from that rather than sliced on a guessed grid;
+and **neither the grid index nor the sprite index encodes the game id**, so labelling an atlas
+still means matching it against names obtained elsewhere. Read it before touching the synergy
+icons.
 
 ## Regenerating the bundles
 
@@ -67,14 +69,18 @@ pool for a style and growth pattern. Stop looking for a per-character table.
    that indexes into `PASSIVE_SKILL_EFFECT_LIST`. The 410 rarity-table ids that resolve to nothing
    were checked against all 60 247 `cfg.bin` files in the extraction and exist nowhere else — cut
    or unreleased, not a missing file.
-2. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: no `.g4tp`
-   descriptor ships for the icon atlases, the menu Lua is compiled bytecode, and no config column
-   predicts the cell (all 17 of `SPECIAL_TACTICS_INFO` were tested against 70 known tactic cells;
-   best was 3/81). The realistic route is an in-game screenshot of the synergy list, then
-   pixel-matching. The icons are cut and numbered outside the repo, in
-   `C:\Users\maxim\Downloads\icons_raw\synergy\` with a `_synergies.csv` listing all 37 with their
-   members.
-3. **`passives/` icons are unlabelled**, for the same reason. 49 files, numbered by atlas cell.
+2. **Passive icon id → picture.** The link *to* an icon is closed: every passive now carries
+   `icon`, `icon_label` and `build`, taken from its effect in `soccer/passive_skill_effect_config`
+   (1630/1716). What is left is which of the 53 `icon_teambuff` sprites each of the 25 ids is.
+   Eight are certain from the pictogram alone; the rest are graded in
+   [`../icons/passives/_passive_icons.csv`](../icons/passives/_passive_icons.csv). Do not expect
+   to find it in the data — the ids are not sprite indices and the lookup is in the menu code.
+3. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: the menu Lua
+   is compiled bytecode and no config column predicts the sprite (all 17 of
+   `SPECIAL_TACTICS_INFO` were tested against 70 known tactic cells; best was 3/81). The
+   realistic route is an in-game screenshot of the synergy list, then pixel-matching. The icons
+   are cut and numbered outside the repo, in `C:\Users\maxim\Downloads\icons_raw\synergy\` with a
+   `_synergies.csv` listing all 37 with their members.
 4. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
    covers place names too, if the wiki ever needs them.
 

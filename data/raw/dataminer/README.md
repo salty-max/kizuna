@@ -43,6 +43,7 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "aura_hissatsu": [ … ],
   "auras": [{ "id", "string_id", "name", "description", "skill_id", "element", "type" }],
   "passives": [{ "id", "string_id", "name", "value", "category",
+                 "icon", "icon_label", "build",
                  "tiers": [{ "family", "tier" }] }],
   "tactics": [{ "id", "string_id", "name", "description", "tp_cost" }],
   "synergies": [{ "id", "string_id", "name", "description",
@@ -74,6 +75,15 @@ all; the rest are the custom ones farmed from Hero-tier matches and assigned by 
 So a build tool can offer the candidate pool for a given style and growth pattern, but nothing
 can tell you a specific player's passives, because the game does not know either until the copy
 is rolled.
+
+It also **closes passive → icon**, which had looked like it was not in the files at all. A
+passive's icon comes from its effect, not from the passive row: 1630 of 1716 resolve, and
+`icon_label` names what the icon stands for — `castle_wall_df`, `shot_at`, `drop_rate_rare` and
+22 others, listed in `legend.passive_icon`. Nothing here is inferred: every passive sharing an
+icon id names the same stat in its own text, all 144 under id 11 saying "Castle Wall DF". The
+same source gives `build`, which of the six team builds a passive belongs to, in the same order
+as `legend.style`. What is *not* resolved is which drawing each id is; see
+[`../icons/README.md`](../icons/README.md).
 
 ## Reading the fields
 
@@ -186,6 +196,10 @@ is rolled.
   none of the 4068 text files, so there is no label for them either — do not go looking.
 - **`value` is an f32**, hence `0.699999988079071`. Round at display time.
 - **Passive `value` is present on 1700 of 1716.** The 16 without carry no effect at all.
+- **Passive `icon` is present on 1630 of 1716**, and `build` on 816. The same 16 effectless
+  passives account for part of the gap; the other 70 have an effect the game gives no icon.
+  `buff_icon` is a *different* field kept from upstream — a per-passive override used by 108 rows
+  that does not track the stat. Read `icon`, not `buff_icon`.
 - **22 passives have no name** in any language — 7 name ids have no text entry upstream.
 - **`tiers` may be empty or hold several entries**; 292 passives belong to more than one rarity
   family. 410 ids referenced by the rarity table exist nowhere in the game files — cut or
