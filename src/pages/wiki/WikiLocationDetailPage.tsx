@@ -42,7 +42,7 @@ export function WikiLocationDetailPage() {
       <div className="scroll-slim min-h-0 flex-1 overflow-y-auto">
         <Panel title={t("wiki.locations")}>
           <Callout tone="warn">{t("wiki.notFound")}</Callout>
-          <Link to="/wiki/locations" className="mt-3 inline-block text-sm text-bolt-400">
+          <Link to="/wiki/locations" className="mt-3 inline-block text-sm text-bolt-ink">
             {t("wiki.backToList")}
           </Link>
         </Panel>
@@ -55,11 +55,11 @@ export function WikiLocationDetailPage() {
   return (
     <div className="scroll-slim min-h-0 flex-1 overflow-y-auto">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-        <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-400">
+        <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
         <span className="text-ink-700">/</span>
-        <Link to="/wiki/locations" className="text-ink-500 no-underline hover:text-bolt-400">
+        <Link to="/wiki/locations" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.locations")}
         </Link>
         <span className="text-ink-700">/</span>

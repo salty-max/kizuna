@@ -414,6 +414,12 @@ export const fr = {
       count_other: "{n} lieux",
     },
   },
+  theme: {
+    label: "Thème",
+    system: "Thème du système",
+    dark: "Thème sombre",
+    light: "Thème clair",
+  },
   team: {
     defaultName: "Nouvelle équipe",
     sharedName: "Équipe partagée",

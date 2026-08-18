@@ -130,7 +130,7 @@ function Metric({
     ) : null;
   const color =
     tone === "warn"
-      ? "text-bolt-400"
+      ? "text-bolt-ink"
       : tone === "good"
         ? "text-[var(--color-good)]"
         : tone === "muted"

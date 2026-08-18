@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router";
 import { useAuth } from "@/backend/useAuth";
 import { AuthDialog } from "@/components/AuthDialog";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 import { Button } from "@/components/ui";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/ui";
@@ -55,7 +56,7 @@ export function TopBar({ className }: { className?: string }) {
               className={cn(
                 "px-2.5 py-1 font-display text-xs font-bold tracking-wide uppercase italic transition-colors",
                 isActive
-                  ? "bg-flare-500 text-ink-950"
+                  ? "bg-flare-500 text-[var(--color-on-flare)]"
                   : "text-ink-400 hover:bg-ink-850 hover:text-ink-100",
               )}
             >
@@ -66,6 +67,7 @@ export function TopBar({ className }: { className?: string }) {
       </nav>
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
+        <ThemeSwitch />
         <LanguageSwitch />
         {configured && !loading && (
           <Button

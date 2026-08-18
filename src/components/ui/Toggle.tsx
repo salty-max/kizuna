@@ -38,12 +38,12 @@ export function Toggle({
       title={hint}
       onClick={() => onChange(!checked)}
       className={cn(
-        "inline-flex shrink-0 items-center gap-2 border-2 px-2 font-display text-[11px]",
+        "inline-flex shrink-0 items-center gap-2 border px-2 font-display text-[11px]",
         "font-bold tracking-wide uppercase italic transition-colors",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink",
         "disabled:cursor-not-allowed disabled:opacity-40",
         checked
-          ? "border-bolt-400 bg-bolt-400/15 text-bolt-400"
+          ? "border-bolt-ink bg-bolt-400/15 text-bolt-ink"
           : "border-ink-800 bg-ink-850 text-ink-500 hover:border-ink-600 hover:text-ink-300",
         className,
       )}
@@ -53,7 +53,7 @@ export function Toggle({
         aria-hidden="true"
         className={cn(
           "relative h-3.5 w-6 shrink-0 border transition-colors",
-          checked ? "border-bolt-400 bg-bolt-400/25" : "border-ink-700 bg-ink-950",
+          checked ? "border-bolt-ink bg-bolt-400/25" : "border-ink-700 bg-ink-950",
         )}
       >
         <span

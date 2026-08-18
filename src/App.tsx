@@ -121,7 +121,7 @@ function AppFrame() {
     <div className="mx-auto flex min-h-dvh w-full max-w-[1600px] flex-col gap-2 p-2 lg:p-4 xl:h-dvh xl:overflow-hidden">
       <a
         href="#main-content"
-        className="fixed top-2 left-2 z-[110] -translate-y-20 border-2 border-bolt-400 bg-ink-950 px-3 py-2 font-display text-sm font-bold text-bolt-400 uppercase italic no-underline focus:translate-y-0"
+        className="fixed top-2 left-2 z-[110] -translate-y-20 border-2 border-bolt-ink bg-ink-950 px-3 py-2 font-display text-sm font-bold text-bolt-ink uppercase italic no-underline focus:translate-y-0"
       >
         {t("nav.skipContent")}
       </a>

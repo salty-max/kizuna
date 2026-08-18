@@ -45,6 +45,8 @@ everything below makes up the first.
   players each place hands out, and a sheet per location naming them. Both
   directions link to each other, so "where do I get them" and "who does this
   battle drop" are one click apart;
+- a light theme alongside the dark one, following the system by default with a
+  three-way switch that keeps `system` reachable, remembered like the language;
 - French, English and Japanese interface, with localized character names, pitch
   nicknames and club names, plus a toggle back to the original names.
 
@@ -102,7 +104,13 @@ everything below makes up the first.
   immediately below it, and carries the change and clear actions instead, which
   used to scroll out of reach in a sheet several panels tall;
 - element badges aligned on the style badges: the two sat side by side on every
-  player and read as two unrelated kinds of fact.
+  player and read as two unrelated kinds of fact;
+- Inazuma Japan blue replaces the vermilion as the structural colour, and the ink
+  ramp took a blue bias to match;
+- no control carries a drop shadow any more. Surfaces keep it, so the shadow now
+  separates a thing you press from a thing you look at;
+- border weight carries the hierarchy: 2px says surface, 1px says control on it.
+  Everything wore 2px, which left the eye nothing to sort by.
 
 ### Known gaps
 

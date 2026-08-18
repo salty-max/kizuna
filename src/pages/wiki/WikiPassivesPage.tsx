@@ -54,7 +54,7 @@ export function WikiPassivesPage() {
   return (
     <div className="scroll-slim flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
-        <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-400">
+        <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
         <span className="text-ink-700">/</span>

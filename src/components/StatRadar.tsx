@@ -143,8 +143,8 @@ export function StatRadar({ stats, base, size = 220, className }: Props) {
       {/* Final stats fill */}
       <polygon
         points={polygonPoints(values, max, cx, cy, radius)}
-        fill="color-mix(in srgb, var(--color-bolt-400) 22%, transparent)"
-        stroke="var(--color-bolt-400)"
+        fill="color-mix(in srgb, var(--color-bolt-ink) 22%, transparent)"
+        stroke="var(--color-bolt-ink)"
         strokeWidth={2}
         strokeLinejoin="miter"
       />
@@ -153,7 +153,7 @@ export function StatRadar({ stats, base, size = 220, className }: Props) {
       {values.map((value, i) => {
         const r = (value / max) * radius;
         const { x, y } = polar(cx, cy, r, i, n);
-        return <circle key={STAT_KEYS[i]} cx={x} cy={y} r={2.5} fill="var(--color-bolt-400)" />;
+        return <circle key={STAT_KEYS[i]} cx={x} cy={y} r={2.5} fill="var(--color-bolt-ink)" />;
       })}
     </svg>
   );

@@ -652,7 +652,7 @@ function SavedTeamsMenu({
         ) : (
           <>
             {signedIn && cloudTeams.length > 0 && (
-              <p className="border-b border-ink-800 px-3 py-1.5 label-display text-bolt-400">
+              <p className="border-b border-ink-800 px-3 py-1.5 label-display text-bolt-ink">
                 {t("cloud.cloudSection")}
               </p>
             )}

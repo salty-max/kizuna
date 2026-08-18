@@ -21,7 +21,7 @@ export function WikiEquipmentDetailPage() {
       <div className="scroll-slim min-h-0 flex-1 overflow-y-auto">
         <Panel title={t("wiki.equipment")}>
           <Callout tone="warn">{t("wiki.notFound")}</Callout>
-          <Link to="/wiki/equipment" className="mt-3 inline-block text-sm text-bolt-400">
+          <Link to="/wiki/equipment" className="mt-3 inline-block text-sm text-bolt-ink">
             {t("wiki.backToList")}
           </Link>
         </Panel>
@@ -35,11 +35,11 @@ export function WikiEquipmentDetailPage() {
   return (
     <div className="scroll-slim min-h-0 flex-1 overflow-y-auto">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-        <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-400">
+        <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
         <span className="text-ink-700">/</span>
-        <Link to="/wiki/equipment" className="text-ink-500 no-underline hover:text-bolt-400">
+        <Link to="/wiki/equipment" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.equipment")}
         </Link>
         <span className="text-ink-700">/</span>
@@ -68,7 +68,7 @@ export function WikiEquipmentDetailPage() {
             <p className="font-display text-xs font-bold tracking-wide text-ink-500 uppercase italic">
               {equipmentSlotLabel(t, item.slot)}
             </p>
-            <p className="mt-1 font-display text-2xl font-bold tnum text-bolt-400">
+            <p className="mt-1 font-display text-2xl font-bold tnum text-bolt-ink">
               +{formatNumber(item.total, locale)}
             </p>
             {description && (

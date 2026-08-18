@@ -115,7 +115,7 @@ function OverviewMetric({
   return (
     <div className="border border-ink-800 bg-ink-950/55 px-1.5 py-1.5 text-center">
       <p
-        className={`flex items-center justify-center gap-1 font-display text-lg font-black tnum ${warning ? "text-bolt-400" : "text-ink-100"}`}
+        className={`flex items-center justify-center gap-1 font-display text-lg font-black tnum ${warning ? "text-bolt-ink" : "text-ink-100"}`}
       >
         {icon}
         {value}

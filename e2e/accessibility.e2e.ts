@@ -156,3 +156,66 @@ test("the sheet header states the slot for assistive tech without repeating it o
   await expect(heading).toHaveClass(/sr-only/);
   await expect(drawer).toHaveAttribute("aria-labelledby", /.+/);
 });
+
+test("the theme switch mounts a theme and remembers the choice", async ({ page }) => {
+  await page.goto("/");
+  const html = page.locator("html");
+  // The provider always mounts a concrete theme, never leaves it unset.
+  await expect(html).toHaveAttribute("data-theme", /^(dark|light)$/);
+
+  await page.getByRole("tab", { name: "Thème clair" }).click();
+  await expect(html).toHaveAttribute("data-theme", "light");
+
+  await page.reload();
+  await expect(html).toHaveAttribute("data-theme", "light");
+
+  // `system` has to stay reachable, or the choice can never go back to the OS.
+  await page.getByRole("tab", { name: "Thème du système" }).click();
+  await expect(html).toHaveAttribute("data-theme", /^(dark|light)$/);
+});
+
+test("both themes keep the panel bar and the primary action readable", async ({ page }) => {
+  await page.goto("/");
+
+  const contrast = async () =>
+    page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+      const paint = (color: string) => {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        return [r, g, b].map((v) => {
+          const n = v / 255;
+          return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+        });
+      };
+      const lum = (color: string) => {
+        const [r, g, b] = paint(color);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const ratio = (a: string, b: string) => {
+        const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+      };
+      const of = (selector: string) => {
+        const el = document.querySelector(selector);
+        if (!el) return 0;
+        const style = getComputedStyle(el);
+        return ratio(style.color, style.backgroundColor);
+      };
+      return { title: of(".panel-title"), primary: of(".btn-primary") };
+    });
+
+  for (const theme of ["Thème sombre", "Thème clair"]) {
+    await page.getByRole("tab", { name: theme }).click();
+    const { title, primary } = await contrast();
+    // The blue is darker than the vermilion it replaced, so the near-black text
+    // that used to sit on the bar would now read at 2.9:1.
+    expect(title).toBeGreaterThan(4.5);
+    expect(primary).toBeGreaterThan(4.5);
+  }
+});

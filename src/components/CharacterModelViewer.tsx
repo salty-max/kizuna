@@ -307,7 +307,7 @@ export function CharacterModelViewer({ name, imageBase, modelStem, characterId, 
               href={externalUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="border-t-2 border-ink-800 pt-2.5 text-xs text-bolt-400 no-underline hover:underline"
+              className="border-t-2 border-ink-800 pt-2.5 text-xs text-bolt-ink no-underline hover:underline"
             >
               {t("viewer.openInazugle")}
             </a>

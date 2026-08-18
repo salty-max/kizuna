@@ -89,7 +89,7 @@ export function TeamGenerationWizard({ team, dataset, onApply, onClose }: Props)
         <Panel
           title={
             <span id={titleId} className="flex items-center gap-2">
-              <Sparkles className="size-4 text-bolt-400" aria-hidden />
+              <Sparkles className="size-4 text-bolt-ink" aria-hidden />
               {t("generator.title")}
             </span>
           }
@@ -260,7 +260,7 @@ function WizardProgress({ step }: { step: number }) {
           aria-current={index === step ? "step" : undefined}
           className={cn(
             "border-b-2 px-1 pb-1 text-center font-display text-[10px] font-bold tracking-wide uppercase italic",
-            index <= step ? "border-bolt-400 text-bolt-400" : "border-ink-800 text-ink-600",
+            index <= step ? "border-bolt-ink text-bolt-ink" : "border-ink-800 text-ink-600",
           )}
         >
           {index + 1}. {label}
@@ -294,21 +294,21 @@ function ChoiceCard({
         "pressable flex gap-3 border-2 text-left transition-colors",
         compact ? "p-2" : "p-3",
         active
-          ? "border-bolt-400 bg-bolt-400/10 text-ink-50"
+          ? "border-bolt-ink bg-bolt-400/10 text-ink-50"
           : "border-ink-800 bg-ink-900/70 text-ink-300 hover:border-ink-600",
       )}
     >
       <span
         className={cn(
           "grid size-9 shrink-0 place-items-center border-2",
-          active ? "border-bolt-400 text-bolt-400" : "border-ink-700 text-ink-500",
+          active ? "border-bolt-ink text-bolt-ink" : "border-ink-700 text-ink-500",
         )}
       >
         <Icon className="size-4" />
       </span>
       <span>
         <span className="flex items-center gap-1 font-display text-sm font-bold uppercase italic">
-          {title} {active && <Check className="size-3.5 text-bolt-400" />}
+          {title} {active && <Check className="size-3.5 text-bolt-ink" />}
         </span>
         <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-500">{hint}</span>
       </span>

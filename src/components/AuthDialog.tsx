@@ -39,7 +39,7 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
         <Panel
           title={
             <span id={titleId} className="flex items-center gap-2">
-              <Cloud className="size-4 text-bolt-400" /> {t("auth.title")}
+              <Cloud className="size-4 text-bolt-ink" /> {t("auth.title")}
             </span>
           }
           bodyClassName="flex flex-col gap-4"

@@ -7,49 +7,122 @@
  * run a second "soft material" theme alongside:
  *
  *  - hard corners (0–2px), never a rounded pill
- *  - 2px border + solid drop shadow `5px 6px 0` (no blur)
+ *  - border weight is the hierarchy: 2px says surface, 1px says control on it
+ *  - solid drop shadow `5px 6px 0` (no blur) on surfaces, never on controls
  *  - condensed italic caps `font-display` for titles, buttons, action labels
- *  - vermilion for structure (panel bars), bolt yellow for action alone
+ *  - Inazuma Japan blue for structure (panel bars), bolt yellow for action alone
  *  - shear reserved for pitch cards (`.shear`), not for panels
  */
 
 @theme {
   /**
-   * Near-black ground with a red bias, tuned to the vermilion rather than to a
-   * neutral grey. The range is complete (100 → 950): a hole in the scale gives
-   * you a class silently ignored in a component and a build error in an
-   * `@apply` — two ways to lose time to the same cause.
+   * The ink ramp is a distance, not a set of colours: 950 is the surface
+   * furthest from the reader and 100 is the text closest to them, with borders
+   * in between. Every one of its ~635 uses respects that reading, which is what
+   * lets the light theme reverse the ramp in one block instead of touching a
+   * single component.
+   *
+   * The range is complete (100 → 950): a hole in the scale gives you a class
+   * silently ignored in a component and a build error in an `@apply` — two ways
+   * to lose time to the same cause.
    */
-  --color-ink-950: #0f0b0d;
-  --color-ink-900: #171114;
-  --color-ink-850: #1d1519;
-  --color-ink-800: #2a1f23;
-  --color-ink-700: #3b2c31;
-  --color-ink-600: #5e4a4e;
-  /* 4.67:1 on ink-850 — minimum AA for the app's small secondary copy. */
-  --color-ink-500: #927d82;
-  --color-ink-400: #a8938f;
-  --color-ink-300: #c9b3ad;
-  --color-ink-200: #e8d9cd;
-  --color-ink-100: #fff4e6;
+  --color-ink-950: var(--ink-950);
+  --color-ink-900: var(--ink-900);
+  --color-ink-850: var(--ink-850);
+  --color-ink-800: var(--ink-800);
+  --color-ink-700: var(--ink-700);
+  --color-ink-600: var(--ink-600);
+  --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
+  --color-ink-300: var(--ink-300);
+  --color-ink-200: var(--ink-200);
+  --color-ink-100: var(--ink-100);
 
-  /* Bolt yellow — the only action colour. */
-  --color-bolt-400: #fff100;
-  --color-bolt-500: #ffd400;
+  /*
+   * Bolt yellow does two jobs that cannot share one value. As a fill it stays
+   * bright in both themes, with `--color-on-bolt` supplying the text that sits
+   * on it. As ink — a link, a border, a focus ring drawn on the page itself —
+   * it has to darken on a light ground or it disappears.
+   */
+  --color-bolt-400: var(--bolt-400);
+  --color-bolt-500: var(--bolt-500);
+  --color-bolt-ink: var(--bolt-ink);
+  --color-on-bolt: var(--on-bolt);
 
-  /* Vermilion — structure: headers, shadows, alerts. */
-  --color-flare-500: #ff2e00;
-  --color-flare-300: #ff8a5c;
+  /*
+   * Same split for the structural blue. The old vermilion was bright enough to
+   * take near-black text; this blue is not, so the pair that used to read at
+   * 2.9:1 on every panel bar is now spelled out instead of inherited.
+   */
+  --color-on-flare: var(--on-flare);
 
-  --color-fire: #ff5a3c;
-  --color-wind: #57d2e8;
-  --color-forest: #7cff85;
-  --color-mountain: #ffc24a;
+  /* Inazuma Japan blue — structure: headers, alerts. */
+  --color-flare-500: var(--flare-500);
+  --color-flare-300: var(--flare-300);
 
-  --color-good: #7cff85;
-  --color-bad: #ff6b5a;
+  --color-fire: var(--element-fire);
+  --color-wind: var(--element-wind);
+  --color-forest: var(--element-forest);
+  --color-mountain: var(--element-mountain);
+
+  --color-good: var(--state-good);
+  --color-bad: var(--state-bad);
 
   --font-display: "Avenir Next Condensed", "Avenir Next", "Arial Narrow", system-ui, sans-serif;
+
+  --press-travel: 3px;
+
+  /**
+   * Control height. One measure for buttons, selects, fields, toggles and tabs:
+   * that is what makes a toolbar line up on its own instead of being nudged
+   * into place by a different `py-*` on each control. Native controls cannot
+   * honour it — their height comes from the OS — which is the real reason the
+   * select and the toggle are reimplemented here.
+   */
+  --control-h: 34px;
+  --control-h-sm: 26px;
+}
+
+/**
+ * Theme values live on `:root`, not in `@theme`, because `@theme` is resolved
+ * once at build time — a token declared there cannot be swapped at runtime. The
+ * `@theme` block above only forwards these, so every Tailwind colour class in
+ * the app reads whichever theme is mounted.
+ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Near-black ground with a blue bias, tuned to the Inazuma Japan blue. */
+  --ink-950: #0a0d14;
+  --ink-900: #11151f;
+  --ink-850: #161b27;
+  --ink-800: #212839;
+  --ink-700: #2f3850;
+  --ink-600: #4c587a;
+  /* 4.6:1 on ink-850 — minimum AA for the app's small secondary copy. */
+  --ink-500: #8290ad;
+  --ink-400: #9daac4;
+  --ink-300: #c2ccdf;
+  --ink-200: #dee5f0;
+  --ink-100: #f2f6fc;
+
+  --bolt-400: #fff100;
+  --bolt-500: #ffd400;
+  --bolt-ink: #fff100;
+  --on-bolt: #0a0d14;
+
+  --flare-500: #1b4fd8;
+  --flare-300: #6d93f5;
+  --on-flare: #f2f6fc;
+
+  --element-fire: #ff5a3c;
+  --element-wind: #57d2e8;
+  --element-forest: #7cff85;
+  --element-mountain: #ffc24a;
+
+  --state-good: #7cff85;
+  --state-bad: #ff6b5a;
 
   /**
    * Manga shadow: one geometry (`5px 6px 0`, no blur), one pressed state
@@ -63,17 +136,80 @@
    * varies.
    */
   --shadow-hard-color: #000000a6;
-  --press-travel: 3px;
 
-  /**
-   * Control height. One measure for buttons, selects, fields, toggles and tabs:
-   * that is what makes a toolbar line up on its own instead of being nudged
-   * into place by a different `py-*` on each control. Native controls cannot
-   * honour it — their height comes from the OS — which is the real reason the
-   * select and the toggle are reimplemented here.
+  /*
+   * The cockpit's atmosphere, kept as tokens rather than literals: it is built
+   * from washes and hatching over the ink bed, so hard-coding them meant the
+   * panel that sits on top went dark-on-dark the moment the ramp reversed.
    */
-  --control-h: 34px;
-  --control-h-sm: 26px;
+  --cockpit-wash: rgb(27 79 216 / 16%);
+  --cockpit-hatch-bolt: rgb(255 212 0 / 5%);
+  --cockpit-hatch-flare: rgb(27 79 216 / 10%);
+  --cockpit-sweep-flare: rgb(27 79 216 / 24%);
+  --cockpit-sweep-bolt: rgb(255 212 0 / 9%);
+  --cockpit-rail-wash: rgb(27 79 216 / 24%);
+  --loader-sweep-flare: rgb(27 79 216 / 22%);
+  --loader-sweep-bolt: rgb(255 241 0 / 10%);
+  --tone-bolt-shadow: #7a6f00;
+  --tone-flare-shadow: #0b2470;
+  --cockpit-panel-bed: rgb(17 21 31 / 72%);
+  --cockpit-pitch-bed: rgb(10 13 20 / 38%);
+}
+
+/**
+ * The same ramp read from the other end: 950 is still the surface furthest from
+ * the reader, it is simply near-white here, and 100 is still the text closest
+ * to them. Nothing but these values changes between the two themes.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ink-950: #f4f6fb;
+  --ink-900: #ffffff;
+  --ink-850: #eef1f8;
+  --ink-800: #d3dae9;
+  --ink-700: #b3bdd3;
+  --ink-600: #8794b1;
+  /* 4.6:1 on ink-850 — the light theme's small secondary copy. */
+  --ink-500: #5b6884;
+  --ink-400: #47536c;
+  --ink-300: #303a4f;
+  --ink-200: #1d2537;
+  --ink-100: #0d1220;
+
+  /* The fill stays a yellow anyone would call yellow; only the ink darkens,
+     down to 4.6:1 on the page ground. */
+  --bolt-400: #ffd400;
+  --bolt-500: #f0b800;
+  --bolt-ink: #6b5500;
+  --on-bolt: #0d1220;
+
+  --flare-500: #1b4fd8;
+  --flare-300: #12379b;
+  --on-flare: #ffffff;
+
+  --element-fire: #c1341b;
+  --element-wind: #0d7f97;
+  --element-forest: #1d7d28;
+  --element-mountain: #96650a;
+
+  --state-good: #1d7d28;
+  --state-bad: #c1341b;
+
+  --shadow-hard-color: #0d122029;
+
+  --cockpit-wash: rgb(27 79 216 / 8%);
+  --cockpit-hatch-bolt: rgb(179 143 0 / 6%);
+  --cockpit-hatch-flare: rgb(27 79 216 / 7%);
+  --cockpit-sweep-flare: rgb(27 79 216 / 12%);
+  --cockpit-sweep-bolt: rgb(179 143 0 / 8%);
+  --cockpit-rail-wash: rgb(27 79 216 / 12%);
+  --loader-sweep-flare: rgb(27 79 216 / 14%);
+  --loader-sweep-bolt: rgb(179 143 0 / 10%);
+  --tone-bolt-shadow: #b8a63d29;
+  --tone-flare-shadow: #1b4fd829;
+  --cockpit-panel-bed: rgb(255 255 255 / 82%);
+  --cockpit-pitch-bed: rgb(255 255 255 / 45%);
 }
 
 /**
@@ -93,10 +229,6 @@
 }
 
 @layer base {
-  html {
-    color-scheme: dark;
-  }
-
   body {
     @apply bg-ink-950 text-ink-100 antialiased;
     font-family:
@@ -110,7 +242,7 @@
   }
 
   a:focus-visible {
-    @apply outline-2 outline-offset-2 outline-bolt-400;
+    @apply outline-2 outline-offset-2 outline-bolt-ink;
   }
 
   /* Kill the soft default look on native controls. */
@@ -143,11 +275,11 @@
 
   .panel-title {
     @apply flex items-center gap-2 bg-flare-500 px-3 py-1.5 font-display text-sm font-bold
-      tracking-wide text-ink-950 uppercase italic;
+      tracking-wide text-[var(--color-on-flare)] uppercase italic;
   }
 
   .panel-title .muted {
-    @apply text-[11px] font-normal normal-case not-italic text-ink-950/70;
+    @apply text-[11px] font-normal normal-case not-italic text-[var(--color-on-flare)]/85;
   }
 
   .panel-body {
@@ -157,16 +289,16 @@
   /* ── Fields ───────────────────────────────────────────────────────────── */
 
   .field {
-    @apply border-2 border-ink-800 bg-ink-950 px-2.5 text-sm text-ink-100
+    @apply border border-ink-800 bg-ink-950 px-2.5 text-sm text-ink-100
       outline-none transition-colors placeholder:text-ink-500
-      focus:border-bolt-400 focus:bg-ink-900;
+      focus:border-bolt-ink focus:bg-ink-900;
     height: var(--control-h);
     border-radius: 0;
     box-shadow: none;
   }
 
   .field:focus-within {
-    @apply border-bolt-400 bg-ink-900;
+    @apply border-bolt-ink bg-ink-900;
   }
 
   .field:disabled {
@@ -180,17 +312,21 @@
    * No shear here — shear is for the pitch, not for the chrome.
    */
   /**
+   * Border weight carries the hierarchy: a control wears 1px so the 2px of the
+   * panel it sits in still reads as the container. When everything wore 2px the
+   * eye had nothing to sort by.
+   *
    * `.btn` describes only the shape and the voice: the depth comes from
    * `.pressable`, the shadow colour from a tint utility. The three compose, so
    * a player card and a button depress identically without sharing a line of
    * code.
    */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 border-2 border-ink-700
+    @apply inline-flex items-center justify-center gap-1.5 border border-ink-700
       bg-ink-850 px-3 font-display text-sm font-bold tracking-wide
       text-ink-100 uppercase italic
       hover:border-ink-500 hover:bg-ink-800
-      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink
       disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink-700
       disabled:hover:bg-ink-850;
     height: var(--control-h);
@@ -203,7 +339,7 @@
   }
 
   .btn-primary {
-    @apply border-bolt-400 bg-bolt-400 text-ink-950
+    @apply border-bolt-400 bg-bolt-400 text-[var(--color-on-bolt)]
       hover:border-bolt-500 hover:bg-bolt-500;
   }
 
@@ -224,10 +360,10 @@
 
   /* Compact square icon hit target (trash, close). */
   .btn-icon {
-    @apply inline-flex aspect-square shrink-0 items-center justify-center border-2 border-ink-800
+    @apply inline-flex aspect-square shrink-0 items-center justify-center border border-ink-800
       bg-ink-850 text-ink-300
       hover:border-ink-600 hover:bg-ink-800 hover:text-ink-100
-      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink
       disabled:cursor-not-allowed disabled:opacity-40;
     height: var(--control-h);
     border-radius: 0;
@@ -236,17 +372,17 @@
   /* ── Tabs / chips ─────────────────────────────────────────────────────── */
 
   .tab {
-    @apply min-w-0 flex-1 truncate border-2 border-ink-800 bg-ink-850 px-3
+    @apply min-w-0 flex-1 truncate border border-ink-800 bg-ink-850 px-3
       font-display text-sm font-bold tracking-wide text-ink-500 uppercase italic
       hover:border-ink-600 hover:text-ink-300
-      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink
       disabled:cursor-not-allowed disabled:opacity-40;
     height: var(--control-h);
     border-radius: 0;
   }
 
   .tab-active {
-    @apply border-bolt-400 bg-bolt-400/15 text-bolt-400;
+    @apply border-bolt-ink bg-bolt-400/15 text-bolt-ink;
   }
 
   /**
@@ -255,7 +391,7 @@
    * buttons.
    */
   .chip {
-    @apply inline-flex items-center gap-1 border-2 border-ink-800 bg-ink-850
+    @apply inline-flex items-center gap-1 border border-ink-800 bg-ink-850
       px-2 py-1 font-display text-[11px] font-bold tracking-wide text-ink-300
       uppercase italic;
     border-radius: 0;
@@ -263,11 +399,11 @@
 
   .chip-interactive {
     @apply transition-colors hover:border-ink-600 hover:bg-ink-800
-      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400;
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink;
   }
 
   .chip-active {
-    @apply border-bolt-400 bg-bolt-400/15 text-bolt-400;
+    @apply border-bolt-ink bg-bolt-400/15 text-bolt-ink;
   }
 
   /* ── Callouts ─────────────────────────────────────────────────────────── */
@@ -277,7 +413,7 @@
   }
 
   .callout-warn {
-    @apply border-bolt-400 bg-bolt-400/10 text-bolt-400;
+    @apply border-bolt-ink bg-bolt-400/10 text-bolt-ink;
   }
 
   .callout-bad {
@@ -340,8 +476,13 @@
     isolation: isolate;
     border: 1px solid var(--color-ink-800);
     background:
-      radial-gradient(circle at 50% 42%, rgb(255 46 0 / 9%), transparent 38%),
-      linear-gradient(145deg, #171114 0%, #120e10 45%, #0f0b0d 100%);
+      radial-gradient(circle at 50% 42%, var(--cockpit-wash), transparent 38%),
+      linear-gradient(
+        145deg,
+        var(--color-ink-900) 0%,
+        var(--color-ink-950) 45%,
+        var(--color-ink-950) 100%
+      );
   }
 
   .cockpit-shell::before,
@@ -356,10 +497,10 @@
   .cockpit-shell::before {
     opacity: 0.48;
     background:
-      linear-gradient(27deg, transparent 48%, rgb(255 212 0 / 5%) 49%, transparent 50%) 0 0 / 22rem
-        18rem,
-      linear-gradient(153deg, transparent 47%, rgb(255 46 0 / 7%) 48%, transparent 50%) 6rem 2rem /
-        28rem 21rem;
+      linear-gradient(27deg, transparent 48%, var(--cockpit-hatch-bolt) 49%, transparent 50%) 0 0 /
+        22rem 18rem,
+      linear-gradient(153deg, transparent 47%, var(--cockpit-hatch-flare) 48%, transparent 50%) 6rem
+        2rem / 28rem 21rem;
     clip-path: polygon(0 0, 83% 0, 100% 20%, 92% 57%, 100% 100%, 18% 100%, 0 76%);
   }
 
@@ -369,9 +510,9 @@
     background: conic-gradient(
       from 205deg at 50% 52%,
       transparent,
-      rgb(255 46 0 / 18%),
+      var(--cockpit-sweep-flare),
       transparent 22%,
-      rgb(255 212 0 / 9%),
+      var(--cockpit-sweep-bolt),
       transparent 48%
     );
     clip-path: polygon(50% 0, 92% 22%, 100% 76%, 63% 100%, 10% 88%, 0 31%);
@@ -383,15 +524,15 @@
 
   .cockpit-rail-title {
     @apply shrink-0 border-b border-ink-800 px-2.5 py-2 font-display text-xs font-black
-      tracking-[0.14em] text-bolt-400 uppercase italic;
-    background: linear-gradient(90deg, rgb(255 46 0 / 16%), transparent 72%);
+      tracking-[0.14em] text-bolt-ink uppercase italic;
+    background: linear-gradient(90deg, var(--cockpit-rail-wash), transparent 72%);
   }
 
   .cockpit-stack .panel,
   .cockpit-stack .panel-flat {
     border-width: 0 0 1px;
     border-color: var(--color-ink-800);
-    background-color: rgb(23 17 20 / 72%);
+    background-color: var(--cockpit-panel-bed);
     box-shadow: none;
   }
 
@@ -404,7 +545,7 @@
   }
 
   .cockpit-pitch-panel {
-    background-color: rgb(15 11 13 / 38%);
+    background-color: var(--cockpit-pitch-bed);
     box-shadow: none;
   }
 
@@ -440,8 +581,8 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgb(255 46 0 / 14%),
-      rgb(255 241 0 / 10%),
+      var(--loader-sweep-flare),
+      var(--loader-sweep-bolt),
       transparent
     );
     animation: inazugle-shimmer 1.1s ease-in-out infinite;
@@ -482,15 +623,19 @@
   }
 
   /*
-   * The primary button is the one saturated fill in the app, and a hard shadow
-   * under it read as a second border rather than as depth. It keeps the press
-   * travel, so the gesture survives without the drop.
+   * Controls carry no drop shadow. It read as a second border on a button-sized
+   * box rather than as depth, and a toolbar of them turned into a field of
+   * stripes. Surfaces keep it — a panel and a pitch card are big enough for the
+   * shadow to be depth — which is what now separates a thing you press from a
+   * thing you look at.
+   *
+   * They keep the press travel, so the gesture survives without the drop.
    *
    * Two classes on purpose: `.pressable` lives in this same layer, so relying
    * on source order would make this rule silently reversible.
    */
-  .btn-primary.pressable,
-  .btn-primary.pressable:active:not(:disabled):not([aria-disabled="true"]) {
+  .btn.pressable,
+  .btn.pressable:active:not(:disabled):not([aria-disabled="true"]) {
     box-shadow: none;
   }
 
@@ -521,11 +666,11 @@
    * `--shadow-hard-color` as an inline style.
    */
   .tone-bolt {
-    --shadow-hard-color: #7a6f00;
+    --shadow-hard-color: var(--tone-bolt-shadow);
   }
 
   .tone-flare {
-    --shadow-hard-color: #6b1000;
+    --shadow-hard-color: var(--tone-flare-shadow);
   }
 
   .hard-shadow {

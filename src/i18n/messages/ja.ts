@@ -406,6 +406,12 @@ export const ja = {
       count_other: "{n} か所",
     },
   },
+  theme: {
+    label: "テーマ",
+    system: "システムのテーマ",
+    dark: "ダークテーマ",
+    light: "ライトテーマ",
+  },
   team: {
     defaultName: "新しいチーム",
     sharedName: "共有チーム",

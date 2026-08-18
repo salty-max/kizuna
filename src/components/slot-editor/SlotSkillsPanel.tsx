@@ -42,7 +42,7 @@ export function SlotSkillsPanel({ slot, assignment, onChange }: Props) {
         {slot.skills.map((skill) => (
           <DataRow
             key={`${skill.level}-${skill.ability.id}`}
-            className={cn(skill.fromAltBranch && "text-bolt-400")}
+            className={cn(skill.fromAltBranch && "text-bolt-ink")}
             label={
               <span className="flex min-w-0 items-center gap-1.5">
                 <span className="w-8 shrink-0 text-ink-500 tnum">

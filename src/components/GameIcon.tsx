@@ -97,7 +97,7 @@ export function ElementBadge({ element, variant = "full", size = 18, className }
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 border-2 border-ink-700 bg-ink-850 px-1.5 py-0.5 text-ink-200",
+        "inline-flex shrink-0 items-center gap-1 border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-ink-200",
         className,
       )}
     >
@@ -233,7 +233,7 @@ export function StyleBadge({ buildType, variant = "full", size = 18, className }
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 border-2 border-ink-700 bg-ink-850 px-1.5 py-0.5 text-ink-200",
+        "inline-flex shrink-0 items-center gap-1 border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-ink-200",
         className,
       )}
     >

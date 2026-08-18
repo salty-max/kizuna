@@ -414,8 +414,8 @@ function PitchSlot({
           "shear pressable group flex h-[60px] w-[124px] flex-col items-center justify-center gap-1",
           "border-2 border-dashed border-ink-700 bg-ink-950/60 transition",
           "hover:border-ink-500 hover:bg-ink-900",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400",
-          selected && "border-solid border-bolt-400 bg-ink-900 tone-bolt",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink",
+          selected && "border-solid border-bolt-ink bg-ink-900 tone-bolt",
         )}
       >
         {slot.expectedPosition ? (
@@ -446,8 +446,8 @@ function PitchSlot({
         // Every child is counter-sheared so only the frame leans.
         "shear pressable relative h-[60px] w-[124px] overflow-hidden border-2 bg-ink-950/90 text-left",
         "hover:brightness-125",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400",
-        selected ? "border-bolt-400 tone-bolt" : cn(rarity.border, rarity.shadow),
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink",
+        selected ? "border-bolt-ink tone-bolt" : cn(rarity.border, rarity.shadow),
       )}
     >
       <PlayerAvatar
@@ -616,7 +616,7 @@ function SmallSlot({
           compact ? "h-[44px] w-[100px]" : "h-[60px] w-[124px]",
           "border-2 border-dashed border-ink-800 bg-ink-850/50 transition-colors",
           "hover:border-ink-700 hover:bg-ink-850",
-          selected && "border-solid border-bolt-400 bg-bolt-400/10",
+          selected && "border-solid border-bolt-ink bg-bolt-400/10",
         )}
       >
         {slot.kind === "coach" ? (
@@ -649,7 +649,7 @@ function SmallSlot({
           "shear pressable relative flex shrink-0 flex-col items-start justify-between border-2 bg-ink-950/90 px-2 text-left",
           compact ? "h-[44px] w-[100px] py-1" : "h-[60px] w-[124px] py-1.5",
           "hover:brightness-125",
-          selected ? "border-bolt-400 tone-bolt" : "border-ink-700",
+          selected ? "border-bolt-ink tone-bolt" : "border-ink-700",
         )}
       >
         <span className="shear-flat flex items-center gap-1">
@@ -679,7 +679,7 @@ function SmallSlot({
         "shear pressable relative shrink-0 overflow-hidden border-2 bg-ink-950/90 text-left",
         compact ? "h-[44px] w-[100px]" : "h-[60px] w-[124px]",
         "hover:brightness-125",
-        selected ? "border-bolt-400 tone-bolt" : cn(rarity.border, rarity.shadow),
+        selected ? "border-bolt-ink tone-bolt" : cn(rarity.border, rarity.shadow),
       )}
     >
       <PlayerAvatar

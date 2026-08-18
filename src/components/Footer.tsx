@@ -72,8 +72,8 @@ function FooterLink({
       className={cn(
         "inline-flex items-center gap-1.5 border-2 border-ink-800 bg-ink-950 px-2 py-1",
         "font-display text-[11px] font-bold tracking-wide text-ink-300 uppercase italic no-underline",
-        "transition-colors hover:border-bolt-400 hover:text-bolt-400",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-400",
+        "transition-colors hover:border-bolt-ink hover:text-bolt-ink",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bolt-ink",
       )}
     >
       {children}

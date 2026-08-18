@@ -61,10 +61,10 @@ function fold(value: string): string {
 }
 
 const popupClass =
-  "z-100 origin-[var(--transform-origin)] border-2 border-bolt-400 bg-ink-950 py-0.5 shadow-[6px_7px_0_#000000cc] outline-none";
+  "z-100 origin-[var(--transform-origin)] border-2 border-bolt-ink bg-ink-950 py-0.5 shadow-[6px_7px_0_#000000cc] outline-none";
 
 const itemClass =
-  "flex cursor-pointer items-center gap-2 px-2 py-1 text-xs outline-none data-highlighted:bg-bolt-400/20 data-highlighted:text-bolt-400 data-selected:font-bold data-disabled:cursor-not-allowed data-disabled:opacity-40";
+  "flex cursor-pointer items-center gap-2 px-2 py-1 text-xs outline-none data-highlighted:bg-bolt-400/20 data-highlighted:text-bolt-ink data-selected:font-bold data-disabled:cursor-not-allowed data-disabled:opacity-40";
 
 export function Select<T extends string>({
   value,
@@ -119,7 +119,7 @@ function fieldClass(size: "sm" | "md", className?: string, open?: boolean) {
     // the trigger grows to the full selected label and punches out of the panel.
     "field flex w-full min-w-0 items-center gap-2 overflow-hidden text-left",
     size === "sm" && "h-[var(--control-h-sm)] px-2 text-xs",
-    open && "border-bolt-400",
+    open && "border-bolt-ink",
     className,
   );
 }
@@ -201,7 +201,7 @@ function PlainSelect<T extends string>({
                     <BaseSelect.ItemText className="min-w-0 flex-1 truncate">
                       {option.render ?? option.label}
                     </BaseSelect.ItemText>
-                    <BaseSelect.ItemIndicator className="shrink-0 text-bolt-400">
+                    <BaseSelect.ItemIndicator className="shrink-0 text-bolt-ink">
                       <Check className="size-3.5" />
                     </BaseSelect.ItemIndicator>
                   </BaseSelect.Item>
@@ -323,7 +323,7 @@ function SearchableSelect<T extends string>({
                     className={itemClass}
                   >
                     <span className="min-w-0 flex-1 truncate">{option.render ?? option.label}</span>
-                    <BaseCombobox.ItemIndicator className="shrink-0 text-bolt-400">
+                    <BaseCombobox.ItemIndicator className="shrink-0 text-bolt-ink">
                       <Check className="size-3.5" />
                     </BaseCombobox.ItemIndicator>
                   </BaseCombobox.Item>

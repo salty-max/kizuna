@@ -23,7 +23,7 @@ export function BuilderWelcome({ onGenerateExample, onStartManually }: Props) {
   return (
     <Panel title={t("onboarding.title")} raised bodyClassName="flex flex-col gap-4 p-4">
       <div>
-        <p className="label-display text-bolt-400">{t("onboarding.eyebrow")}</p>
+        <p className="label-display text-bolt-ink">{t("onboarding.eyebrow")}</p>
         <h2 className="mt-1 font-display text-2xl leading-tight font-bold text-ink-50 uppercase italic">
           {t("onboarding.headline")}
         </h2>
@@ -36,7 +36,7 @@ export function BuilderWelcome({ onGenerateExample, onStartManually }: Props) {
             key={title}
             className="flex gap-3 border-t border-ink-800 pt-2 first:border-0 first:pt-0"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center border-2 border-ink-700 bg-ink-950 text-bolt-400">
+            <span className="flex size-8 shrink-0 items-center justify-center border-2 border-ink-700 bg-ink-950 text-bolt-ink">
               <Icon className="size-4" aria-hidden />
             </span>
             <span className="min-w-0">

@@ -76,9 +76,9 @@ export function WikiHomePage() {
               <Link
                 key={section.to}
                 to={section.to}
-                className="panel-flat flex items-start gap-3 p-3 no-underline transition-colors hover:border-bolt-400 hover:bg-ink-850"
+                className="panel-flat flex items-start gap-3 p-3 no-underline transition-colors hover:border-bolt-ink hover:bg-ink-850"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center border-2 border-ink-700 bg-ink-950 text-bolt-400">
+                <span className="flex size-10 shrink-0 items-center justify-center border-2 border-ink-700 bg-ink-950 text-bolt-ink">
                   <Icon className="size-5" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
