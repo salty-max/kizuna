@@ -333,6 +333,9 @@ export const fr = {
     bondsNoDescription: "Pas de description dans le dump du jeu.",
     membersCount: "{n} membres",
     locations: "Lieux",
+    grantsMove: "Technique accordée",
+    grantedBy: "Accordée par {n} esprit",
+    grantedBy_other: "Accordée par {n} esprits",
     locationsHint:
       "Les batailles Chronicle et les signes de l'Univers du joueur, et qui s'y récupère.",
     locationKind: "Type de lieu",

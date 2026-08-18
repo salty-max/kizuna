@@ -45,6 +45,8 @@ everything below makes up the first.
   players each place hands out, and a sheet per location naming them. Both
   directions link to each other, so "where do I get them" and "who does this
   battle drop" are one click apart;
+- the move a spirit grants, read from both ends: a keshin, mixi max or totem
+  names its move, and a move names the spirits behind it;
 - a light theme alongside the dark one, following the system by default with a
   three-way switch that keeps `system` reachable, remembered like the language;
 - French, English and Japanese interface, with localized character names, pitch

@@ -351,6 +351,18 @@ export interface Ability {
   type: AbilityType;
   /** The aura's mechanic; `null` for anything that is not an aura. */
   auraType: AuraType | null;
+  /**
+   * The move this spirit puts in a character's hands, when it does.
+   *
+   * Only keshin, mixi max and totem carry one — 228 of the 443 auras. `armed`
+   * is the upgrade of a keshin rather than a bearer of its own move, and
+   * `mode_change` points at itself, so both stay null. `null` on anything that
+   * is not an aura.
+   *
+   * Many-to-one: two spirits can grant the same move (White Pawn and Black Pawn
+   * both give Rat-a-Tat Pass), so the reverse reads as a list.
+   */
+  grantsAbilityId: string | null;
   element: Element | null;
   power: number;
   tension: number;

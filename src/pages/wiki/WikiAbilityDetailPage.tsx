@@ -1,8 +1,11 @@
+import { useMemo } from "react";
 import { Link, useParams } from "react-router";
 
 import { AbilityIcon, ElementBadge } from "@/components/GameIcon";
 import { Callout, DataList, DataRow, Panel } from "@/components/ui";
 import { useDataset } from "@/data/useDataset";
+import { grantedMove, spiritsGranting } from "@/domain/spirits";
+import type { Ability } from "@/domain/types";
 import { abilityDisplayDescription, abilityDisplayName, useI18n } from "@/i18n";
 import { abilityTypeLabel, elementLabel } from "@/i18n/labels";
 import { formatNumber } from "@/lib/ui";
@@ -13,6 +16,21 @@ export function WikiAbilityDetailPage() {
   const { t, locale } = useI18n();
   const dataset = useDataset();
   const ability = dataset.abilities.find((a) => a.id === id) ?? null;
+
+  const abilitiesById = useMemo(
+    () => new Map(dataset.abilities.map((a) => [a.id, a])),
+    [dataset.abilities],
+  );
+  // The link reads one way for a spirit and the other way for a move, so the
+  // page resolves both and renders whichever this entry actually has.
+  const grants = ability ? grantedMove(ability, abilitiesById) : null;
+  const grantedBy = useMemo(
+    () =>
+      ability
+        ? spiritsGranting(ability.id, dataset.abilities, (a) => abilityDisplayName(a, locale))
+        : [],
+    [ability, dataset.abilities, locale],
+  );
 
   if (!ability) {
     return (
@@ -86,6 +104,26 @@ export function WikiAbilityDetailPage() {
           {ability.shop && <DataRow label={t("wiki.field.shop")} value={ability.shop} />}
           {ability.extra && <DataRow label={t("wiki.field.extra")} value={ability.extra} />}
         </DataList>
+        {grants && (
+          <div>
+            <p className="label-display mb-1 text-ink-500">{t("wiki.grantsMove")}</p>
+            <AbilityLink ability={grants} />
+          </div>
+        )}
+        {grantedBy.length > 0 && (
+          <div>
+            <p className="label-display mb-1 text-ink-500">
+              {t("wiki.grantedBy", { n: grantedBy.length })}
+            </p>
+            <ul className="divide-y divide-ink-850 border border-ink-800">
+              {grantedBy.map((spirit) => (
+                <li key={spirit.id}>
+                  <AbilityLink ability={spirit} flush />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {(ability.names.fr || ability.names.en || ability.names.ja) && (
           <div>
             <p className="label-display mb-1 text-ink-500">{t("wiki.field.names")}</p>
@@ -98,5 +136,25 @@ export function WikiAbilityDetailPage() {
         )}{" "}
       </Panel>
     </div>
+  );
+}
+
+function AbilityLink({ ability, flush = false }: { ability: Ability; flush?: boolean }) {
+  const { t, locale } = useI18n();
+  return (
+    <Link
+      to={`/wiki/abilities/${encodeURIComponent(ability.id)}`}
+      className={
+        flush
+          ? "flex items-center gap-3 px-3 py-2 no-underline transition-colors hover:bg-ink-850"
+          : "flex items-center gap-3 border border-ink-800 px-3 py-2 no-underline transition-colors hover:bg-ink-850"
+      }
+    >
+      <AbilityIcon ability={ability} size={18} />
+      <span className="min-w-0 flex-1 truncate font-display text-sm font-bold uppercase italic">
+        {abilityDisplayName(ability, locale)}
+      </span>
+      <span className="shrink-0 text-[11px] text-ink-500">{abilityTypeLabel(t, ability.type)}</span>
+    </Link>
   );
 }

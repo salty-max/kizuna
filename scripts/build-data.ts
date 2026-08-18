@@ -1011,6 +1011,12 @@ async function buildAbilities(display: Bundle, locales: Record<LocaleKey, Bundle
     ["aura", display.auras as RawAura[]],
   ];
 
+  // Only the two move tables count as a target; see `grantedMoveId`.
+  const moveIds = new Set(
+    [...display.hissatsu, ...display.aura_hissatsu].map((row) => String(row.id)),
+  );
+  const auraIds = new Set(display.auras.map((row) => String(row.id)));
+
   for (const [kind, rows] of sources) {
     for (const r of rows) {
       const id = String(r.id);
@@ -1028,6 +1034,9 @@ async function buildAbilities(display: Bundle, locales: Record<LocaleKey, Bundle
 
       const move = r as RawHissatsu;
       const auraType = isAura ? mapAuraType((r as RawAura).type, where) : null;
+      const grantsAbilityId = isAura
+        ? grantedMoveId((r as RawAura).skill_id, moveIds, auraIds, where)
+        : null;
       const names = { ...(namesById.get(id) ?? {}) };
       const descriptions = { ...(descriptionsById.get(id) ?? {}) };
       const name = pickLangText(names, cleanText(r.name) || id);
@@ -1041,6 +1050,7 @@ async function buildAbilities(display: Bundle, locales: Record<LocaleKey, Bundle
         descriptions,
         kind,
         auraType,
+        grantsAbilityId,
         type: category ?? "Unknown",
         element: mapElement(r.element, `${where}.element`),
         power: num(move.power),
@@ -1070,6 +1080,32 @@ function skillSetOf(
     skills: mapSkills(raw.skills, known, `${where}.skills`),
     skillsAlt: mapSkills(raw.skills_alt, known, `${where}.skills_alt`),
   };
+}
+
+/**
+ * The move a spirit puts in a character's hands, from `auras[].skill_id`.
+ *
+ * 240 of the 443 auras carry the field and every one of them resolves, but only
+ * a target in `hissatsu` or `aura_hissatsu` is a move: the other 12 are
+ * `mode_change` entries pointing at themselves, or at the base row a `_legend`
+ * / `_exst` variant belongs to. That is an identity pointer, not a grant, and
+ * rendering it would say "Lord Aphrody Mode grants Lord Aphrody Mode".
+ *
+ * An id that resolves nowhere is a broken reference and fails the build, as
+ * everywhere else in this pipeline.
+ */
+function grantedMoveId(
+  skillId: number | undefined,
+  moveIds: Set<string>,
+  auraIds: Set<string>,
+  where: string,
+): string | null {
+  if (skillId == null) return null;
+  const id = String(skillId);
+  if (moveIds.has(id)) return id;
+  if (auraIds.has(id)) return null;
+  problems.push(`${where}: skill_id ${id} absent from every ability table`);
+  return null;
 }
 
 /** The eight mechanics are closed: a ninth must fail the build. */

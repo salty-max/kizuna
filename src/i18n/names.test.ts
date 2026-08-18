@@ -108,6 +108,7 @@ describe("abilityDisplayName", () => {
     descriptions: {},
     kind: "hissatsu" as const,
     auraType: null,
+    grantsAbilityId: null,
     type: "Catch",
     element: "Mountain" as const,
     power: 80,
