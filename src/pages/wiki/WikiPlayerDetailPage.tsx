@@ -171,7 +171,7 @@ export function WikiPlayerDetailPage() {
         <div className="grid gap-3 lg:grid-cols-2">
           <Panel title={t("editor.baseStats")} bodyClassName="flex flex-col gap-3">
             <div className="flex justify-center">
-              <StatRadar stats={stats} size={200} />
+              <StatRadar stats={stats} size={200} max={dataset.statCeiling} />
             </div>
             <DataList>
               {STAT_KEYS.map((key) => (

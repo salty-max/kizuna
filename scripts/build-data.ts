@@ -1237,6 +1237,55 @@ function buildLocations(display: Bundle, locales: Record<LocaleKey, Bundle>) {
 }
 
 /**
+ * The largest number the stat radar can ever be handed.
+ *
+ * Not the largest stat in the roster: the radar is given a player's stats with
+ * equipment and flat passives already added, so a chart scaled to the base
+ * ceiling breaks out of its own frame on a geared-up character. Derived here
+ * rather than pinned in the component, so a dump that raises any of the three
+ * moves the axis instead of overflowing it.
+ */
+function computeStatCeiling(
+  players: Player[],
+  equipment: Equipment[],
+  passives: Passive[],
+): number {
+  let base = 0;
+  for (const player of players) {
+    for (const stats of [player.stats, player.statsLv50]) {
+      for (const key of STAT_KEYS) base = Math.max(base, stats[key]);
+    }
+    for (const form of [player.heroStats, player.basaraStats]) {
+      if (!form) continue;
+      for (const stats of [form.lv50, form.lv99]) {
+        for (const key of STAT_KEYS) base = Math.max(base, stats[key]);
+      }
+    }
+  }
+
+  // One item per slot, so the best of each slot can stack on a single stat.
+  const bestPerSlot = new Map<string, number>();
+  for (const item of equipment) {
+    for (const key of STAT_KEYS) {
+      const value = item.stats[key] ?? 0;
+      bestPerSlot.set(item.slot, Math.max(bestPerSlot.get(item.slot) ?? 0, value));
+    }
+  }
+  const gear = [...bestPerSlot.values()].reduce((sum, value) => sum + value, 0);
+
+  let flat = 0;
+  for (const passive of passives) {
+    if (!passive.effects.some((effect) => effect.mode === "flat")) continue;
+    flat = Math.max(flat, Math.abs(passive.strongValue));
+  }
+
+  return base + gear + flat * PASSIVE_SLOTS_PER_PLAYER;
+}
+
+/** Five rarity-rolled slots plus the custom one unlocked at level 50. */
+const PASSIVE_SLOTS_PER_PLAYER = 6;
+
+/**
  * Count the shipped players each location hands out.
  *
  * Runs against the finalized roster, so a location whose only players were
@@ -1373,6 +1422,7 @@ const {
 countPlayersPerLocation(locations, players);
 const passives = buildPassives(display, { fr, en, ja });
 const { equipment, matched: equipmentIcons } = await buildEquipment(display, { fr, en, ja });
+const statCeiling = computeStatCeiling(players, equipment, passives);
 const synergies = await buildSynergies(display, { fr, en, ja });
 const tactics = await buildTactics(display, { fr, en, ja });
 const iconCount = await copyIcons();
@@ -1397,6 +1447,7 @@ const sizes = {
     imageBase,
     games,
     detailBucketSize: DETAIL_BUCKET_SIZE,
+    statCeiling,
     counts: {
       players: players.length,
       passives: passives.length,
@@ -1460,6 +1511,9 @@ console.log(
 );
 console.log(`icons              ${iconCount} files → public/icons/`);
 console.log(`details            ${buckets} bucket files (lazy)`);
+console.log(
+  `stat ceiling${String(statCeiling).padStart(5)}        (radar axis: base + gear + flat passives)`,
+);
 console.log(`games       ${games.length}`);
 
 if (problems.length > 0) {

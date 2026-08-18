@@ -123,10 +123,12 @@ const RARITY_STYLE_BY_KEY: Record<string, RarityStyle> = {
     shadow: "[--shadow-hard-color:#7a4a00]",
   },
   "hero:red": {
-    // And the other one: #EB0000 → #FF8200.
+    // And the other one: #EB0000 → #FF8200. The edge takes the ribbon's own red
+    // rather than the structural colour: borrowing it turned this border blue
+    // the day that colour stopped being vermilion, on a badge still gradient-red.
     badge: "bg-linear-to-r from-[#eb0000] to-[#ff8200] text-ink-950",
-    ring: "ring-flare-500/80",
-    border: "border-flare-500",
+    ring: "ring-[#eb0000]/80",
+    border: "border-[#eb0000]",
     shadow: "[--shadow-hard-color:#6b1000]",
   },
   "hero:silver": {

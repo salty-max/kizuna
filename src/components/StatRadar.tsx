@@ -1,6 +1,7 @@
 import { STAT_KEYS, type BaseStats, type StatKey } from "@/domain/stats";
 import { useI18n } from "@/i18n";
 import { statLabel } from "@/i18n/labels";
+import { axisFraction } from "@/lib/radar";
 import { cn } from "@/lib/ui";
 
 /**
@@ -19,8 +20,19 @@ interface Props {
    */
   base?: BaseStats;
   size?: number;
+  /**
+   * Axis ceiling. Comes from `meta.json` so it tracks the dump; the fallback is
+   * only for a dataset served before the field existed.
+   */
+  max?: number;
   className?: string;
 }
+
+/**
+ * Content 6.00.23.00: 279 base + 133 gear + 6 flat passives at 10. Kept as a
+ * fallback only — the live value ships in `meta.json`.
+ */
+const FALLBACK_MAX = 492;
 
 const SHORT: Record<StatKey, string> = {
   kick: "KIC",
@@ -50,14 +62,14 @@ function polygonPoints(
 ): string {
   return values
     .map((value, i) => {
-      const r = max > 0 ? (Math.max(0, value) / max) * radius : 0;
+      const r = axisFraction(value, max) * radius;
       const { x, y } = polar(cx, cy, r, i, values.length);
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(" ");
 }
 
-export function StatRadar({ stats, base, size = 220, className }: Props) {
+export function StatRadar({ stats, base, size = 220, max: maxProp, className }: Props) {
   const { t } = useI18n();
   const n = STAT_KEYS.length;
   const values = STAT_KEYS.map((key) => stats[key]);
@@ -65,7 +77,9 @@ export function StatRadar({ stats, base, size = 220, className }: Props) {
 
   // Absolute scale so a 100-total common and a 250 basara stay comparable.
   // Peak observed basara lines sit ~256; 280 leaves a little headroom.
-  const max = 280;
+  // Clamped, not trusted: a stat above the axis used to send the polygon
+  // outside its own frame instead of pegging at the edge.
+  const max = Math.max(maxProp ?? FALLBACK_MAX, ...STAT_KEYS.map((key) => stats[key]));
 
   const pad = 28;
   const cx = size / 2;
@@ -151,7 +165,7 @@ export function StatRadar({ stats, base, size = 220, className }: Props) {
 
       {/* Value dots */}
       {values.map((value, i) => {
-        const r = (value / max) * radius;
+        const r = axisFraction(value, max) * radius;
         const { x, y } = polar(cx, cy, r, i, n);
         return <circle key={STAT_KEYS[i]} cx={x} cy={y} r={2.5} fill="var(--color-bolt-ink)" />;
       })}

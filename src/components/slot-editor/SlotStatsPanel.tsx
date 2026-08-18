@@ -1,3 +1,4 @@
+import { useDataset } from "@/data/useDataset";
 import { STAT_KEYS } from "@/domain/stats";
 import type { ResolvedSlot } from "@/domain/team";
 import { useI18n } from "@/i18n";
@@ -7,6 +8,7 @@ import { Panel } from "../ui";
 
 export function SlotStatsPanel({ slot }: { slot: ResolvedSlot }) {
   const { t } = useI18n();
+  const dataset = useDataset();
 
   return (
     <Panel as="h3" title={t("editor.baseStats")}>
@@ -19,6 +21,7 @@ export function SlotStatsPanel({ slot }: { slot: ResolvedSlot }) {
               : undefined
           }
           size={200}
+          max={dataset.statCeiling}
         />
       </div>
 

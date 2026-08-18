@@ -17,6 +17,7 @@ interface Meta {
   games: string[];
   detailBucketSize: number;
   counts: Record<string, number>;
+  statCeiling?: number;
 }
 
 export const DATA_SHARDS = [
@@ -153,6 +154,7 @@ export async function loadDataset(shards: readonly DataShard[] = DATA_SHARDS): P
     imageBase: meta.imageBase,
     generatedAt: meta.generatedAt,
     counts: meta.counts,
+    statCeiling: meta.statCeiling,
   };
 }
 

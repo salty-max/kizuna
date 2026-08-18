@@ -52,18 +52,23 @@ export function TeamOverviewSection({
         </span>
       </div>
 
-      <div>
-        <p className="label-display mb-1">{t("synergy.totalPower")}</p>
-        <div className="grid grid-cols-2 gap-px border border-ink-800 bg-ink-800">
+      {/*
+        This is what the whole builder is for, and it read like a footnote: a
+        caption over six rows of 10px label and 12px value, lighter than the
+        legality tiles above it. The figures now carry the display voice and the
+        block announces itself.
+      */}
+      <div className="border border-ink-800 bg-ink-950/40">
+        <p className="label-display border-b border-ink-800 px-2 py-1.5 text-ink-300">
+          {t("synergy.totalPower")}
+        </p>
+        <div className="grid grid-cols-2 gap-px bg-ink-800">
           {POWER_KEYS.map((key) => (
-            <div
-              key={key}
-              className="flex min-w-0 items-baseline justify-between gap-2 bg-ink-900/95 px-2 py-1.5"
-            >
-              <span className="truncate text-[10px] tracking-wide text-ink-500 uppercase">
+            <div key={key} className="flex min-w-0 flex-col gap-0.5 bg-ink-900/95 px-2 py-1.5">
+              <span className="truncate text-[10px] leading-none tracking-wide text-ink-500 uppercase">
                 {powerLabel(t, key)}
               </span>
-              <strong className="shrink-0 text-xs text-ink-200 tnum">
+              <strong className="font-display text-base leading-none font-bold text-ink-100 tnum">
                 {formatNumber(synergy.totals.effective[key], locale)}
               </strong>
             </div>

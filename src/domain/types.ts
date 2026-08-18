@@ -576,6 +576,11 @@ export interface Dataset {
   generatedAt: string;
   /** Catalogue totals from meta.json, including shards not loaded on this route. */
   counts?: Record<string, number>;
+  /**
+   * Largest value a stat can reach once equipment and flat passives are added.
+   * The radar scales to this so a geared-up character stays inside the frame.
+   */
+  statCeiling?: number;
 }
 
 /** How many tactics a squad can prepare. */

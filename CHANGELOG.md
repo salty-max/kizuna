@@ -110,7 +110,13 @@ everything below makes up the first.
 - no control carries a drop shadow any more. Surfaces keep it, so the shadow now
   separates a thing you press from a thing you look at;
 - border weight carries the hierarchy: 2px says surface, 1px says control on it.
-  Everything wore 2px, which left the eye nothing to sort by.
+  Everything wore 2px, which left the eye nothing to sort by;
+- the Hero red edge turned blue when the structural colour changed, because it
+  borrowed that colour instead of carrying its own;
+- the stat radar broke out of its own frame once equipment pushed a stat past the
+  fixed axis. The ceiling is derived at build from base, gear and flat passives,
+  and a value above it now pegs at the edge;
+- cumulative power in the builder reads as a section rather than a footnote.
 
 ### Known gaps
 

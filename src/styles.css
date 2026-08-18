@@ -554,8 +554,8 @@
       font-bold tracking-wide text-ink-300 uppercase italic tnum;
   }
 
-  /* Same grammar as `.panel`, spelled out: a `components` class
-     n'est pas `@apply`-able depuis une autre. */
+  /* Same grammar as `.panel`, spelled out: a `components` class cannot be
+     `@apply`-ed from another one. */
   .modal {
     @apply flex max-h-full w-full flex-col overflow-hidden border-2 border-ink-800 bg-ink-900;
     border-radius: 0;
