@@ -35,11 +35,11 @@ export function WikiTacticDetailPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <Link to="/wiki/tactics" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.tactics")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="truncate text-ink-300">{name}</span>
       </div>
 

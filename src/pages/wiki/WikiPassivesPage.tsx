@@ -57,7 +57,7 @@ export function WikiPassivesPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="text-ink-300">{t("wiki.passives")}</span>
       </div>
 
@@ -154,13 +154,13 @@ function PassiveRow({ passive }: { passive: Passive }) {
         <span className="min-w-0 flex-1">
           <span className="block text-sm text-ink-100">{description}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-500">
-            <span className="rounded border border-ink-700 px-1.5 py-0.5 uppercase">
+            <span className="border border-ink-700 px-1.5 py-0.5 uppercase">
               {t(`wiki.passiveSource.${passive.source}`)}
             </span>
             <span
               className={cn(
-                "rounded border px-1.5 py-0.5 uppercase",
-                hasEffects ? "border-bolt-500/40 text-bolt-300" : "border-ink-700 text-ink-500",
+                "border px-1.5 py-0.5 uppercase",
+                hasEffects ? "border-bolt-ink/50 text-bolt-ink" : "border-ink-700 text-ink-500",
               )}
             >
               {hasEffects ? t("wiki.effectsParsed") : t("wiki.effectsUnparsed")}

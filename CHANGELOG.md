@@ -118,7 +118,12 @@ everything below makes up the first.
   and a value above it now pegs at the edge;
 - cumulative power in the builder reads as a section rather than a footnote;
 - player card shadows were near-black slabs in the light theme, because each
-  rarity injected its own colour as a literal.
+  rarity injected its own colour as a literal;
+- wiki chrome that failed contrast in both themes: breadcrumb separators two steps
+  below the app's minimum-AA tone, and the passive badges speaking the page's ink
+  ramp while sitting on the coloured title bar;
+- the "effects parsed" badge was colourless — it asked for a `bolt-300` that was
+  never a token, so the class produced nothing.
 
 ### Known gaps
 

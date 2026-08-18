@@ -58,11 +58,11 @@ export function WikiLocationDetailPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <Link to="/wiki/locations" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.locations")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="truncate text-ink-300">{name ?? t("wiki.foundIn.unnamed")}</span>
       </div>
 

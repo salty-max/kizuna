@@ -41,26 +41,26 @@ export function WikiPassiveDetailPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <Link to="/wiki/passives" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.passives")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="truncate text-ink-300">#{passive.number}</span>
       </div>
 
       <Panel
         title={
           <span className="flex flex-wrap items-center gap-2">
-            <span className="font-display text-ink-500 tnum">#{passive.number}</span>
-            <span className="rounded border border-ink-700 px-1.5 py-0.5 text-xs font-normal tracking-normal text-ink-400 uppercase not-italic">
+            <span className="font-display tnum opacity-80">#{passive.number}</span>
+            <span className="border border-current/40 px-1.5 py-0.5 text-xs font-normal tracking-normal uppercase not-italic opacity-90">
               {t(`wiki.passiveSource.${passive.source}`)}
             </span>
             <span
               className={
                 hasEffects
-                  ? "rounded border border-bolt-500/40 px-1.5 py-0.5 text-xs font-normal tracking-normal text-bolt-300 uppercase not-italic"
-                  : "rounded border border-ink-700 px-1.5 py-0.5 text-xs font-normal tracking-normal text-ink-500 uppercase not-italic"
+                  ? "border border-current/60 px-1.5 py-0.5 text-xs font-normal tracking-normal uppercase not-italic"
+                  : "border border-current/40 px-1.5 py-0.5 text-xs font-normal tracking-normal uppercase not-italic opacity-75"
               }
             >
               {hasEffects ? t("wiki.effectsParsed") : t("wiki.effectsUnparsed")}

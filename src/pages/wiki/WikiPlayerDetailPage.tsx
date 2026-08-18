@@ -95,11 +95,11 @@ export function WikiPlayerDetailPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <Link to="/wiki/players" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.players")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="truncate text-ink-300">{displayName}</span>
       </div>
 
@@ -282,7 +282,7 @@ function FoundInPanel({
         <div key={group.kind} data-found-in-group={group.kind} className="flex flex-col gap-1.5">
           <p className="label-display text-ink-500">
             {t(FOUND_IN_GROUP_LABEL[group.kind])}
-            <span className="ml-2 normal-case text-ink-600">
+            <span className="ml-2 normal-case text-ink-500">
               {t("wiki.foundIn.count", { n: group.entries.length })}
             </span>
           </p>

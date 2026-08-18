@@ -36,11 +36,11 @@ export function WikiAbilityDetailPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <Link to="/wiki/abilities" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.abilities")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="truncate text-ink-300">{name}</span>
       </div>
 

@@ -53,7 +53,7 @@ export function WikiEquipmentPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="text-ink-300">{t("wiki.equipment")}</span>
       </div>
 
@@ -130,7 +130,7 @@ function EquipmentRow({ item, imageBase }: { item: Equipment; imageBase: string 
             }
           />
         ) : (
-          <span className="flex size-8 shrink-0 items-center justify-center border border-ink-800 bg-ink-950 text-[10px] text-ink-600">
+          <span className="flex size-8 shrink-0 items-center justify-center border border-ink-800 bg-ink-950 text-[10px] text-ink-500">
             —
           </span>
         )}

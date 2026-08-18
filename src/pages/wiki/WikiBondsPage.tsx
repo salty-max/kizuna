@@ -52,7 +52,7 @@ export function WikiBondsPage() {
         <Link to="/wiki" className="text-ink-500 no-underline hover:text-bolt-ink">
           {t("wiki.title")}
         </Link>
-        <span className="text-ink-700">/</span>
+        <span className="text-ink-500">/</span>
         <span className="text-ink-300">{t("wiki.bonds")}</span>
       </div>
 

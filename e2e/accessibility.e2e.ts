@@ -219,3 +219,53 @@ test("both themes keep the panel bar and the primary action readable", async ({ 
     expect(primary).toBeGreaterThan(4.5);
   }
 });
+
+test("wiki chrome stays legible on both themes", async ({ page }) => {
+  await page.goto("/wiki/passives/cps10015");
+  // The catalogue loads before the panel exists, so the probe has to wait for it.
+  await expect(page.locator(".panel-title")).toBeVisible();
+  await expect(page.locator("main span.text-ink-500").first()).toBeVisible();
+
+  const contrast = () =>
+    page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+      const rgb = (color: string) => {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        return [r, g, b].map((v) => {
+          const n = v / 255;
+          return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+        });
+      };
+      const lum = (color: string) => {
+        const [r, g, b] = rgb(color);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const against = (el: Element | null, backdrop: string) => {
+        if (!el) return 0;
+        const [hi, lo] = [lum(getComputedStyle(el).color), lum(backdrop)].sort((a, b) => b - a);
+        return (hi + 0.05) / (lo + 0.05);
+      };
+      const pageBed = getComputedStyle(document.body).backgroundColor;
+      const bar = getComputedStyle(document.querySelector(".panel-title")!).backgroundColor;
+      return {
+        // Breadcrumb separators used to sit two steps below the app's
+        // minimum-AA tone, and the badges on the title bar spoke the page's
+        // ink ramp instead of the bar's.
+        separator: against(document.querySelector("main span.text-ink-500"), pageBed),
+        badge: against(document.querySelector(".panel-title span span"), bar),
+      };
+    });
+
+  for (const theme of ["Thème sombre", "Thème clair"]) {
+    await page.getByRole("tab", { name: theme }).click();
+    const { separator, badge } = await contrast();
+    expect(separator).toBeGreaterThan(4.5);
+    expect(badge).toBeGreaterThan(4.5);
+  }
+});
