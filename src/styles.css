@@ -150,6 +150,22 @@
   --cockpit-rail-wash: rgb(27 79 216 / 24%);
   --loader-sweep-flare: rgb(27 79 216 / 22%);
   --loader-sweep-bolt: rgb(255 241 0 / 10%);
+  /*
+   * Per-rarity card shadows. A card injects one through `--shadow-hard-color`,
+   * so they cannot ride the single shadow token — and left as literals they
+   * dropped a near-black slab under every card the moment the page went light.
+   */
+  --rarity-shadow-common: #000000a6;
+  --rarity-shadow-rising: #1d5c2b;
+  --rarity-shadow-advanced: #0d4457;
+  --rarity-shadow-top: #3f1d63;
+  --rarity-shadow-legendary: #7a4a00;
+  --rarity-shadow-hero-red: #6b1000;
+  --rarity-shadow-hero-silver: #3b4250;
+  --rarity-shadow-hero-pink: #6b1a3d;
+  --rarity-shadow-hero-unknown: #4d1052;
+  --rarity-shadow-basara: #04544a;
+
   --tone-bolt-shadow: #7a6f00;
   --tone-flare-shadow: #0b2470;
   --cockpit-panel-bed: rgb(17 21 31 / 72%);
@@ -206,6 +222,17 @@
   --cockpit-rail-wash: rgb(27 79 216 / 12%);
   --loader-sweep-flare: rgb(27 79 216 / 14%);
   --loader-sweep-bolt: rgb(179 143 0 / 10%);
+  --rarity-shadow-common: #8794b140;
+  --rarity-shadow-rising: #34d39959;
+  --rarity-shadow-advanced: #38bdf859;
+  --rarity-shadow-top: #a78bfa5e;
+  --rarity-shadow-legendary: #d9a3006b;
+  --rarity-shadow-hero-red: #eb00004d;
+  --rarity-shadow-hero-silver: #94a3b866;
+  --rarity-shadow-hero-pink: #f472b657;
+  --rarity-shadow-hero-unknown: #e879f957;
+  --rarity-shadow-basara: #0d948859;
+
   --tone-bolt-shadow: #b8a63d29;
   --tone-flare-shadow: #1b4fd829;
   --cockpit-panel-bed: rgb(255 255 255 / 82%);

@@ -95,32 +95,32 @@ const RARITY_STYLE_BY_KEY: Record<string, RarityStyle> = {
     badge: "bg-ink-800 text-ink-300",
     ring: "ring-ink-700",
     border: "border-ink-700",
-    shadow: "[--shadow-hard-color:#000000a6]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-common)]",
   },
   rising: {
     badge: "bg-linear-to-r from-emerald-400 to-lime-300 text-ink-950",
     ring: "ring-emerald-400/70",
     border: "border-emerald-400",
-    shadow: "[--shadow-hard-color:#1d5c2b]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-rising)]",
   },
   advanced: {
     badge: "bg-linear-to-r from-sky-400 to-cyan-300 text-ink-950",
     ring: "ring-sky-400/70",
     border: "border-sky-400",
-    shadow: "[--shadow-hard-color:#0d4457]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-advanced)]",
   },
   top: {
     badge: "bg-linear-to-r from-violet-400 to-fuchsia-300 text-ink-950",
     ring: "ring-violet-400/70",
     border: "border-violet-400",
-    shadow: "[--shadow-hard-color:#3f1d63]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-top)]",
   },
   legendary: {
     // Exactly the game's own rarity ribbon: #ED6700 → #FFF100.
     badge: "bg-linear-to-r from-[#ed6700] to-[#fff100] text-ink-950",
     ring: "ring-bolt-500/80",
     border: "border-bolt-500",
-    shadow: "[--shadow-hard-color:#7a4a00]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-legendary)]",
   },
   "hero:red": {
     // And the other one: #EB0000 → #FF8200. The edge takes the ribbon's own red
@@ -129,32 +129,32 @@ const RARITY_STYLE_BY_KEY: Record<string, RarityStyle> = {
     badge: "bg-linear-to-r from-[#eb0000] to-[#ff8200] text-ink-950",
     ring: "ring-[#eb0000]/80",
     border: "border-[#eb0000]",
-    shadow: "[--shadow-hard-color:#6b1000]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-hero-red)]",
   },
   "hero:silver": {
     badge: "bg-linear-to-r from-slate-300 to-slate-100 text-ink-950",
     ring: "ring-slate-300/80",
     border: "border-slate-300",
-    shadow: "[--shadow-hard-color:#3b4250]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-hero-silver)]",
   },
   "hero:pink": {
     badge: "bg-linear-to-r from-pink-400 to-rose-300 text-ink-950",
     ring: "ring-pink-400/80",
     border: "border-pink-400",
-    shadow: "[--shadow-hard-color:#6b1a3d]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-hero-pink)]",
   },
   // Archetype unknown, so no variant colour to key off.
   "hero:unknown": {
     badge: "bg-linear-to-r from-fuchsia-500 to-fuchsia-300 text-ink-950",
     ring: "ring-fuchsia-400/70",
     border: "border-fuchsia-400",
-    shadow: "[--shadow-hard-color:#4d1052]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-hero-unknown)]",
   },
   basara: {
     badge: "bg-linear-to-r from-cyan-300 to-emerald-200 text-ink-950",
     ring: "ring-cyan-300/80",
     border: "border-cyan-300",
-    shadow: "[--shadow-hard-color:#04544a]",
+    shadow: "[--shadow-hard-color:var(--rarity-shadow-basara)]",
   },
 };
 

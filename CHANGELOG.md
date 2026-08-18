@@ -116,7 +116,9 @@ everything below makes up the first.
 - the stat radar broke out of its own frame once equipment pushed a stat past the
   fixed axis. The ceiling is derived at build from base, gear and flat passives,
   and a value above it now pegs at the edge;
-- cumulative power in the builder reads as a section rather than a footnote.
+- cumulative power in the builder reads as a section rather than a footnote;
+- player card shadows were near-black slabs in the light theme, because each
+  rarity injected its own colour as a literal.
 
 ### Known gaps
 
