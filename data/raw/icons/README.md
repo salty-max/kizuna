@@ -1,12 +1,12 @@
-# Icons
+﻿# Icons
 
 PNG with alpha, extracted from the game's own `.g4tx` sprite atlases (build 6.00.23.00) and cut
 out of them. Same provenance as `../dataminer/` — the game files, not the community scrape.
 
 Vendored like the rest of `data/raw/`: **not served as-is**. `bun run data` copies every
-folder into `public/icons/` (151 PNGs). The app consumes them via `src/lib/icons.ts` and
+folder into `public/icons/` (200 PNGs). The app consumes them via `src/lib/icons.ts` and
 `src/components/GameIcon.tsx` — elements, positions, styles, staff, hissatsu categories,
-plus path helpers for tactics and (unlabelled) passive cells.
+plus path helpers for tactics, synergies and passive sprites.
 
 ## What is here
 
@@ -16,10 +16,11 @@ plus path helpers for tactics and (unlabelled) passive cells.
 | `styles/` | 6 | style name | `legend.style` |
 | `hissatsu/` | 4 | category name | `legend.hissatsu_category` |
 | `positions/` | 18 | position name | `legend.position` |
-| `tactics/` | 70 | `wht*` string id | `tactics[].string_id` |
+| `tactics/` | 71 | `wht*` string id, **from the atlas itself** | `tactics[].string_id` |
+| `synergy/` | 35 | `sf*`/`sp*` string id, **from the atlas itself** | `synergies[].string_id` |
 | `aura/` | 7 | aura type | `auras[].type` — **proposed, see below** |
 | `gender/` | 2 | male / female | `characters[].gender` |
-| `passives/` | 53 | sprite index | `passives[].icon` — **via `_passive_icons.csv`, see below** |
+| `passives/` | 53 | the game's own sprite name | `passives[].icon` — **via `_passive_icons.csv`, see below** |
 
 Team emblems are deliberately absent: 346 files at 512×512 came to 48 MB, against 2 MB for
 everything above. They are cut and named by `em*` string id outside the repo, in
@@ -43,55 +44,52 @@ downscaled — whenever the app has a use for them.
   has one aura and no badge left over.
 - **`passives/` is half-mapped now.** See [Passive icons](#passive-icons): the bundles say which
   icon each passive uses and what that icon means, but not yet which of these pictures it is.
-- **`tactics/icon_tactic_wht20020.png`** (Keyman Ignition) was identified from its atlas cell
-  rather than by hand like the other 69; it is the flaming-player glyph sitting directly under
-  Keyman Lockdown in the same column.
+- **`synergy/` covers 35 of the 37 synergies.** `sf01000010` and `sf01000020` have no sprite in
+  `icon_synergy` under any name.
 
 ## Passive icons
 
 `passives/` is the `icon_teambuff` atlas: 45 pictograms plus the eight small position badges
-(`MF` `DF` `GK` … `FW`) the game splices into passive text like "[GK] KP +N%". The files were
-renumbered — they used to be grid cells, they are now **sprite indices read from the atlas's own
-header**, which is the only numbering that separates those eight badges instead of merging them
-into three garbled cells.
+(`MF` `DF` `GK` … `FW`) the game splices into passive text like "[GK] KP +N%". The files carry
+**the names the game gives them**, read out of the atlas header — `icon_teambuff01` … `38`, `40`,
+`51`–`56`, and `icon_teambuff_tgt01` … `08` for the badges.
 
 Every passive in the bundles now carries `icon` (the game's icon id), `icon_label` (what that id
 means) and `build` (which of the six team builds it belongs to). `legend.passive_icon` lists all
 25 ids. That mapping is read from the game: a passive's icon comes from its effect, and every
 passive sharing an id names the same stat — all 144 under id 11 say "Castle Wall DF".
 
-The one hop still missing is **icon id → which of these 53 pictures**. The ids are not sprite
-indices, and the lookup lives in the menu code rather than in any data file.
+The one hop still missing is **icon id → which of these 53 pictures**. There are 38 names for the
+38 possible ids, which looks like the answer and is not: id 2 is "Shot AT" and `icon_teambuff02`
+is the shooting comet, but id 0 is "AT" while the `AT` lettering is `icon_teambuff19`. No offset
+fits, and no table in the extraction holds the values in either direction.
 [`passives/_passive_icons.csv`](passives/_passive_icons.csv) grades what could be identified by
 eye: eight are certain because the pictogram is unambiguous or is literally the text — `AT`,
 `DF`, `T`, the intact and the breached castle wall, the two money bags, the shooting comet.
 
-## Atlas order is not data order
+## Atlases label themselves
 
-Worth stating plainly, because it looks like it should be. **A `.g4tx` carries its own sprite
-table** — sub-rectangles as `x y w h` u16, 24 bytes per record, from `0x94` to the `DDS ` magic —
-so cut by that and not by guessing a grid. The sprites come out in the packer's insertion order,
-expanding L-shells rather than row-major. But **neither index encodes the game id**:
+This is the thing to know, and it was found late: **every `.g4tx` names its own sprites.** The
+header holds, in parallel, a table of sub-rectangles (`x y w h` as u16, 24 bytes per record,
+from `0x94` to a zero u32) and a table of CRC32 hashes, then the names themselves as plain
+ASCII. Picture and name are joined by position, and the join checks itself: the stored hash has
+to be the CRC32 of the name it points at.
 
-- cell 0 is `wht10020`, which is second in the data;
-- cell 20 is `wht10010`, which is first.
+For content atlases the name **is** the game's string id. `icon_tactics` calls its sprites
+`icon_wht10020`; `icon_synergy` calls its sprites `sf01001` and `sp09003`. So those
+atlases need no matching by eye at all — you read the labels out of the file.
 
-Some columns *are* sequential (the atlases grew patch by patch, newest ids on the right), which is
-what makes the false pattern convincing. Now that the sprite table is readable the same thing can
-be said of it precisely: across the 71 tactic icons the sprite order follows ascending `wht*` id
-for the original set and then appends every later-patched tactic at the end, so it is correlated
-with the data and equal to it nowhere. All 17 columns of `SPECIAL_TACTICS_INFO` were also tested
-against the cells; the best scored 3/81. The index lives in the menu code, which ships as
-compiled Lua.
+That settled two long-open things at once. The tactic names here were originally recovered by
+hand and locked in by pixel-matching; the file agrees with all 70 of them and names the 71st, the
+cell the manual pass had written off as unused — it is `wht20140`. And the synergy icons, which
+no config column predicted, simply carry their synergy's id.
 
-The tactic names above were recovered by hand and then locked in by pixel-matching the named files
-against freshly sliced cells — 69/69 at distance 0. That is the technique to reuse for any
-atlas that still needs labelling, including the synergy icons.
+For UI atlases the name is a numbered artwork slot instead, and the number is **not** the enum
+the data uses. `icon_build_l00…l05` happens to line up with `legend.style`; `icon_type01…04`
+does not line up with `legend.element`; `icon_teambuff01…38` does not line up with the passive
+icon ids. That last hop lives in the menu code, which ships as compiled Lua.
 
-## Synergy icons are absent on purpose
-
-41 icons exist in `icon_synergy` for 37 synergies, and nothing in the game files links them. No
-sprite descriptor (`.g4tp`) ships for the icon atlases, the menu Lua is compiled bytecode with no
-icon table, and no config column predicts the cell. The synergies themselves are in the bundles
-with their `members`, which is what the app actually needs; the art can wait for someone to match
-it against an in-game screenshot.
+Two smaller notes. Cut by the rectangles, not by a grid: `icon_teambuff` packs eight 48×32
+position badges into what looks like one 128×128 cell, and a grid pass merges them into three
+garbled cells. And sprite order is the packer's insertion order — expanding L-shells, not
+row-major — so there is nothing to read into it.

@@ -9,15 +9,14 @@ where the extraction lives now, what the data does and does not contain, and wha
 The bundles gained `tactics`, `synergies` and `equipment`, synergies gained their `members`,
 every character now carries the moves they learn and at what level, and
 `legend.hissatsu_category` is now filled in. Sprite art landed too, in
-[`../icons/`](../icons/README.md) — 151 files, 2 MB. Team emblems were left out: 346 files at
+[`../icons/`](../icons/README.md) — 200 files, 3 MB. Team emblems were left out: 346 files at
 512×512 weighed 48 MB on their own, and nothing uses them yet. They are cut and named alongside
 the extraction if that changes.
 
-The icons README carries the two findings worth not rediscovering: **a `.g4tx` carries its own
-sprite-rectangle table**, so atlases should be cut from that rather than sliced on a guessed grid;
-and **neither the grid index nor the sprite index encodes the game id**, so labelling an atlas
-still means matching it against names obtained elsewhere. Read it before touching the synergy
-icons.
+The icons README carries the finding worth not rediscovering: **every `.g4tx` names its own
+sprites**, in a CRC32 table parallel to its rectangle table, and for content atlases that name is
+the game's own string id. So `icon_tactics` and `icon_synergy` label themselves and nothing has to
+be matched by eye. Read it before touching any atlas.
 
 ## Regenerating the bundles
 
@@ -75,13 +74,7 @@ pool for a style and growth pattern. Stop looking for a per-character table.
    Eight are certain from the pictogram alone; the rest are graded in
    [`../icons/passives/_passive_icons.csv`](../icons/passives/_passive_icons.csv). Do not expect
    to find it in the data — the ids are not sprite indices and the lookup is in the menu code.
-3. **Synergy icons.** 41 in `icon_synergy`, 37 synergies, no link in any data file: the menu Lua
-   is compiled bytecode and no config column predicts the sprite (all 17 of
-   `SPECIAL_TACTICS_INFO` were tested against 70 known tactic cells; best was 3/81). The
-   realistic route is an in-game screenshot of the synergy list, then pixel-matching. The icons
-   are cut and numbered outside the repo, in `C:\Users\maxim\Downloads\icons_raw\synergy\` with a
-   `_synergies.csv` listing all 37 with their members.
-4. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
+3. **`map_text_roma`** exists but the dataminer does not extract it — the original-name toggle
    covers place names too, if the wiki ever needs them.
 
 ## Wiring it into the app

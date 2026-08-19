@@ -101,8 +101,14 @@ export function tacticIconPath(stringId: string): string {
   return `tactics/icon_tactic_${base}.png`;
 }
 
-/* ── Passives (unlabelled atlas cells — index only) ───────────────────────── */
+/* ── Synergies (string_id → file) ─────────────────────────────────────────── */
 
-export function passiveIconPath(index: number): string {
-  return `passives/icon_passive_${String(index).padStart(3, "0")}.png`;
+export function synergyIconPath(stringId: string): string {
+  return `synergy/icon_synergy_${stringId}.png`;
+}
+
+/* ── Passives (the game's own sprite names, from the icon_teambuff atlas) ─── */
+
+export function passiveIconPath(sprite: string): string {
+  return `passives/${sprite}.png`;
 }
