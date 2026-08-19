@@ -1,6 +1,6 @@
 # Handoff — datamined bundles
 
-State of the extraction as of 2026-08-17, for whoever picks this up next. The bundles are
+State of the extraction as of 2026-08-20, for whoever picks this up next. The bundles are
 committed and described in [README.md](README.md); this file covers what is *not* in the repo:
 where the extraction lives now, what the data does and does not contain, and what is still open.
 
@@ -9,7 +9,7 @@ where the extraction lives now, what the data does and does not contain, and wha
 The bundles gained `tactics`, `synergies` and `equipment`, synergies gained their `members`,
 every character now carries the moves they learn and at what level, and
 `legend.hissatsu_category` is now filled in. Sprite art landed too, in
-[`../icons/`](../icons/README.md) — 200 files, 3 MB. Team emblems were left out: 346 files at
+[`../icons/`](../icons/README.md) — 235 files, 4 MB. Team emblems were left out: 346 files at
 512×512 weighed 48 MB on their own, and nothing uses them yet. They are cut and named alongside
 the extraction if that changes.
 
@@ -91,4 +91,5 @@ bundles + Inazugle scrapes:
 - Icons copied to `public/icons/`
 - Position 1=GK, 2=FW, 3=MF, 4=DF; style 0–5 → breach/counter/bond/tension/roughPlay/justice
 
-Still open: character → passive, passive effect structure from the game, synergy icon labels.
+Still open: character → passive, passive effect structure from the game, passive icon art. Shop
+prices and currencies are in the bundles but not yet surfaced.

@@ -4,7 +4,7 @@ PNG with alpha, extracted from the game's own `.g4tx` sprite atlases (build 6.00
 out of them. Same provenance as `../dataminer/` — the game files, not the community scrape.
 
 Vendored like the rest of `data/raw/`: **not served as-is**. `bun run data` copies every
-folder into `public/icons/` (200 PNGs). The app consumes them via `src/lib/icons.ts` and
+folder into `public/icons/` (235 PNGs). The app consumes them via `src/lib/icons.ts` and
 `src/components/GameIcon.tsx` — elements, positions, styles, staff, hissatsu categories,
 plus path helpers for tactics, synergies and passive sprites.
 
@@ -18,6 +18,7 @@ plus path helpers for tactics, synergies and passive sprites.
 | `positions/` | 18 | position name | `legend.position` |
 | `tactics/` | 71 | `wht*` string id, **from the atlas itself** | `tactics[].string_id` |
 | `synergy/` | 35 | `sf*`/`sp*` string id, **from the atlas itself** | `synergies[].string_id` |
+| `currencies/` | 35 | `tk_*` string id, **from the file itself** | `currencies[].string_id` |
 | `aura/` | 7 | aura type | `auras[].type` — **proposed, see below** |
 | `gender/` | 2 | male / female | `characters[].gender` |
 | `passives/` | 53 | the game's own sprite name | `passives[].icon` — **via `_passive_icons.csv`, see below** |
@@ -83,6 +84,12 @@ to be the CRC32 of the name it points at.
 For content atlases the name **is** the game's string id. `icon_tactics` calls its sprites
 `icon_wht10020`; `icon_synergy` calls its sprites `sf01001` and `sp09003`. So those
 atlases need no matching by eye at all — you read the labels out of the file.
+
+The same header serves a second layout. `icon_item10`, which holds the shop currencies, is not an
+atlas but **51 separate 256×256 textures in fixed-size blocks**, one per name — no rectangle
+table, one DDS each. `currencies/` comes from it, downscaled to 128. Tell the two apart by the
+number of `DDS ` magics, not by whether the bytes at `0x94` look like a rectangle: in
+`icon_item10` they do, and they are not one.
 
 That settled two long-open things at once. The tactic names here were originally recovered by
 hand and locked in by pixel-matching; the file agrees with all 70 of them and names the 71st, the

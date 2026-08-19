@@ -48,6 +48,10 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "tactics": [{ "id", "string_id", "name", "description", "tp_cost" }],
   "synergies": [{ "id", "string_id", "name", "description", "order", "listed",
                   "members": [ characterId ], "member_names": [ "…" ] }],
+  "currencies": [{ "id", "string_id", "name" }],   // what shop prices are quoted in
+  // hissatsu, aura_hissatsu, auras, equipment and synergies also carry:
+  //   "shops": [{ "shop", "price": [{ "currency", "currency_id", "amount" }],
+  //                       "spirits": [{ "character", "count" }] }]
   "equipment": [{ "id", "string_id", "name", "description", "slot",
                   "stats": { "kick", … } }],
   "locations": [{ "string_id", "name", "kind" }]   // targets of characters[].found_in
@@ -196,6 +200,15 @@ as `legend.style`. What is *not* resolved is which drawing each id is; see
   none of the 4068 text files, so there is no label for them either — do not go looking.
 - **`value` is an f32**, hence `0.699999988079071`. Round at display time.
 - **Passive `value` is present on 1700 of 1716.** The 16 without carry no effect at all.
+- **Shop prices are on the thing being sold, in `shops`.** An entry can be sold in several shops,
+  so it is a list of offers; each offer has either a `price` in currencies or, at the two trade
+  counters (`market_05`, `market_06`), `spirits` — copies of a character handed over instead.
+  Coverage: hissatsu 751/852, equipment 458/468, synergies 35/37 (the 35 listed ones), auras
+  178/443, aura hissatsu 19/152. **Tactics and passives are sold nowhere**, which fits: passives
+  are rolled, never bought. 19 of the 366 spirit lines ask for an NPC and carry `character: null`,
+  because NPCs have no id in these bundles.
+- **Shop names are the texture stem** — `market_01`, `story_06` — because the shops' name ids
+  resolve in no text file that ships. One shop has no texture either and comes out `unnamed_01`.
 - **Two of the 37 synergies are not in the game's list**, `sf01000010` (Snow Prince) and
   `sf01000020` (Temporal Sentinel). They carry `listed: false` and `order: null`; the other 35
   are ranked 1–35, the sp\* family then the sf\*. The test is the game's own: `item_config`

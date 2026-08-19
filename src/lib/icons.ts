@@ -107,6 +107,12 @@ export function synergyIconPath(stringId: string): string {
   return `synergy/icon_synergy_${stringId}.png`;
 }
 
+/* ── Shop currencies (string_id → file) ───────────────────────────────────── */
+
+export function currencyIconPath(stringId: string): string {
+  return `currencies/icon_currency_${stringId}.png`;
+}
+
 /* ── Passives (the game's own sprite names, from the icon_teambuff atlas) ─── */
 
 export function passiveIconPath(sprite: string): string {
