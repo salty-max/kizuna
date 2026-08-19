@@ -44,8 +44,13 @@ downscaled — whenever the app has a use for them.
   has one aura and no badge left over.
 - **`passives/` is half-mapped now.** See [Passive icons](#passive-icons): the bundles say which
   icon each passive uses and what that icon means, but not yet which of these pictures it is.
-- **`synergy/` covers 35 of the 37 synergies.** `sf01000010` and `sf01000020` have no sprite in
-  `icon_synergy` under any name.
+- **`synergy/` covers 35 of the 37 synergies, and that is the complete set.** `sf01000010` and
+  `sf01000020` have no sprite under their name in any of the game's 43 icon atlases — because the
+  game does not list them: they carry `listed: false` in the bundles, from `item_config` column 4,
+  which holds a slot number for the 35 shown and 0 for these two. Filter on `listed` and there is
+  nothing missing. (`icon_synergy` also holds six sprites named `icon_synergy01_01`…`02_03`, art
+  from before the string-id naming; three of them are earlier versions of icons that now live
+  under `sp01001`, `sf01001` and `sp03002`.)
 
 ## Passive icons
 

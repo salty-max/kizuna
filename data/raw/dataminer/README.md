@@ -46,7 +46,7 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
                  "icon", "icon_label", "build",
                  "tiers": [{ "family", "tier" }] }],
   "tactics": [{ "id", "string_id", "name", "description", "tp_cost" }],
-  "synergies": [{ "id", "string_id", "name", "description",
+  "synergies": [{ "id", "string_id", "name", "description", "order", "listed",
                   "members": [ characterId ], "member_names": [ "…" ] }],
   "equipment": [{ "id", "string_id", "name", "description", "slot",
                   "stats": { "kick", … } }],
@@ -196,6 +196,13 @@ as `legend.style`. What is *not* resolved is which drawing each id is; see
   none of the 4068 text files, so there is no label for them either — do not go looking.
 - **`value` is an f32**, hence `0.699999988079071`. Round at display time.
 - **Passive `value` is present on 1700 of 1716.** The 16 without carry no effect at all.
+- **Two of the 37 synergies are not in the game's list**, `sf01000010` (Snow Prince) and
+  `sf01000020` (Temporal Sentinel). They carry `listed: false` and `order: null`; the other 35
+  are ranked 1–35, the sp\* family then the sf\*. The test is the game's own: `item_config`
+  column 4 holds 7601–7635 for the listed ones, in exactly that order, and 0 for these two. They
+  are leftovers from the launch id scheme — the long form the first characters use
+  (`c01000010`) — and they are exactly the two with no icon in any of the game's 43 atlases.
+  **Filter on `listed` before rendering a synergy list.**
 - **Passive `icon` is present on 1630 of 1716**, and `build` on 816. The same 16 effectless
   passives account for part of the gap; the other 70 have an effect the game gives no icon.
   `buff_icon` is a *different* field kept from upstream — a per-passive override used by 108 rows
