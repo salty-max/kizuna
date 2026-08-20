@@ -62,6 +62,13 @@ Confirmed against how the game presents it: each player ships with five passives
 rarity, plus a custom slot unlocked at level 50. So the most a tool can offer is the candidate
 pool for a style and growth pattern. Stop looking for a per-character table.
 
+**The custom slot is farmed from matches, and that side is now extracted.**
+`character/team_passive_lot_table_config` holds 129 real pools of five passives each, covering
+109 of the 1716; they carry `droppable` and `drop_pools` in the bundles. The one thing missing is
+which opponent uses which pool: the 132 pool ids occur in exactly one file in the extraction,
+their own, checked as raw `u32` across all 5863 configs, and nothing in gamedata hashes to them.
+That selector is in the executable, which ships packed. Do not spend another pass looking.
+
 ## Open, in the order worth attacking
 
 1. **`<VALUE>` for team passives.** Solved for the 1716 passives here, via the `REF_EFFECT` sub row

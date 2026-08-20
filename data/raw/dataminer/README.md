@@ -43,8 +43,9 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "aura_hissatsu": [ … ],
   "auras": [{ "id", "string_id", "name", "description", "skill_id", "element", "type" }],
   "passives": [{ "id", "string_id", "name", "value", "category",
-                 "icon", "icon_label", "build",
+                 "icon", "icon_label", "build", "droppable", "drop_pools",
                  "tiers": [{ "family", "tier" }] }],
+  "passive_drop_pools": [ [ passiveId, … ] ],      // 129 pools of 5, one per opponent
   "tactics": [{ "id", "string_id", "name", "description", "tp_cost" }],
   "synergies": [{ "id", "string_id", "name", "description", "order", "listed",
                   "members": [ characterId ], "member_names": [ "…" ] }],
@@ -79,6 +80,20 @@ all; the rest are the custom ones farmed from Hero-tier matches and assigned by 
 So a build tool can offer the candidate pool for a given style and growth pattern, but nothing
 can tell you a specific player's passives, because the game does not know either until the copy
 is rolled.
+
+The other half of that story is now in the data too: **the custom passive is farmed from matches,
+and `character/team_passive_lot_table_config` says which ones can drop.** 132 pools, 653 rows,
+114 distinct passives — all base ids, never the `_NN` rarity variants, which fits, since the match
+drops the passive and its tier follows the match's rarity. Three of the pools are samples (the
+only ones carrying real weights and rarity gates); the 129 that remain are flat, five passives
+each at weight 1, and between them they cover **109 of the 1716 passives**. Those carry
+`droppable: true` and `drop_pools`, the number of pools they appear in — the closest thing to how
+easy one is to farm, from 1 up to 26.
+
+What is *not* in the data is which opponent uses which pool. The 132 pool ids appear in exactly
+one file in the whole extraction, their own — checked as raw `u32` across all 5863 configs — and
+no string anywhere in gamedata hashes to any of them. `passive_drop_pools` therefore ships the
+129 pools unlabelled, which still answers "what else drops alongside this one".
 
 It also **closes passive → icon**, which had looked like it was not in the files at all. A
 passive's icon comes from its effect, not from the passive row: 1630 of 1716 resolve, and
