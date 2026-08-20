@@ -45,7 +45,7 @@ Icons for most of this live in [`../icons/`](../icons/README.md).
   "passives": [{ "id", "string_id", "name", "value", "category",
                  "icon", "icon_label", "build", "droppable", "drop_pools",
                  "tiers": [{ "family", "tier" }] }],
-  "passive_drop_pools": [ [ passiveId, … ] ],      // 129 pools of 5, one per opponent
+  "passive_drop_pools": [{ "theme", "passives": [ passiveId ] }],   // 129 pools of 5
   "tactics": [{ "id", "string_id", "name", "description", "tp_cost" }],
   "synergies": [{ "id", "string_id", "name", "description", "order", "listed",
                   "members": [ characterId ], "member_names": [ "…" ] }],
@@ -90,10 +90,19 @@ each at weight 1, and between them they cover **109 of the 1716 passives**. Thos
 `droppable: true` and `drop_pools`, the number of pools they appear in — the closest thing to how
 easy one is to farm, from 1 up to 26.
 
-What is *not* in the data is which opponent uses which pool. The 132 pool ids appear in exactly
-one file in the whole extraction, their own — checked as raw `u32` across all 5863 configs — and
-no string anywhere in gamedata hashes to any of them. `passive_drop_pools` therefore ships the
-129 pools unlabelled, which still answers "what else drops alongside this one".
+**A pool is an opponent, and the pools are strongly themed** — one is all Castle Wall DF, the next
+all Shot AT — so each carries the `icon_label` its five members mostly share. 44 of the 129 are
+`focus_at_df`, 36 `shot_at`, 22 `castle_wall_df`. That is as close to "which opponent" as the data
+gets, and it is enough to say what a passive drops *from*.
+
+What is *not* in the data is the opponent's identity, and it was searched properly before being
+written off. The 132 pool ids are in no other file as a raw `u32` (all 5863 configs); in none of
+the 32 619 base64 condition blobs once decoded — those are stored as literal text, so a byte scan
+alone would have missed them; and nothing hashes to them — not the 429 000 strings in the
+extraction, not the 56 000 archive file names, not team names in any language, not the 765 team
+string ids under any prefix, suffix, case or encoding. Team ids *are* `CRC32(string_id)`, verified
+on several, so the convention holds and these pool names simply do not ship. The selector is in
+`nie.exe`, which is packed.
 
 It also **closes passive → icon**, which had looked like it was not in the files at all. A
 passive's icon comes from its effect, not from the passive row: 1630 of 1716 resolve, and

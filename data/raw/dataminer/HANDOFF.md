@@ -64,10 +64,16 @@ pool for a style and growth pattern. Stop looking for a per-character table.
 
 **The custom slot is farmed from matches, and that side is now extracted.**
 `character/team_passive_lot_table_config` holds 129 real pools of five passives each, covering
-109 of the 1716; they carry `droppable` and `drop_pools` in the bundles. The one thing missing is
-which opponent uses which pool: the 132 pool ids occur in exactly one file in the extraction,
-their own, checked as raw `u32` across all 5863 configs, and nothing in gamedata hashes to them.
-That selector is in the executable, which ships packed. Do not spend another pass looking.
+109 of the 1716; they carry `droppable` and `drop_pools` in the bundles, and each pool carries the
+`icon_label` its members share — the pools are one opponent each and strongly themed, 44 of them
+Focus AT & DF, 36 Shot AT, 22 Castle Wall DF.
+
+The opponent's identity is the one thing missing, and it has been searched to exhaustion: the 132
+pool ids are in no other file as a raw `u32` (all 5863 configs), in none of the 32 619 base64
+condition blobs once decoded, and nothing hashes to them — 429 000 strings from the extraction,
+56 000 archive file names, team names in every language, and the 765 team string ids under every
+prefix, suffix, case and encoding tried. `CRC32(string_id)` *is* the convention for team ids, so
+the pool names simply do not ship. It is in `nie.exe`, packed. **Do not spend another pass.**
 
 ## Open, in the order worth attacking
 
